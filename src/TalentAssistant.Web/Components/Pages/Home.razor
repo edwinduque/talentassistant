@@ -1,0 +1,50 @@
+﻿@page "/"
+@inject BackendApiClient BackendApi
+
+<PageTitle>Overview | Talent Assistant</PageTitle>
+
+<div class="overview">
+    <header class="overview-heading">
+        <p class="eyebrow">Local environment</p>
+        <h1>Talent Assistant</h1>
+        <p class="overview-intro">A technical foundation for local development.</p>
+    </header>
+
+    <section class="status-card" aria-labelledby="api-status-heading">
+        <div class="status-rail" aria-hidden="true"></div>
+        <div class="status-card-content">
+            <p class="eyebrow">Service check</p>
+            <h2 id="api-status-heading">Backend API</h2>
+            <p class="health-result" role="status" aria-live="polite" aria-atomic="true">
+                <span class="health-indicator @(health.IsHealthy ? "health-indicator--healthy" : "health-indicator--unavailable")"
+                      aria-hidden="true"></span>
+                <span>@health.Message</span>
+            </p>
+        </div>
+        <p class="status-protocol">HTTP</p>
+    </section>
+
+    <dl class="foundation-details">
+        <div>
+            <dt>Rendering</dt>
+            <dd>Interactive Server</dd>
+        </div>
+        <div>
+            <dt>API transport</dt>
+            <dd>Typed server-side HTTP client</dd>
+        </div>
+        <div>
+            <dt>Data policy</dt>
+            <dd>Synthetic development data only</dd>
+        </div>
+    </dl>
+</div>
+
+@code {
+    private BackendHealthResult health = new(false, "Checking the API…");
+
+    protected override async Task OnInitializedAsync()
+    {
+        health = await BackendApi.GetHealthAsync();
+    }
+}

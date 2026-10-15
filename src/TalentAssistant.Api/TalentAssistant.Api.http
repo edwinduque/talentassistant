@@ -1,0 +1,11 @@
+@TalentAssistant.Api_HostAddress = http://127.0.0.1:5101
+
+GET {{TalentAssistant.Api_HostAddress}}/health
+Accept: application/json
+
+###
+
+GET {{TalentAssistant.Api_HostAddress}}/health/database
+Accept: application/json
+
+###

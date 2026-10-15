@@ -1,0 +1,36 @@
+@inherits LayoutComponentBase
+
+<div class="app-shell">
+    <a class="skip-link" href="#main-content">Skip to main content</a>
+
+    <header class="masthead">
+        <a class="brand" href="/" aria-label="Talent Assistant home">
+            <span class="brand-mark" aria-hidden="true">TA</span>
+            <span class="brand-name">Talent Assistant</span>
+        </a>
+
+        <nav class="primary-navigation" aria-label="Primary navigation">
+            <NavLink href="" Match="NavLinkMatch.All">Overview</NavLink>
+            <NavLink href="attendance-insights">Attendance insights</NavLink>
+        </nav>
+
+        <p class="environment-label">Local development</p>
+    </header>
+
+    <main class="page-content" id="main-content" tabindex="-1">
+        <article>
+            @Body
+        </article>
+    </main>
+
+    <footer class="site-footer">
+        <span>Technical foundation</span>
+        <span>Local environment · synthetic data</span>
+    </footer>
+</div>
+
+<div id="blazor-error-ui" role="alert" data-nosnippet>
+    <span>An unexpected error occurred.</span>
+    <a href="/">Reload the page</a>
+    <button type="button" class="dismiss" aria-label="Dismiss error">×</button>
+</div>
