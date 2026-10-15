@@ -50,7 +50,7 @@ Aceptación: cambios de aplicación y documentación limitados a SPEC-002; SPEC-
 | ID | Specs | Ruta | Estado | Evidencia / commit |
 |---|---|---|---|---|
 | T1 | S1-S5 | Inline | Completada: documentación HCM-first y SPEC-002 revisable | Sin commit por instrucción del usuario |
-| T2 | S1-S5 | Inline | Needs your decision: implementación y smoke HTTP completados; xUnit sin ejecutar y estrategia/credencial de publicación pendientes | Sin commit |
+| T2 | S1-S5 | Inline | Needs your decision: implementación y smoke HTTP completados; xUnit sin ejecutar | `b37c7c5aa6e2270ad354cab91006b4d1a36ab47f` (bootstrap inicial) |
 
 ## Log
 
@@ -216,3 +216,7 @@ Verificación local: `main` no tiene commits, `origin/main` no está disponible 
 Texto exacto del usuario: “feature-branch-chain (recomendado)”.
 
 Plan local: la rama `feat/hcm-attendance-insight` está creada. Se preparó el snapshot inicial elegible excluyendo `.atl/`: 78 archivos, 5,001 líneas insertadas; `git diff --cached --check` pasó. No se abrirá PR ni se hará merge. El destino autorizado es `https://github.com/edwinduque/talentassistant`; la sesión/credencial para push sigue pendiente y aún no se creó el commit ni se contactó el remoto.
+
+### L12 — Commit de bootstrap local (2026-10-15)
+
+Se creó el commit `b37c7c5aa6e2270ad354cab91006b4d1a36ab47f` (`feat: bootstrap Talent Assistant with HCM attendance insights`) en `feat/hcm-attendance-insight`. Incluye el snapshot inicial de 78 archivos y 5,001 inserciones; `.atl/` quedó fuera y sigue local. El push no se ejecutó porque falta autorización explícita de la sesión/credencial. No se contactó el remoto.
