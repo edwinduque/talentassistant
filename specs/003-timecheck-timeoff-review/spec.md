@@ -140,7 +140,9 @@ El usuario aprobó esta propuesta con «Si continua» el 2026-10-15. La autoriza
 
 ## 12. Verificación de SPEC-003
 
-- El primer intento de `dotnet build TalentAssistant.sln --configuration Debug --no-restore --verbosity minimal` desde el repositorio no llegó a compilar: `global.json` requiere SDK `10.0.402` y el entorno solo tiene `10.0.401`.
-- A petición del usuario se compiló desde `C:\repos`: `dotnet --version` seleccionó `10.0.401`; el build de la solución terminó con 0 advertencias y 0 errores, incluidos los proyectos de pruebas. No se instaló SDK ni se modificó `global.json`; falta repetir con el SDK fijado `10.0.402` para validar esa versión exacta.
+- El entorno solo tenía SDK `10.0.401`, mientras `global.json` fija `10.0.402` con `"rollForward": "disable"`. El primer intento de build desde el repositorio no llegó a compilar por esa selección.
+- El usuario autorizó instalar el SDK fijado. Se instaló `Microsoft.DotNet.SDK.10` versión `10.0.402` vía winget (hash verificado) en `C:\Program Files\dotnet`, junto al `10.0.401`. `global.json` no se modificó.
+- `dotnet --version` desde la raíz del repositorio devuelve ahora `10.0.402`.
+- `dotnet build TalentAssistant.sln --configuration Debug --no-restore --verbosity minimal` ejecutado desde la raíz con el SDK fijado: PASS, 0 advertencias y 0 errores; compiló Domain, Application, Web, Api, Infrastructure y ambos proyectos de pruebas.
 - `dotnet test` y xUnit no se ejecutaron, conforme a la restricción del usuario. Las pruebas nuevas están compiladas, pero su comportamiento no está verificado por ejecución.
-- La aceptación de SPEC-003 queda pendiente de verificación funcional y automatizada; el build exitoso demuestra compilación con `10.0.401`, no que los criterios de aceptación pasen.
+- La aceptación de SPEC-003 sigue pendiente de verificación funcional y automatizada: la compilación con el SDK fijado está verificada, no el comportamiento de los criterios de aceptación.
