@@ -49,7 +49,7 @@ Aceptación: cambios de aplicación y documentación limitados a SPEC-002; SPEC-
 
 | ID | Specs | Ruta | Estado | Evidencia / commit |
 |---|---|---|---|---|
-| T1 | S1-S5 | Inline | Completada: documentación HCM-first y SPEC-002 revisable | Sin commit por instrucción del usuario |
+| T1 | S1-S5 | Inline | Completada: documentación HCM-first y SPEC-002 revisable | `b37c7c5aa6e2270ad354cab91006b4d1a36ab47f` (snapshot inicial) |
 | T2 | S1-S5 | Inline | Needs your decision: implementación y smoke HTTP completados; xUnit sin ejecutar | `b37c7c5aa6e2270ad354cab91006b4d1a36ab47f` (bootstrap inicial) |
 
 ## Log
