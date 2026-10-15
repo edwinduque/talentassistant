@@ -104,4 +104,27 @@ SPEC-002 está aprobada para implementar únicamente el alcance indicado. La imp
 - Los proyectos UnitTests e IntegrationTests contienen pruebas para el caso, pero `dotnet test` no se ejecutó. La restricción conocida del runner se conserva; no se modificaron políticas ni se volvió a investigar ese bloqueo.
 - El adaptador usa fixtures en memoria. No se añadieron tablas, migraciones, dependencias, conexión HCM real ni configuración de entorno.
 
+### Evidencia por criterio de aceptación
+
+Estados: **observado parcialmente** significa que existe evidencia directa para una parte del criterio, no que esté aceptado; **compilado, no ejecutado** significa que el proyecto de pruebas compila pero no se ejecutó; **sin evidencia suficiente** significa que el registro actual no demuestra el criterio.
+
+| Criterio | Evidencia documentada | Estado de evidencia |
+|---|---|---|
+| SPEC-002-AC-001 | Se implementó una fuente sintética en memoria y el smoke HTTP devolvió resultados sintéticos. | Observado parcialmente; no demuestra por sí solo todas las condiciones de reproducibilidad/configuración. |
+| SPEC-002-AC-002 | El smoke interactivo mostró resultado y evidencia HCM; los proyectos de pruebas compilaron. | Observado parcialmente; pruebas compiladas, no ejecutadas. |
+| SPEC-002-AC-003 | El smoke Web mostró resultado/evidencia; el registro no identifica una comprobación completa de todos los elementos de revisión. | Observado parcialmente. |
+| SPEC-002-AC-004 | El smoke Web mostró un contexto TimeOff relacionado. No se registró una prueba ejecutada para contexto nulo o para ausencia de operaciones de escritura/aprobación. | Observado parcialmente; pruebas compiladas, no ejecutadas. |
+| SPEC-002-AC-005 | El puerto `IHcmAttendanceSource` y su adaptador sintético están implementados; el build compiló el proyecto de pruebas. | Sin evidencia suficiente sobre sustitución del adaptador; pruebas compiladas, no ejecutadas. |
+| SPEC-002-AC-006 | Las rutas Web respondieron HTTP 200; no se registró una revisión de referencias que demuestre toda la frontera arquitectónica. | Sin evidencia suficiente para el criterio completo. |
+| SPEC-002-AC-007 | Se observó HTTP 400 para rango inválido. No se documentó una comprobación de fallo de la fuente sin filtración de detalles. | Observado parcialmente. |
+| SPEC-002-AC-008 | El alcance y la implementación documentados usan fixture sintético y excluyen Tasks y motor local de reglas. | Sin evidencia suficiente de una revisión completa de alcance del repositorio. |
+| SPEC-002-AC-009 | El smoke interactivo mostró país, ciudad y zona horaria de la oficina. | Observado parcialmente; no demuestra todas las asociaciones de empleado/oficina. |
+| SPEC-002-AC-010 | Se observó rechazo de `from >= to`; la semántica de fechas por zona horaria está implementada y existen pruebas en el proyecto, pero xUnit no se ejecutó. | Observado parcialmente para rango inválido; límites por zona horaria sin evidencia de ejecución. Pruebas compiladas, no ejecutadas. |
+
+La compilación de los proyectos de pruebas no equivale a ejecución ni permite declarar cobertura aprobada. La evidencia HTTP/Web observada no sustituye las pruebas automatizadas ni demuestra los criterios marcados como parciales o sin evidencia suficiente. No se reintentó ni investigó el bloqueo de xUnit.
+
 Los criterios SPEC-002-AC-001..010 no se declaran todos aprobados: las comprobaciones HTTP observadas no sustituyen las pruebas unitarias/automatizadas pendientes. SPEC-001 y sus decisiones técnicas permanecen intactas.
+
+### Actualización de verificación durante SPEC-003 (2026-10-15)
+
+La compilación PASS con SDK `10.0.402` registrada arriba corresponde a la verificación previa de SPEC-002. Durante el trabajo de SPEC-003, el intento de compilar desde el repositorio falló porque `global.json` requiere `10.0.402` y el entorno solo tiene `10.0.401`. A petición del usuario se compiló después desde `C:\repos`, sin modificar archivos de configuración: `dotnet --version` seleccionó `10.0.401` y `dotnet build TalentAssistant\TalentAssistant.sln --configuration Debug --no-restore --verbosity minimal` terminó con 0 advertencias y 0 errores, incluidos ambos proyectos de pruebas. No se instaló SDK ni se cambió `global.json`. Los tests quedaron compilados, no ejecutados; `dotnet test` no se ejecutó. Esta compilación no sustituye una verificación con el SDK fijado `10.0.402`.

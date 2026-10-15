@@ -10,7 +10,7 @@ Estado inicial: Propuesto. La aprobación del alcance convierte los requisitos s
 |---|---|---|
 | FR-001 | El sistema presentará resúmenes o indicadores derivados de información suministrada por el HCM y mostrará su procedencia cuando corresponda. | Must |
 | FR-002 | El usuario podrá consultar incidencias de marcaje y los datos que el HCM exponga para explicarlas, incluyendo la oficina del empleado y el país y ciudad de cada oficina. | Must |
-| FR-003 | El asistente podrá relacionar información de TimeOff del HCM como contexto de un caso de uso; no gestionará solicitudes ni aprobaciones. | Must |
+| FR-003 | El asistente podrá presentar como contexto de un caso de uso la información de TimeOff que el HCM exponga y relacione; conservará los valores y estados disponibles y no gestionará solicitudes, aprobaciones ni reglas de ausencias. | Must |
 | FR-004 | El asistente podrá consultar información de Tasks del HCM en casos de uso posteriores aprobados; no gestionará su ciclo de vida. | Must |
 | FR-005 | Los casos de uso permitirán aplicar filtros definidos por su especificación y contrato; en la vertical de marcajes, `from` es inclusivo y `to` exclusivo en la zona horaria de la oficina. | Must |
 | FR-006 | El sistema dispondrá de respuestas sintéticas reproducibles que representen los contratos del HCM, no módulos completos del HCM. | Must |
@@ -47,6 +47,14 @@ La integración debe permitir consumir la evaluación del HCM y la evidencia nec
 - Notificación de errores a las 09:00 del siguiente día hábil; zona horaria, calendario, disparadores y destinatario pendientes.
 
 El HCM aplica estas reglas o expone sus resultados. No se implementará un segundo motor de reglas en Talent Assistant. No se fijan reglas adicionales de jornada, calendarios, festivos ni ausencias.
+
+### Dominio TimeOff propiedad del HCM
+
+TimeOff representa ausencias laborales solicitadas por los empleados y sujetas al flujo de aprobación del HCM. Puede incluir vacaciones, cumpleaños, calamidad, maternidad y otros tipos configurados por la empresa; estos ejemplos no forman un catálogo exhaustivo. Los tipos, sus reglas y los estados disponibles pertenecen al HCM.
+
+Talent Assistant conservará y presentará el tipo, estado, referencia, fechas, duración y unidad únicamente cuando la fuente los proporcione. No inventará estados ni semánticas ausentes del contrato. Una solicitud pendiente, rechazada o cancelada no se presentará como una ausencia aprobada; un estado desconocido se conservará sin reclasificarlo.
+
+La duración, las unidades de cómputo, los días hábiles, los festivos y demás políticas pueden variar por país y tipo de ausencia. Son responsabilidad del HCM: Talent Assistant no calculará ni generalizará estas reglas. Una relación TimeCheck-TimeOff solo se presentará cuando la fuente la declare; la coincidencia de fechas no crea una relación ni demuestra que la ausencia justifique la incidencia. Un contexto relacionado nulo significa que la fuente no lo proporcionó, no que no existan ausencias.
 
 ## Trazabilidad
 

@@ -43,7 +43,11 @@ public sealed class SyntheticHcmAttendanceSource : IHcmAttendanceSource
                 "timeoff-demo-madrid",
                 new DateOnly(2026, 10, 15),
                 new DateOnly(2026, 10, 16),
-                "The synthetic HCM related this TimeOff context to the attendance record.")),
+                "The synthetic HCM related this TimeOff context to the attendance record.",
+                "Vacation",
+                "Approved",
+                "1",
+                "workday")),
         new HcmAttendanceInsight(
             "incident-demo-tokyo-start",
             new HcmEmployeeReference(
@@ -74,7 +78,13 @@ public sealed class SyntheticHcmAttendanceSource : IHcmAttendanceSource
                 new DateTimeOffset(2026, 10, 15, 0, 15, 0, TimeSpan.Zero),
                 ReadOnlyList("The HCM supplied the scheduled shift and its punch events."),
                 ReadOnlyList<string>()),
-            null),
+            new HcmTimeOffContext(
+                "timeoff-demo-tokyo-birthday",
+                new DateOnly(2026, 10, 15),
+                new DateOnly(2026, 10, 16),
+                "The synthetic HCM related this pending birthday request to the attendance record.",
+                "Birthday",
+                "Pending")),
         new HcmAttendanceInsight(
             "incident-demo-madrid-next-day",
             new HcmEmployeeReference(
@@ -102,7 +112,75 @@ public sealed class SyntheticHcmAttendanceSource : IHcmAttendanceSource
                 new DateTimeOffset(2026, 10, 15, 22, 5, 0, TimeSpan.Zero),
                 ReadOnlyList("The HCM supplied the scheduled shift and its punch events."),
                 ReadOnlyList("Review the originating HCM record.")),
-            null)
+            null),
+        new HcmAttendanceInsight(
+            "incident-demo-madrid-rejected",
+            new HcmEmployeeReference(
+                "employee-demo-madrid-004",
+                "Synthetic employee 004",
+                ReadOnlyList("office-demo-madrid")),
+            new HcmOfficeReference(
+                "office-demo-madrid",
+                "Spain",
+                "Madrid",
+                "Europe/Madrid"),
+            new DateTimeOffset(2026, 10, 15, 22, 10, 0, TimeSpan.Zero),
+            new HcmWorkSchedule(
+                new DateOnly(2026, 10, 16),
+                new TimeOnly(9, 0),
+                new TimeOnly(17, 0)),
+            ReadOnlyList(
+                new HcmPunch(
+                    new DateTimeOffset(2026, 10, 16, 7, 5, 0, TimeSpan.Zero),
+                    "Synthetic HCM punch event")),
+            new HcmRuleFinding(
+                "HCM-SYN-RULE-004",
+                true,
+                "The synthetic HCM reports an attendance finding for review.",
+                new DateTimeOffset(2026, 10, 16, 7, 10, 0, TimeSpan.Zero),
+                ReadOnlyList("The HCM supplied the scheduled shift and its punch events."),
+                ReadOnlyList("Review the originating HCM record.")),
+            new HcmTimeOffContext(
+                "timeoff-demo-madrid-rejected",
+                new DateOnly(2026, 10, 16),
+                new DateOnly(2026, 10, 17),
+                "The synthetic HCM related this rejected TimeOff request to the attendance record.",
+                "Calamity",
+                "Rejected")),
+        new HcmAttendanceInsight(
+            "incident-demo-tokyo-cancelled",
+            new HcmEmployeeReference(
+                "employee-demo-tokyo-002",
+                "Synthetic employee 005",
+                ReadOnlyList("office-demo-tokyo")),
+            new HcmOfficeReference(
+                "office-demo-tokyo",
+                "Japan",
+                "Tokyo",
+                "Asia/Tokyo"),
+            new DateTimeOffset(2026, 10, 16, 15, 10, 0, TimeSpan.Zero),
+            new HcmWorkSchedule(
+                new DateOnly(2026, 10, 17),
+                new TimeOnly(9, 0),
+                new TimeOnly(18, 0)),
+            ReadOnlyList(
+                new HcmPunch(
+                    new DateTimeOffset(2026, 10, 17, 0, 10, 0, TimeSpan.Zero),
+                    "Synthetic HCM punch event")),
+            new HcmRuleFinding(
+                "HCM-SYN-RULE-005",
+                true,
+                "The synthetic HCM reports an attendance finding for review.",
+                new DateTimeOffset(2026, 10, 17, 0, 15, 0, TimeSpan.Zero),
+                ReadOnlyList("The HCM supplied the scheduled shift and its punch events."),
+                ReadOnlyList("Review the originating HCM record.")),
+            new HcmTimeOffContext(
+                "timeoff-demo-tokyo-cancelled",
+                new DateOnly(2026, 10, 17),
+                new DateOnly(2026, 10, 18),
+                "The synthetic HCM related this cancelled TimeOff request to the attendance record.",
+                "Maternity leave",
+                "Cancelled"))
         });
 
     public Task<IReadOnlyList<HcmAttendanceInsight>> GetAttendanceInsightsAsync(

@@ -179,10 +179,46 @@
                                 <section class="timeoff-context" aria-label="Related TimeOff context">
                                     <h4>Related TimeOff context</h4>
                                     <p>@insight.RelatedTimeOff.Summary</p>
+                                    <dl class="insight-facts">
+                                        <div>
+                                            <dt>Type</dt>
+                                            <dd>@FormatSourceValue(insight.RelatedTimeOff.Type)</dd>
+                                        </div>
+                                        <div>
+                                            <dt>Status supplied by the HCM</dt>
+                                            <dd>@FormatSourceValue(insight.RelatedTimeOff.Status)</dd>
+                                        </div>
+                                        <div>
+                                            <dt>Reference</dt>
+                                            <dd>@insight.RelatedTimeOff.Reference</dd>
+                                        </div>
+                                        <div>
+                                            <dt>Start date value supplied</dt>
+                                            <dd>@insight.RelatedTimeOff.StartsOn.ToString("yyyy-MM-dd", CultureInfo.InvariantCulture)</dd>
+                                        </div>
+                                        <div>
+                                            <dt>End date value supplied</dt>
+                                            <dd>@insight.RelatedTimeOff.EndsBefore.ToString("yyyy-MM-dd", CultureInfo.InvariantCulture)</dd>
+                                        </div>
+                                        <div>
+                                            <dt>Duration</dt>
+                                            <dd>@FormatSourceValue(insight.RelatedTimeOff.Duration)</dd>
+                                        </div>
+                                        <div>
+                                            <dt>Duration unit</dt>
+                                            <dd>@FormatSourceValue(insight.RelatedTimeOff.DurationUnit)</dd>
+                                        </div>
+                                    </dl>
                                     <p class="context-reference">
-                                        @insight.RelatedTimeOff.Reference ·
-                                        @insight.RelatedTimeOff.StartsOn.ToString("yyyy-MM-dd", CultureInfo.InvariantCulture)–@insight.RelatedTimeOff.EndsBefore.ToString("yyyy-MM-dd", CultureInfo.InvariantCulture)
+                                        The source-declared relationship does not establish that this absence explains the attendance finding.
                                     </p>
+                                </section>
+                            }
+                            else
+                            {
+                                <section class="timeoff-context" aria-label="Related TimeOff context">
+                                    <h4>Related TimeOff context</h4>
+                                    <p>The HCM did not provide related TimeOff context for this attendance finding.</p>
                                 </section>
                             }
                         </article>
@@ -256,6 +292,9 @@
         return TimeZoneInfo.ConvertTime(utcTime, officeTimeZone)
             .ToString("yyyy-MM-dd HH:mm zzz", CultureInfo.InvariantCulture);
     }
+
+    private static string FormatSourceValue(string? value) =>
+        string.IsNullOrWhiteSpace(value) ? "Not provided by the HCM" : value;
 
     private sealed class AttendanceFilterModel
     {

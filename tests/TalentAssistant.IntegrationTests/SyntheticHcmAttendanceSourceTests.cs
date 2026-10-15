@@ -21,6 +21,35 @@ public sealed class SyntheticHcmAttendanceSourceTests
         Assert.DoesNotContain(
             result,
             item => item.IncidentId == "incident-demo-madrid-next-day");
+        Assert.Equal("Vacation", result[0].RelatedTimeOff?.Type);
+        Assert.Equal("Approved", result[0].RelatedTimeOff?.Status);
+        Assert.Equal("Birthday", result[1].RelatedTimeOff?.Type);
+        Assert.Equal("Pending", result[1].RelatedTimeOff?.Status);
+    }
+
+    [Fact]
+    public async Task PreservesUnlinkedRejectedAndCancelledTimeOffContexts()
+    {
+        var source = new SyntheticHcmAttendanceSource();
+        var query = new AttendanceInsightQuery(
+            new DateOnly(2026, 10, 16),
+            new DateOnly(2026, 10, 18));
+
+        var result = await source.GetAttendanceInsightsAsync(query);
+
+        Assert.Equal(
+            new[]
+            {
+                "incident-demo-madrid-next-day",
+                "incident-demo-madrid-rejected",
+                "incident-demo-tokyo-cancelled"
+            },
+            result.Select(item => item.IncidentId));
+        Assert.Null(result[0].RelatedTimeOff);
+        Assert.Equal("Calamity", result[1].RelatedTimeOff?.Type);
+        Assert.Equal("Rejected", result[1].RelatedTimeOff?.Status);
+        Assert.Equal("Maternity leave", result[2].RelatedTimeOff?.Type);
+        Assert.Equal("Cancelled", result[2].RelatedTimeOff?.Status);
     }
 
     [Fact]

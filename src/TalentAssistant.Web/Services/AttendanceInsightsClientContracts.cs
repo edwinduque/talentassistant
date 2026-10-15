@@ -47,4 +47,8 @@ public sealed record HcmTimeOffContextResponse(
     string Reference,
     DateOnly StartsOn,
     DateOnly EndsBefore,
-    string Summary);
+    string Summary,
+    string? Type = null,
+    string? Status = null,
+    string? Duration = null,
+    string? DurationUnit = null);
