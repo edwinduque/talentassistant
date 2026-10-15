@@ -230,3 +230,11 @@ Texto exacto del usuario: “Sesión GitHub CLI”.
 - `099aa7f docs: record HCM design work-unit commit`.
 - `e06fb94 docs: record authorized GitHub push session`.
 - Push explícito de `feat/hcm-attendance-insight` a `https://github.com/edwinduque/talentassistant` devolvió `Everything up-to-date`; no se transfirieron objetos nuevos. No se usó `--force`, no se abrió PR ni se hizo merge. `.atl/` permanece local y sin seguimiento.
+
+### L14 — Creación de `main` en el remoto (2026-10-15)
+
+Texto exacto del usuario: “crea merge a main”, luego “si”.
+
+Verificación previa: `git branch -a` mostraba solo `feat/hcm-attendance-insight`; `git rev-parse --verify main` falló con código `128`; `git ls-remote --heads` del remoto no reportaba `refs/heads/main`. No existía ninguna rama `main`, por lo que no había historial con el cual divergir ni segundo padre para un commit de merge.
+
+Operación autorizada: crear `main` apuntando a `7a55728471e4322e5587485416cdc66b47395add` y publicarla con la sesión GitHub CLI de `edwinduque`. Git respondió `* [new branch] main -> main`. Verificación posterior: `refs/heads/main` y `refs/heads/feat/hcm-attendance-insight` apuntan ambas a `7a55728` local y remotamente. Fue una creación de rama (fast-forward), no un merge; no se usó `--force`, no se abrió PR ni se hizo merge. `.atl/` permanece excluido.
