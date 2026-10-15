@@ -39,7 +39,7 @@ Aceptación: SPEC-002 define la vertical autorizada; implementación solo dentro
 
 ### S5 — Preservar la fundación y los límites aprobados
 
-Alcance: SPEC-001 y su fundación no se modifican. Se permite únicamente el código necesario para SPEC-002; no se cambia infraestructura de entorno, dependencias, configuración de seguridad, políticas de Windows ni runner. No conectar un HCM real. El usuario autorizó un commit inicial y push al destino especificado, excluyendo `.atl/`; el push requiere aún autorización explícita de credencial/sesión.
+Alcance: SPEC-001 y su fundación no se modifican. Se permite únicamente el código necesario para SPEC-002; no se cambia infraestructura de entorno, dependencias, configuración de seguridad, políticas de Windows ni runner. No conectar un HCM real. El usuario autorizó un commit inicial y push al destino especificado, excluyendo `.atl/`, mediante la sesión GitHub CLI autorizada para esta publicación.
 
 Texto exacto del usuario: “No reabras SPEC-001 ni modifiques la fundación técnica ya validada.” También: “No implementes nada hasta que yo revise y apruebe la propuesta.” La autorización posterior de commit/push solo aplica al primer envío explícito y no permite usar credenciales ambientales sin autorización.
 
@@ -216,6 +216,12 @@ Verificación local: `main` no tiene commits, `origin/main` no está disponible 
 Texto exacto del usuario: “feature-branch-chain (recomendado)”.
 
 Plan local: la rama `feat/hcm-attendance-insight` está creada. Se preparó el snapshot inicial elegible excluyendo `.atl/`: 78 archivos, 5,001 líneas insertadas; `git diff --cached --check` pasó. No se abrirá PR ni se hará merge. El destino autorizado es `https://github.com/edwinduque/talentassistant`; la sesión/credencial para push sigue pendiente y aún no se creó el commit ni se contactó el remoto.
+
+### L12 — Autorización de sesión para push (2026-10-15)
+
+Texto exacto del usuario: “Sesión GitHub CLI”.
+
+El usuario autorizó usar únicamente la sesión GitHub CLI de `edwinduque` para empujar la rama local `feat/hcm-attendance-insight` al destino `https://github.com/edwinduque/talentassistant`. No se autorizó consultar o reutilizar otra sesión, inspeccionar otros canales de autenticación, abrir PR ni hacer merge.
 
 ### L12 — Commit de bootstrap local (2026-10-15)
 
