@@ -205,24 +205,28 @@ si
 
 `https://github.com/edwinduque/talentassistant`
 
-El usuario autorizó crear un commit inicial del proyecto y subirlo a ese destino. Confirmó excluir `.atl/` porque el índice generado contiene rutas absolutas del perfil local. El repositorio local no tiene commits y el resto del proyecto aparece sin seguimiento; no se ha hecho stage, commit, consulta remota ni push. Falta autorización explícita de la sesión/credencial para el push.
+El usuario autorizó crear un commit inicial del proyecto y subirlo a ese destino. Confirmó excluir `.atl/` porque el índice generado contiene rutas absolutas del perfil local. En ese momento el repositorio no tenía commits y los archivos estaban sin seguimiento.
 
 ### L10 — Preparación local de publicación (2026-10-15)
 
-Verificación local: `main` no tiene commits, `origin/main` no está disponible como upstream y el proyecto permanece sin seguimiento. Excluyendo `.atl/`, el inventario contiene 74 archivos de texto y una estimación de 3,851 líneas authored; el estado supera el umbral aproximado de 400 líneas de la estrategia ask-on-risk. Antes del siguiente commit debe aprobarse una estrategia de cadena (`stacked-to-main` o `feature-branch-chain`). No se contactó el remoto, no se usaron credenciales, no se hizo stage, commit ni push. El escaneo local encontró solo placeholders vacíos y el centinela sintético del script, no credenciales reales.
+La rama local `main` no tenía commits y `origin/main` no estaba disponible. El inventario inicial excluyendo `.atl/` estimó 74 archivos de texto y 3,851 líneas; el estado superaba el umbral aproximado de 400 líneas de ask-on-risk. La búsqueda local encontró solo placeholders vacíos y el centinela sintético del script, no credenciales reales.
 
 ### L11 — Estrategia de publicación inicial (2026-10-15)
 
 Texto exacto del usuario: “feature-branch-chain (recomendado)”.
 
-Plan local: la rama `feat/hcm-attendance-insight` está creada. Se preparó el snapshot inicial elegible excluyendo `.atl/`: 78 archivos, 5,001 líneas insertadas; `git diff --cached --check` pasó. No se abrirá PR ni se hará merge. El destino autorizado es `https://github.com/edwinduque/talentassistant`; la sesión/credencial para push sigue pendiente y aún no se creó el commit ni se contactó el remoto.
+Se creó la rama `feat/hcm-attendance-insight`. El snapshot inicial elegible excluyendo `.atl/` contenía 78 archivos y 5,001 líneas insertadas; `git diff --cached --check` pasó. No se autorizó PR ni merge.
 
 ### L12 — Autorización de sesión para push (2026-10-15)
 
 Texto exacto del usuario: “Sesión GitHub CLI”.
 
-El usuario autorizó usar únicamente la sesión GitHub CLI de `edwinduque` para empujar la rama local `feat/hcm-attendance-insight` al destino `https://github.com/edwinduque/talentassistant`. No se autorizó consultar o reutilizar otra sesión, inspeccionar otros canales de autenticación, abrir PR ni hacer merge.
+`gh auth status --active --hostname github.com` confirmó la sesión activa `edwinduque`. Se autorizó usar únicamente esa sesión y el helper de Git configurado solo para este comando y `github.com`.
 
-### L12 — Commit de bootstrap local (2026-10-15)
+### L13 — Commit inicial y push (2026-10-15)
 
-Se creó el commit `b37c7c5aa6e2270ad354cab91006b4d1a36ab47f` (`feat: bootstrap Talent Assistant with HCM attendance insights`) en `feat/hcm-attendance-insight`. Incluye el snapshot inicial de 78 archivos y 5,001 inserciones; `.atl/` quedó fuera y sigue local. El push no se ejecutó porque falta autorización explícita de la sesión/credencial. No se contactó el remoto.
+- Commit raíz `b37c7c5aa6e2270ad354cab91006b4d1a36ab47f`: `feat: bootstrap Talent Assistant with HCM attendance insights` (78 archivos, 5,001 inserciones, `.atl/` excluido).
+- `a1ab7e0 docs: record initial bootstrap commit`.
+- `099aa7f docs: record HCM design work-unit commit`.
+- `e06fb94 docs: record authorized GitHub push session`.
+- Push explícito de `feat/hcm-attendance-insight` a `https://github.com/edwinduque/talentassistant` devolvió `Everything up-to-date`; no se transfirieron objetos nuevos. No se usó `--force`, no se abrió PR ni se hizo merge. `.atl/` permanece local y sin seguimiento.
