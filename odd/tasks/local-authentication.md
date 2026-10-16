@@ -49,7 +49,7 @@ Risk: item 2 (autenticación, credenciales y permisos). T1 y T2 requieren verifi
 
 | ID | Specs | Ruta | Estado | Evidencia / commit |
 |---|---|---|---|---|
-| T1 | S1, S3, S4 | Inline | Implementada; build, suite 21/21 y smoke login/401/token/logout pasan; verificación independiente pendiente | Commit pendiente en `feature-branch-chain` |
+| T1 | S1, S3, S4 | Inline | Implementada; suite 21/21, smoke login/401/token/logout y verificación independiente sin bloqueos (5/5 claims MET) | `2e89c719ae4e6c18c45b662801b8fcc0284e3783` + snapshot `ab715c16bf62786194eb1126b45b98f95db5ca01` |
 | T2 | S2, S4 | Inline | Planificada | Depende de T1 |
 | T3 | S3, S5 | Inline | Planificada | Depende de T1/T2 |
 
@@ -80,3 +80,7 @@ Hallazgo y corrección: `AddIdentity` instala la cookie Identity como esquema de
 Evidencia: build 0 warnings/0 errores; prueba enfocada 9/9; suite completa 21/21 exit 0; inicializador aplicó la migración de Identity en `talentassistant_dev` y sembró un usuario (dataset de asistencia intacto, 1 fila); smoke login/logout/me/token contra API host en puerto efímero. Red de pruebas: 5 unit + 16 integración.
 
 Risk: item 2 (autenticación y credenciales: política de contraseñas heredada de Identity, bloqueo y manejo de secretos).
+
+### L5 — Verificación independiente de T1 (2026-10-16)
+
+Verificador independiente sin bloqueos, 5/5 claims MET en copia scratch y puertos libres (5107-5109), sin tocar el stack principal: diff acotado (sin cambios en Domain/Application ni referencias a Identity), migración aditiva verificada con dumps byte-idénticos del dev DB, posture de seguridad (clave vacía en repo, fail-fast antes de abrir puerto, 401 idéntico en los tres casos de login inválido, hash solo, 0 secretos en logs), comportamiento completo (initializer idempotente ×2, insights 401/200 con 5 fixtures byte-idénticas a la respuesta baseline, token alterado 401, logout 200) y suite 21/21 leída desde el workspace. Advisory: la política Application Control bloquea la carga de `TalentAssistant.Domain.dll` desde rutas temp del scratch (0x800711C7); no es defecto del código. Advisory: el reto 401 del framework lleva cuerpo vacío frente al problem JSON del login fallido. El token sigue válido hasta expirar tras logout (compromiso documentado en ADR-0007).

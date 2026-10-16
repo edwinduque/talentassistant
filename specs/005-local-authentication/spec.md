@@ -1,7 +1,7 @@
 # SPEC-005 — Autenticación local para Web y API
 
 - **Estado:** Propuesto para aprobación de planificación (2026-10-16).
-- **Implementación:** Ninguna; todavía no hay código asociado.
+- **Implementación:** T1 implementada y verificada (Identity + login/JWT en la API); T2 (Web) y T3 (documentación) pendientes.
 - **Requisitos relacionados (propuestos):** FR-021, FR-022 y NFR-018. Relacionados existentes: FR-007, FR-009, FR-010; NFR-001, NFR-004, NFR-006, NFR-007.
 - **Criterios relacionados (propuestos):** AC-016, AC-017, AC-018.
 - **Decisión arquitectónica:** ADR-0007 propuesto.
