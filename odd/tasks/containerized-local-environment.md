@@ -47,7 +47,7 @@ Risk: item 1 (migración/seed sobre persistencia), item 5 (entorno de ejecución
 
 | ID | Specs | Ruta | Estado | Evidencia / commit |
 |---|---|---|---|---|
-| T1 | S2, S4, S5 | Inline | Implementada; build, smoke y verificador pasan; suite completa 11/12, limitación aceptada para continuar | `4b82fe2baa5adddcc90cb0b1e9ad133256ef218d` |
+| T1 | S2, S4, S5 | Inline | Implementada; build, smoke y verificador pasan; suite completa 12/12 | `4b82fe2baa5adddcc90cb0b1e9ad133256ef218d` |
 | T2 | S1, S2, S4 | Inline | Implementada; imágenes, Compose, seed y smoke HTTP/Web pasan; verificador independiente sin bloqueos | `bcfec3a26452ee5729a0c804ab7a28f488c815c0` |
 | T3 | S3, S4, S5 | Inline | Implementada; guía, README y referencias SDD actualizados; comprobaciones estructurales y Compose pasan | `b910561060e8fe33860934768c5a4da04d6821d4` |
 
@@ -154,3 +154,15 @@ Risk: none (solo documentación pasiva; no cambió código ni configuración eje
 ### L22 — Work-unit commit de T3 (2026-10-16)
 
 Commit: `b910561060e8fe33860934768c5a4da04d6821d4` — `docs: document Docker Compose local workflow`. Incluye guía local, README, estado ADR/registro y evidencia SPEC-004. Commit local en `feat/containerized-local-environment`, sin push.
+
+### L23 — Resolución de los faltantes de verificación (2026-10-16)
+
+Texto exacto del usuario: “solucionemos los faltantes e indicame cuando puedo seguir con los requerimientos”.
+
+Docker Desktop estaba apagado; se reinició y MySQL volvió a estar healthy conservando el volumen. Se generó la migración `20261016174341_InitialCreate` del contexto de pruebas (aditiva: solo crea `Records` en `talentassistant_tests`). El comando documentado con `--startup-project Api` no servía: EF Core localiza el DLL del contexto en la salida del startup project y la API no referencia el proyecto de pruebas; el comando correcto usa el propio proyecto de pruebas como startup y quedó corregido en `docs/development/local-setup.md`.
+
+El primer intento de `MySqlPersistenceTests` falló con `Access denied for user ... using method 'caching_sha2_password'` contra un MySQL recién reiniciado (caché de autenticación fría). Con `AllowPublicKeyRetrieval=true` en la cadena de pruebas la autenticación completa funciona también en servidor frío.
+
+Evidencia observada: prueba enfocada 1/1; suite completa `dotnet test TalentAssistant.sln --configuration Debug --no-restore` → 12/12 (7/7 integration, 5/5 unit), exit code 0; repetido en MySQL reiniciado → verde. `talentassistant_tests` contiene solo `Records` y `__EFMigrationsHistory`, sin la semilla demo de `talentassistant_dev`. Se añadió `.atl/` a `.git/info/exclude` (exclusión local, sin tocar `.gitignore`).
+
+Risk: item 1 (migración aditiva del contexto de pruebas sobre `talentassistant_tests`; no modifica datos existentes; rollback = eliminar los tres ficheros de migración y `Records` en esa base).

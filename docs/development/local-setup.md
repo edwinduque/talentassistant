@@ -153,17 +153,21 @@ dotnet build TalentAssistant.sln --configuration Debug
 dotnet test tests/TalentAssistant.UnitTests/TalentAssistant.UnitTests.csproj
 ```
 
-Las pruebas unitarias no requieren MySQL. Las pruebas de integración usan exclusivamente la base `talentassistant_tests`; no usan EF Core InMemory. El modelo de prueba requiere una migración propia, separada del esquema de la aplicación. **No ejecutes la prueba de integración hasta generar y aplicar esa migración.** La generación requiere cargar el ensamblado `TalentAssistant.IntegrationTests`; en equipos donde Application Control bloquee esa carga, la migración y la prueba quedan pendientes hasta la autorización de seguridad correspondiente.
+Las pruebas unitarias no requieren MySQL. Las pruebas de integración usan exclusivamente la base `talentassistant_tests`; no usan EF Core InMemory. El modelo de prueba `PersistenceProbeContext` tiene su propia migración versionada en `tests/TalentAssistant.IntegrationTests/Persistence/Migrations/`, separada del esquema de la aplicación, y la prueba la aplica automáticamente con `MigrateAsync`.
 
-Después de que la política aprobada permita esa carga, configura ambas cadenas (la de desarrollo de API mediante User Secrets y la de pruebas mediante esta variable), y genera/aplica la migración del contexto de prueba:
+Configura la cadena de la base de pruebas y ejecuta la suite completa:
 
 ```powershell
-$env:ConnectionStrings__TalentAssistantTests = "Server=127.0.0.1;Port=3306;Database=talentassistant_tests;User Id=talentassistant_app;Password=<MYSQL_PASSWORD>;"
-dotnet ef migrations add InitialCreate --project tests/TalentAssistant.IntegrationTests/TalentAssistant.IntegrationTests.csproj --startup-project src/TalentAssistant.Api/TalentAssistant.Api.csproj --context PersistenceProbeContext --output-dir Persistence/Migrations
-dotnet ef database update --project tests/TalentAssistant.IntegrationTests/TalentAssistant.IntegrationTests.csproj --startup-project src/TalentAssistant.Api/TalentAssistant.Api.csproj --context PersistenceProbeContext
-dotnet test tests/TalentAssistant.IntegrationTests/TalentAssistant.IntegrationTests.csproj
+$env:ConnectionStrings__TalentAssistantTests = "Server=127.0.0.1;Port=3306;Database=talentassistant_tests;User Id=talentassistant_app;Password=<MYSQL_PASSWORD>;AllowPublicKeyRetrieval=true;"
+dotnet test TalentAssistant.sln --configuration Debug --no-restore
 ```
 
-El contexto y su `IDesignTimeDbContextFactory` residen en el proyecto de integración, que es el proyecto de migraciones; API es el startup project ejecutable. EF Core busca la factory en el proyecto del contexto y la usa para creación de diseño. Este comando aún no se ejecutó en este checkout: su verificación requiere que Application Control permita cargar el ensamblado `TalentAssistant.IntegrationTests`. La ejecución de ensamblados xUnit puede estar sujeta a las políticas del equipo; no se deben desactivar ni eludir. La prueba y las migraciones de integración siguen pendientes hasta la autorización de seguridad correspondiente.
+`AllowPublicKeyRetrieval=true` permite completar la autenticación `caching_sha2_password` cuando MySQL acaba de reiniciar y la conexión loopback no negocia TLS; sin esa opción, el primer intento desde el host devuelve `Access denied for user ... (using password: YES)`. El puerto MySQL solo está publicado en `127.0.0.1`. La ejecución de ensamblados xUnit puede estar sujeta a las políticas del equipo; no se deben desactivar ni eludir.
+
+La prueba crea su esquema en `talentassistant_tests` en la primera ejecución y hace rollback de los registros que inserta; no recibe la semilla demo de `talentassistant_dev`. Solo hace falta regenerar la migración si cambia el modelo de prueba, usando el propio proyecto de pruebas como startup project (EF Core localiza el DLL del contexto en la salida de ese proyecto; con la API como startup no lo encuentra):
+
+```powershell
+dotnet ef migrations add <NombreMigracion> --project tests/TalentAssistant.IntegrationTests/TalentAssistant.IntegrationTests.csproj --startup-project tests/TalentAssistant.IntegrationTests/TalentAssistant.IntegrationTests.csproj --context PersistenceProbeContext --output-dir Persistence/Migrations
+```
 
 Para detener únicamente MySQL en el perfil host, usa `docker compose stop mysql`; para volver a iniciarlo, `docker compose start mysql`. El flujo completo de persistencia y reset del perfil Compose está en la sección anterior.

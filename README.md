@@ -67,4 +67,4 @@ El flujo de trabajo comprende:
 
 ## Estado actual
 
-La fundación técnica de SPEC-001 está implementada; su cierre permanece pausado. La primera vertical aprobada de SPEC-002 tiene verificación parcial: build y smoke HTTP pasan; la suite xUnit obtuvo 5/5 pruebas unitarias y 6/7 de integración. `MySqlPersistenceTests` no pudo conectarse porque falta configurar `ConnectionStrings__TalentAssistantTests`; no se reintentó ni se cambió la configuración de seguridad. SPEC-001 no se declara completa.
+La fundación técnica de SPEC-001 está implementada; su cierre permanece pausado. La primera vertical aprobada de SPEC-002 está implementada: build y smoke HTTP pasan, y la suite xUnit completa obtiene 12/12 pruebas (5 unitarias y 7 de integración, incluida `MySqlPersistenceTests` contra `talentassistant_tests`). SPEC-001 no se declara completa.
