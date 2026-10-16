@@ -1,7 +1,7 @@
 # SPEC-005 — Autenticación local para Web y API
 
 - **Estado:** Propuesto para aprobación de planificación (2026-10-16).
-- **Implementación:** T1 y T2 implementadas y verificadas; T3 (documentación) en curso.
+- **Implementación:** T1, T2 y T3 implementadas; suite 21/21 y smoke de navegador end-to-end verificados; pendiente el cierre/merge del feature.
 - **Requisitos relacionados (propuestos):** FR-021, FR-022 y NFR-018. Relacionados existentes: FR-007, FR-009, FR-010; NFR-001, NFR-004, NFR-006, NFR-007.
 - **Criterios relacionados (propuestos):** AC-016, AC-017, AC-018.
 - **Decisión arquitectónica:** ADR-0007 propuesto.
@@ -115,7 +115,7 @@ El aplazamiento vigente “Autenticación y despliegue de producción: quedan fu
 
 ## 11. Verificación de T3
 
-T3 actualiza los artefactos documentales y de configuración siguientes (placeholder de verificación; el smoke de navegador con login/logout corresponde al verificador, no a T3):
+T3 actualiza los artefactos documentales y de configuración siguientes:
 
 - `.env.example`: variables `AUTH_SIGNING_KEY`, `AUTH_SEED_USER`, `AUTH_SEED_PASSWORD` y `AUTH_TOKEN_LIFETIME_MINUTES` con comentarios.
 - `compose.yaml`: `db-init` y `api` cablean `Authentication__*` desde esas variables; `web` no necesita cambios.
@@ -126,4 +126,8 @@ T3 actualiza los artefactos documentales y de configuración siguientes (placeho
 - `docs/requirements/functional-requirements.md` (FR-021, FR-022) y `docs/requirements/non-functional-requirements.md` (NFR-018).
 - `docs/acceptance/mvp-acceptance-criteria.md`: AC-016..AC-018 y sus filas de trazabilidad.
 
-Verificación de T3: `git diff --check` y `docker compose config --quiet` con variables sintéticas.
+Verificación de T3: `git diff --check` y `docker compose config --quiet` pasaron; commits `6574b37` (docs/Compose/catálogos) y `1aed991` (evidencia).
+
+El smoke de navegador end-to-end (Playwright) contra el stack Compose validó AC-016 completo: `/` anónimo redirige a `/login` sin errores de consola; el login con el usuario sembrado entra a la home (usuario y "Cerrar sesión" visibles); Attendance insights muestra los 5 hallazgos con oficinas, reglas HCM, evidencia y contexto TimeOff (token Web→API); el logout vuelve a `/login`. La suite completa quedó en 21/21.
+
+El smoke cazó y se corrigieron tres defectos (commit `a03c255`): el `EditForm` sin `FormName` devolvía 400 al enviar, el manejo en prerender carecía de `IJSRuntime`, y la FallbackPolicy retaba `/_blazor/negotiate` impidiendo el circuito a usuarios anónimos. La solución final usa formulario HTML nativo con POST a `/session/login` (redirect solo a rutas locales), el script de sesión en `App.razor`, y una FallbackPolicy por aserción que exime `/_blazor` y exige usuario autenticado en todo lo demás. La antiforgery del login queda deshabilitada como tradeoff documentado del perfil local (SameSite=Lax, solo loopback).
