@@ -1,7 +1,7 @@
 # SPEC-004 — Entorno local contenedorizado y semilla sintética
 
 - **Estado:** Diseño técnico aprobado para planificación de implementación (2026-10-15).
-- **Implementación:** T1 y T2 committeadas; T3 documentada; la suite de T1 conserva una prueba de integración pendiente por configuración del test DB.
+- **Implementación:** T1, T2 y T3 committeadas; la suite de T1 conserva una prueba de integración pendiente por configuración del test DB.
 - **Requisitos relacionados:** FR-006, FR-010, FR-018, FR-020; NFR-004, NFR-005, NFR-008, NFR-017.
 - **Criterios relacionados:** AC-001, AC-002, AC-007, AC-008, AC-012..AC-015.
 - **Decisión arquitectónica:** ADR-0006 aceptado para planificación el 2026-10-15.
@@ -138,7 +138,7 @@ La decisión de que la API del perfil Compose lea fixtures desde MySQL fue confi
 
 ## 10. Estado y aprobación
 
-El usuario aprobó SPEC-004 y ADR-0006 para planificación el 2026-10-15. El plan ODD está en `odd/tasks/containerized-local-environment.md`. T1 está implementada con su work-unit commit `4b82fe2baa5adddcc90cb0b1e9ad133256ef218d`; T2 está implementada con `bcfec3a26452ee5729a0c804ab7a28f488c815c0`. T3 actualizó la guía local, README y estado de decisión. La limitación de `MySqlPersistenceTests` permanece documentada; no se reejecutó xUnit. El perfil host y los contratos HCM actuales continúan vigentes.
+El usuario aprobó SPEC-004 y ADR-0006 para planificación el 2026-10-15. El plan ODD está en `odd/tasks/containerized-local-environment.md`. T1 está implementada con su work-unit commit `4b82fe2baa5adddcc90cb0b1e9ad133256ef218d`; T2 está implementada con `bcfec3a26452ee5729a0c804ab7a28f488c815c0`; T3 está documentada con `b910561060e8fe33860934768c5a4da04d6821d4`. La limitación de `MySqlPersistenceTests` permanece documentada; no se reejecutó xUnit. El perfil host y los contratos HCM actuales continúan vigentes.
 
 ## 11. Verificación de T1
 
@@ -168,3 +168,4 @@ El usuario autorizó continuar a T2 con el fallo de `MySqlPersistenceTests` docu
 - README enlaza la guía y los documentos aprobados SPEC-004/ADR-0006. ADR-0006 y el registro de decisiones reflejan que el perfil local se implementó; no se cambió el alcance de arquitectura.
 - Revisión estructural: `git diff --check` pasó, los tres destinos Markdown existen, y no quedan instrucciones de preimplementación en la guía. `docker compose config --quiet` pasó con valores sintéticos efímeros; no se creó ni leyó `.env`.
 - El arranque, seed y smoke descritos se verificaron en T2 en el stack local y en una copia independiente con volumen temporal. No se ejecutó `down --volumes` sobre el stack principal. No se reejecutó xUnit; la limitación `MySqlPersistenceTests` está registrada arriba.
+- Commit de work unit T3: `b910561060e8fe33860934768c5a4da04d6821d4` (`docs: document Docker Compose local workflow`).

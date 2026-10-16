@@ -49,7 +49,7 @@ Risk: item 1 (migración/seed sobre persistencia), item 5 (entorno de ejecución
 |---|---|---|---|---|
 | T1 | S2, S4, S5 | Inline | Implementada; build, smoke y verificador pasan; suite completa 11/12, limitación aceptada para continuar | `4b82fe2baa5adddcc90cb0b1e9ad133256ef218d` |
 | T2 | S1, S2, S4 | Inline | Implementada; imágenes, Compose, seed y smoke HTTP/Web pasan; verificador independiente sin bloqueos | `bcfec3a26452ee5729a0c804ab7a28f488c815c0` |
-| T3 | S3, S4, S5 | Inline | Implementada; guía, README y referencias SDD actualizados; comprobaciones estructurales y Compose pasan | Work-unit commit pendiente en `feature-branch-chain` |
+| T3 | S3, S4, S5 | Inline | Implementada; guía, README y referencias SDD actualizados; comprobaciones estructurales y Compose pasan | `b910561060e8fe33860934768c5a4da04d6821d4` |
 
 Forecast inicial: aproximadamente 600–800 líneas authored entre implementación, pruebas y documentación; archivos generados excluidos. El usuario eligió `feature-branch-chain`; el umbral de ~400 líneas es heurístico, no un límite de tamaño.
 
@@ -150,3 +150,7 @@ T3 inicia tras los commits de T1/T2, dentro del alcance original aprobado: docum
 La guía local documenta prerequisitos, `.env`, build/arranque Compose, migración/seed automático, URLs y smoke HTTP/Web, repetición de `db-init`, persistencia y reset destructivo; README enlaza la guía, SPEC-004 y ADR-0006. ADR-0006 y el registro de decisiones ya no indican que la implementación esté pendiente. `git diff --check`, los destinos de enlaces y `docker compose config --quiet` con variables sintéticas pasaron. Los comandos de stack/seed se apoyan en las pruebas T2 local e independiente; no se detuvo ni eliminó el volumen principal. xUnit no se reejecutó.
 
 Risk: none (solo documentación pasiva; no cambió código ni configuración ejecutable en T3).
+
+### L22 — Work-unit commit de T3 (2026-10-16)
+
+Commit: `b910561060e8fe33860934768c5a4da04d6821d4` — `docs: document Docker Compose local workflow`. Incluye guía local, README, estado ADR/registro y evidencia SPEC-004. Commit local en `feat/containerized-local-environment`, sin push.
