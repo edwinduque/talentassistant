@@ -11,7 +11,7 @@ Este documento resume las decisiones de producto y arquitectura que gobiernan Ta
 | ADR-0003 | Mantener un límite arquitectónico para un posible servicio de IA futuro | Aceptado | `docs/architecture/adr/ADR-0003-ai-service-boundary.md` |
 | ADR-0004 | Utilizar MySQL con Entity Framework Core | Aceptado | `docs/architecture/adr/ADR-0004-persistence.md` |
 | ADR-0005 | Utilizar CQRS ligero sin MediatR en la etapa inicial | Aceptado | `docs/architecture/adr/ADR-0005-lightweight-cqrs.md` |
-| ADR-0006 | Añadir perfil local Compose para API/Web/MySQL con dataset sintético versionado y fuente MySQL detrás de `IHcmAttendanceSource` | Aceptado para planificación; implementación pendiente | `docs/architecture/adr/ADR-0006-containerized-local-development.md`; `specs/004-containerized-local-environment/spec.md` |
+| ADR-0006 | Añadir perfil local Compose para API/Web/MySQL con dataset sintético versionado y fuente MySQL detrás de `IHcmAttendanceSource` | Aceptado; perfil local implementado con limitaciones de verificación documentadas | `docs/architecture/adr/ADR-0006-containerized-local-development.md`; `specs/004-containerized-local-environment/spec.md` |
 
 ## Línea base tecnológica confirmada
 
@@ -22,7 +22,7 @@ Las siguientes decisiones están aprobadas y deben guiar la implementación inic
 - **API backend:** ASP.NET Core Web API.
 - **Arquitectura:** Clean Architecture dentro de un monolito modular.
 - **Persistencia:** MySQL Server `8.4.11` LTS para desarrollo y pruebas locales, con Entity Framework Core `10.0.13` y proveedor Oracle `MySql.EntityFrameworkCore` `10.0.9`; `MySql.Data` `26.7.0` es dependencia del proveedor. La selección y sus límites están documentados en ADR-0004.
-- **Entorno local:** SPEC-001 conserva el flujo de fundación con API/Web en el host y MySQL en Compose. ADR-0006 añade un perfil Compose opcional para el stack local completo; su implementación está pendiente de aprobación del plan.
+- **Entorno local:** SPEC-001 conserva el flujo de fundación con API/Web en el host y MySQL en Compose. ADR-0006 añade un perfil Compose opcional para el stack local completo; ambos perfiles están documentados en `docs/development/local-setup.md`.
 - **Pruebas automatizadas:** xUnit.
 - **Patrón de aplicación:** Commands y Queries explícitos, sin MediatR en la primera versión.
 - **Datos:** respuestas y contratos sintéticos del HCM para el MVP; el HCM sigue siendo el sistema fuente y Talent Assistant no recrea sus procesos.

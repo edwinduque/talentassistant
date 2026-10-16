@@ -1,8 +1,8 @@
 # ADR-0006 — Entorno local contenedorizado
 
-- **Estado:** Aceptado para planificación de implementación (2026-10-15).
+- **Estado:** Aceptado; perfil local implementado con evidencia y limitaciones registradas en SPEC-004 (2026-10-16).
 - **Fecha:** 2026-10-15.
-- **Aprobación de arquitectura:** usuario, 2026-10-15. La autorización de implementación queda pendiente de aprobar el plan de trabajo.
+- **Aprobación de arquitectura:** usuario, 2026-10-15. La implementación se autorizó mediante las tareas T1-T3 del plan ODD.
 - **Especificación relacionada:** SPEC-004 — Entorno local contenedorizado y semilla sintética.
 
 ## Contexto

@@ -1,27 +1,89 @@
 # Ejecución local
 
-Esta guía levanta MySQL 8.4.11 en Docker Compose y ejecuta la API en Windows. La aplicación usa datos sintéticos; la fundación no incluye autenticación ni está preparada para exponerse a redes compartidas.
-
-> **Evolución aprobada para planificación:** SPEC-004 y ADR-0006 definen un perfil Compose para API, Web y MySQL con dataset sintético persistido. La implementación aún no ha comenzado; esta guía conserva el flujo vigente (MySQL en Compose, API/Web en el host) hasta que el nuevo perfil y sus instrucciones se implementen y verifiquen.
+Esta guía ofrece el perfil completo Docker Compose para API, Web y MySQL, además del perfil alternativo que ejecuta API/Web en el host. Ambos usan exclusivamente respuestas HCM sintéticas. El MVP no incluye autenticación ni está preparado para exponerse a redes compartidas.
 
 ## Requisitos
 
-- Windows con .NET SDK `10.0.402` (el SDK incluye runtime .NET y ASP.NET Core `10.0.13`). `global.json` fija esa versión sin roll-forward.
 - Docker Desktop en modo de contenedores Linux y Docker Compose v2.
-- NuGet accesible para restaurar paquetes la primera vez.
+- Acceso a `mcr.microsoft.com` y `api.nuget.org` durante el primer build de imágenes.
+- Para el perfil host y las pruebas: Windows con .NET SDK `10.0.402`; `global.json` fija esa versión sin roll-forward.
 
-## Configurar y arrancar MySQL
+## Perfil completo con Docker Compose
+
+Ejecuta estos pasos desde la raíz del repositorio. Compose fija el nombre `talentassistant-local`, por lo que no hace falta pasar `-p`.
+
+### 1. Crear la configuración local
+
+```powershell
+Copy-Item .env.example .env
+notepad .env
+```
+
+Completa `MYSQL_PASSWORD` y `MYSQL_ROOT_PASSWORD` con valores sintéticos locales distintos; conserva `MYSQL_DATABASE=talentassistant_dev` y `MYSQL_USER=talentassistant_app`. `.env` está excluido de Git y del contexto Docker; no lo compartas ni uses credenciales de producción. Si ya existe el volumen MySQL, conserva las contraseñas con las que se inicializó: editarlas en `.env` no cambia las credenciales almacenadas en ese volumen.
+
+### 2. Construir e iniciar los servicios
+
+```powershell
+docker compose config --quiet
+docker compose up --build -d --wait
+docker compose ps
+```
+
+El primer build restaura las dependencias declaradas y requiere acceso a los registros indicados arriba. Compose espera a MySQL saludable, ejecuta `db-init` (migraciones y upsert transaccional del dataset sintético) y luego inicia API y Web. La API del perfil Compose lee desde MySQL; Web consume API mediante la red interna. El inicio y los puertos publicados quedan limitados a loopback: API `http://127.0.0.1:5101`, Web `http://127.0.0.1:5102` y MySQL `127.0.0.1:3306`.
+
+### 3. Comprobar API, dataset y Web
+
+```powershell
+Invoke-RestMethod http://127.0.0.1:5101/health
+Invoke-RestMethod http://127.0.0.1:5101/health/database
+$items = Invoke-RestMethod "http://127.0.0.1:5101/attendance/insights?from=2026-10-15&to=2026-10-18"
+"Fixtures: $($items.Count)"
+(Invoke-WebRequest http://127.0.0.1:5102/attendance-insights -UseBasicParsing).StatusCode
+(Invoke-WebRequest http://127.0.0.1:5102/_framework/blazor.web.js -UseBasicParsing).StatusCode
+```
+
+Se esperan respuestas saludables, cinco fixtures y HTTP `200` para ambas rutas Web y el asset de Blazor.
+
+### 4. Repetir la inicialización
+
+```powershell
+docker compose run --rm db-init
+```
+
+La operación puede repetirse: aplica migraciones pendientes y reemplaza la única fila del dataset completo, sin duplicar registros ni borrar el volumen. `talentassistant_tests` permanece separada y no recibe la semilla demo.
+
+### Detener, conservar o restablecer datos
+
+```powershell
+docker compose stop
+docker compose start
+docker compose down
+```
+
+`stop`, `start` y `down` conservan el volumen nombrado `talentassistant_mysql_data`. **`docker compose down --volumes` es destructivo:** elimina el volumen y las bases locales de desarrollo e integración; úsalo solo cuando se decidió descartar esos datos. Cambiar `.env` no cambia las credenciales de un volumen ya inicializado.
+
+Para consultar logs sin mostrar valores de `.env`:
+
+```powershell
+docker compose logs --tail 100 mysql api web
+```
+
+El perfil no incluye autenticación ni TLS y no debe exponerse a redes compartidas ni usarse como despliegue productivo.
+
+## Perfil host alternativo: configurar MySQL y ejecutar API/Web en Windows
+
+Esta variante mantiene API y Web fuera de Docker. El perfil host/tests conserva la fuente HCM en memoria por defecto; no necesita ni ejecuta `db-init`.
 
 1. Copia `.env.example` a `.env` y completa los dos campos de contraseña vacíos con valores sintéticos distintos. Compose rechazará los valores vacíos.
 2. Mantén `MYSQL_USER=talentassistant_app`: el script inicial concede a ese usuario acceso a la base separada de integración. Asigna contraseñas locales distintas para `MYSQL_PASSWORD` y `MYSQL_ROOT_PASSWORD`; no uses contraseñas de producción.
-3. Arranca el único servicio contenedorizado de esta fundación:
+3. Arranca solo MySQL para el perfil host:
 
    ```powershell
    docker compose up -d --wait mysql
    docker compose ps
    ```
 
-Compose fija la imagen oficial `mysql:8.4.11` por digest, publica el puerto únicamente en `127.0.0.1:3306` y conserva los datos en el volumen nombrado `talentassistant_mysql_data`. El script `docker/mysql/init/10-create-test-database.sql` crea `talentassistant_tests` y concede acceso al usuario local en el primer inicio de un volumen vacío.
+El Dockerfile MySQL construye la imagen local desde `mysql:8.4.11` fijada por digest. Compose publica el puerto únicamente en `127.0.0.1:3306` y conserva los datos en el volumen nombrado `talentassistant_mysql_data`. El script `docker/mysql/init/10-create-test-database.sql` crea `talentassistant_tests` y concede acceso al usuario local en el primer inicio de un volumen vacío.
 
 Los scripts de `/docker-entrypoint-initdb.d` solo se ejecutan al inicializar un directorio de datos vacío. Si el volumen ya existía antes de añadir el script, crea la base y concede los permisos manualmente con una sesión autenticada de MySQL:
 
@@ -54,7 +116,7 @@ Con MySQL saludable y el puerto local `5101` libre, ejecuta:
 
 El script genera un centinela sintético por ejecución, lo entrega al proceso API solo mediante una variable de entorno y consulta `/health/database`. Espera HTTP 503 con un error genérico ante el rechazo de autenticación, y comprueba que ni la respuesta ni la salida capturada contengan el centinela o un stack trace. La salida capturada temporal se elimina al terminar; el script nunca imprime el valor. No ejecuta xUnit, no mueve ensamblados y no modifica la política de Application Control.
 
-La migración `InitialCreate` de la aplicación crea el historial de EF Core; todavía no existen entidades de negocio ni tablas de negocio. Las migraciones se aplican explícitamente, no durante el arranque de la API. La generación de una migración de aplicación usa:
+La aplicación mantiene sus migraciones explícitas; en el perfil host no se aplican automáticamente al arrancar la API. La migración `20261016001733_AddSyntheticAttendanceDataset` crea la tabla técnica que usa el perfil Compose. La generación de una migración de aplicación usa:
 
 ```powershell
 dotnet ef migrations add <NombreMigracion> --project src/TalentAssistant.Infrastructure/TalentAssistant.Infrastructure.csproj --startup-project src/TalentAssistant.Api/TalentAssistant.Api.csproj --output-dir Persistence/Migrations
@@ -104,14 +166,4 @@ dotnet test tests/TalentAssistant.IntegrationTests/TalentAssistant.IntegrationTe
 
 El contexto y su `IDesignTimeDbContextFactory` residen en el proyecto de integración, que es el proyecto de migraciones; API es el startup project ejecutable. EF Core busca la factory en el proyecto del contexto y la usa para creación de diseño. Este comando aún no se ejecutó en este checkout: su verificación requiere que Application Control permita cargar el ensamblado `TalentAssistant.IntegrationTests`. La ejecución de ensamblados xUnit puede estar sujeta a las políticas del equipo; no se deben desactivar ni eludir. La prueba y las migraciones de integración siguen pendientes hasta la autorización de seguridad correspondiente.
 
-## Detener servicios y conservar datos
-
-```powershell
-docker compose stop mysql
-docker compose start mysql
-docker compose down
-```
-
-`stop`, `start` y `down` conservan el volumen nombrado. **`docker compose down --volumes` elimina el volumen y los datos de desarrollo e integración**; úsalo solo si se decidió descartar expresamente ambas bases. Cambiar las variables de `.env` no cambia las credenciales de un volumen ya inicializado.
-
-La carga de datos de negocio sintéticos se aplaza hasta que una especificación funcional introduzca entidades, conforme a ADR-0002. La base de integración puede contener únicamente datos de prueba efímeros.
+Para detener únicamente MySQL en el perfil host, usa `docker compose stop mysql`; para volver a iniciarlo, `docker compose start mysql`. El flujo completo de persistencia y reset del perfil Compose está en la sección anterior.

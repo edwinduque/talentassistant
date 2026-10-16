@@ -1,7 +1,7 @@
 # SPEC-004 — Entorno local contenedorizado y semilla sintética
 
 - **Estado:** Diseño técnico aprobado para planificación de implementación (2026-10-15).
-- **Implementación:** T1 y T2 committeadas; T2 verificada local e independientemente; T3 pendiente.
+- **Implementación:** T1 y T2 committeadas; T3 documentada; la suite de T1 conserva una prueba de integración pendiente por configuración del test DB.
 - **Requisitos relacionados:** FR-006, FR-010, FR-018, FR-020; NFR-004, NFR-005, NFR-008, NFR-017.
 - **Criterios relacionados:** AC-001, AC-002, AC-007, AC-008, AC-012..AC-015.
 - **Decisión arquitectónica:** ADR-0006 aceptado para planificación el 2026-10-15.
@@ -138,7 +138,7 @@ La decisión de que la API del perfil Compose lea fixtures desde MySQL fue confi
 
 ## 10. Estado y aprobación
 
-El usuario aprobó SPEC-004 y ADR-0006 para planificación el 2026-10-15. El plan ODD está en `odd/tasks/containerized-local-environment.md`. T1 está implementada con su work-unit commit `4b82fe2baa5adddcc90cb0b1e9ad133256ef218d`; T2 está implementada con `bcfec3a26452ee5729a0c804ab7a28f488c815c0`. La limitación de `MySqlPersistenceTests` permanece documentada; no se reejecutó xUnit. T3 aún no comienza. El perfil host y los contratos HCM actuales continúan vigentes.
+El usuario aprobó SPEC-004 y ADR-0006 para planificación el 2026-10-15. El plan ODD está en `odd/tasks/containerized-local-environment.md`. T1 está implementada con su work-unit commit `4b82fe2baa5adddcc90cb0b1e9ad133256ef218d`; T2 está implementada con `bcfec3a26452ee5729a0c804ab7a28f488c815c0`. T3 actualizó la guía local, README y estado de decisión. La limitación de `MySqlPersistenceTests` permanece documentada; no se reejecutó xUnit. El perfil host y los contratos HCM actuales continúan vigentes.
 
 ## 11. Verificación de T1
 
@@ -148,7 +148,7 @@ El usuario aprobó SPEC-004 y ADR-0006 para planificación el 2026-10-15. El pla
 - Verificador independiente: S2, S4 y S5 MET en una copia scratch con una instancia MySQL desechable; seed de una fila y segundo seed conservaron el mismo snapshot. El espacio de trabajo no fue modificado por el verificador.
 - La prueba enfocada `SyntheticAttendanceDatasetSerializerTests` pasó 3/3. La suite completa pasó 5/5 UnitTests y 6/7 IntegrationTests; `MySqlPersistenceTests` falló antes de conectarse porque falta `ConnectionStrings__TalentAssistantTests`. No se reintentó ni se investigó ese bloqueo. Una prueba que sembraba `talentassistant_tests` se quitó para mantener esa base separada y sin seed demo.
 
-El usuario aceptó continuar a T2 con el fallo de `MySqlPersistenceTests` documentado; no se reintentará xUnit ni se cambiará configuración de seguridad. T1 queda implementada con esa limitación aceptada y commit local registrado en el task log. La estrategia `feature-branch-chain` está elegida; T2 está en curso y T3 depende de T2. SPEC-004 no se declara completa.
+El usuario autorizó continuar a T2 con el fallo de `MySqlPersistenceTests` documentado; no se reintentó xUnit ni se cambió configuración de seguridad. T1 conserva esa limitación y tiene commit local registrado. La estrategia `feature-branch-chain` está elegida; T2 y T3 tienen work units locales verificados/documentados. SPEC-004 mantiene la limitación de integración indicada en §11.
 
 ## 12. Verificación de T2
 
@@ -160,4 +160,11 @@ El usuario aceptó continuar a T2 con el fallo de `MySqlPersistenceTests` docume
 - La primera comprobación Web detectó 404 en `/_framework/blazor.web.js`: el restore se ejecutaba antes de copiar los componentes Razor. Se añadió restore después de esa copia; rebuild, script HTTP 200 y conexión interactiva Blazor quedaron observados sin errores de consola.
 - Verificación independiente: S1/S2/S4/S5 MET, sin bloqueos, en copia scratch con volumen temporal; seed repetido conservó una fila y payload idéntico. El stack principal permaneció intacto. La revalidación confirmó que `name: talentassistant-local` hace que `docker compose` sin `-p` resuelva y use el stack ya iniciado.
 - `gentle-ai review mode status` informó OFF global; T2 queda `disabled/unmanaged`, sin review nativo ni receipt.
-- No se modificaron políticas, certificados, `global.json` ni configuración de seguridad. xUnit no se reejecutó; se mantiene documentado el resultado parcial de T1. La guía local completa corresponde a T3.
+- No se modificaron políticas, certificados, `global.json` ni configuración de seguridad. xUnit no se reejecutó; se mantiene documentado el resultado parcial de T1. La guía local se actualizó en T3 (ver §13).
+
+## 13. Verificación de T3
+
+- `docs/development/local-setup.md` ahora pone primero el perfil Compose completo y deja el perfil host como alternativa. Cubre `.env`, inicio y dependencias `mysql` → `db-init` → `api` → `web`, healthchecks, fixture API, endpoints Web/Blazor, seed repetido, volumen persistente y reset destructivo.
+- README enlaza la guía y los documentos aprobados SPEC-004/ADR-0006. ADR-0006 y el registro de decisiones reflejan que el perfil local se implementó; no se cambió el alcance de arquitectura.
+- Revisión estructural: `git diff --check` pasó, los tres destinos Markdown existen, y no quedan instrucciones de preimplementación en la guía. `docker compose config --quiet` pasó con valores sintéticos efímeros; no se creó ni leyó `.env`.
+- El arranque, seed y smoke descritos se verificaron en T2 en el stack local y en una copia independiente con volumen temporal. No se ejecutó `down --volumes` sobre el stack principal. No se reejecutó xUnit; la limitación `MySqlPersistenceTests` está registrada arriba.

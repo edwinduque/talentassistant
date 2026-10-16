@@ -36,7 +36,7 @@ La fundación fija .NET SDK `10.0.402`, EF Core `10.0.13`, el proveedor Oracle `
 
 ## Ejecución local
 
-Los pasos para configurar secretos locales, arrancar MySQL, aplicar migraciones y ejecutar la API están en la [guía de desarrollo local](docs/development/local-setup.md). La base de integración `talentassistant_tests` es independiente de `talentassistant_dev`.
+El perfil local completo construye y ejecuta API, Web y MySQL con Docker Compose, y carga los fixtures sintéticos en `talentassistant_dev`. Los pasos, comprobaciones HTTP, persistencia del volumen y alternativa host están en la [guía de desarrollo local](docs/development/local-setup.md). La base de integración `talentassistant_tests` permanece separada y no recibe la semilla demo. El alcance aprobado está en [SPEC-004](specs/004-containerized-local-environment/spec.md) y [ADR-0006](docs/architecture/adr/ADR-0006-containerized-local-development.md).
 
 La canalización de CI sigue pendiente y se asignará a una especificación posterior (NFR-009 y AC-009); la estrategia de despliegue de producción queda fuera de la fundación técnica.
 
@@ -67,4 +67,4 @@ El flujo de trabajo comprende:
 
 ## Estado actual
 
-La fundación técnica de SPEC-001 está implementada; su cierre permanece pausado. La primera vertical aprobada de SPEC-002 está implementada con verificación parcial: build y smoke HTTP pasan, pero xUnit no se ejecutó. SPEC-001 no se declara completa.
+La fundación técnica de SPEC-001 está implementada; su cierre permanece pausado. La primera vertical aprobada de SPEC-002 tiene verificación parcial: build y smoke HTTP pasan; la suite xUnit obtuvo 5/5 pruebas unitarias y 6/7 de integración. `MySqlPersistenceTests` no pudo conectarse porque falta configurar `ConnectionStrings__TalentAssistantTests`; no se reintentó ni se cambió la configuración de seguridad. SPEC-001 no se declara completa.
