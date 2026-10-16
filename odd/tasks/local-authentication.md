@@ -51,7 +51,7 @@ Risk: item 2 (autenticaciÃ³n, credenciales y permisos). T1 y T2 requieren verifi
 |---|---|---|---|---|
 | T1 | S1, S3, S4 | Inline | Implementada; suite 21/21, smoke login/401/token/logout y verificaciÃ³n independiente sin bloqueos (5/5 claims MET) | `2e89c719ae4e6c18c45b662801b8fcc0284e3783` + snapshot `ab715c16bf62786194eb1126b45b98f95db5ca01` |
 | T2 | S2, S4 | Inline | Implementada; build 0/0 e integraciÃ³n 16/16; UnitTests 4/5 por bloqueo ambiental App Control en `UnitTests\bin` (bytes idÃ©nticos OK en otra ruta); verificador pendiente | Commit pendiente en `feature-branch-chain` |
-| T3 | S3, S5 | Inline | Planificada | Depende de T1/T2 |
+| T3 | S3, S5 | Inline | Implementada; docs/Compose/catálogos + smoke navegador E2E OK; suite 21/21 | `6574b3748294e10b9d0a40b0044b33f96be0af30` + correcciones `a03c25513e4c9b88861fab7f634205b7c7c82da1` |
 
 Forecast inicial: aproximadamente 700â€“1000 lÃ­neas authored entre implementaciÃ³n, pruebas y documentaciÃ³n; archivos generados excluidos. Estrategia `feature-branch-chain` reutilizada de SPEC-004; el umbral de ~400 lÃ­neas es heurÃ­stico, no un lÃ­mite de tamaÃ±o.
 
@@ -98,3 +98,13 @@ Risk: item 2 (sesión y transporte de credenciales en Web).
 ### L7 — Corrección del blocker de T2 (2026-10-16)
 
 El verificador detectó que el 401 vacío de `/session/login` con contraseña errónea lo capturaba `UseStatusCodePagesWithReExecute("/not-found")` y salía como 400. Corregido devolviendo un Problem JSON con cuerpo (las páginas de estado solo actúan sobre respuestas sin cuerpo). Recheck limitado del padre: `POST /session/login` con contraseña errónea ? 401; `/login` ? 200. Commits: corrección en esta entrada.
+
+### L8 — T3 y smoke de navegador end-to-end (2026-10-17)
+
+Texto exacto del usuario: "si" (autoriza T3). El worker acotado implementó documentación, `.env.example`, cableado Compose y catálogos (commit `6574b3748294e10b9d0a40b0044b33f96be0af30`); el padre añadió la corrección de dos frases obsoletas de SPEC-004 (FR-020, NFR-017) y configuró el `.env` local (ignorado por Git).
+
+El smoke de navegador con Playwright cazó tres defectos reales que el smoke HTTP no podía ver: (1) el `EditForm` sin `FormName` devolvía 400 al enviar por SSR; (2) el manejo en prerender no tenía `IJSRuntime`, por lo que el fetch fallaba con HTML; (3) la FallbackPolicy retaba `/_blazor/negotiate`, making imposible el circuito para usuarios anónimos (error "Unexpected token" en consola). Corregidos en `a03c25513e4c9b88861fab7f634205b7c7c82da1`: login con formulario HTML nativo con POST a `/session/login` (lectura manual del formulario, redirect solo a rutas locales, antiforgery documentada como tradeoff del perfil local), script de sesión movido a `App.razor` (se ejecuta en toda carga inicial) y FallbackPolicy por aserción que exime `/_blazor` y exige usuario autenticado en todo lo demás.
+
+Recorrido E2E verificado en el navegador contra el stack Compose: `/` anónimo redirige a `/login` con consola sin errores; login con el usuario sembrado entra a la home mostrando el usuario y "Cerrar sesión"; Attendance insights devuelve los 5 hallazgos con oficinas, reglas HCM, evidencia y contexto TimeOff (token Web?API en marcha); logout vuelve a `/login`. Suite completa 21/21 exit 0 (el bloqueo ambiental de UnitTests dejó de reproducirse). Artefactos de Playwright eliminados del workspace.
+
+Risk: item 2 (transporte de credenciales y política de autorización en Web).
