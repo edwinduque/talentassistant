@@ -1,7 +1,14 @@
 using System.Globalization;
+using System.Security.Claims;
+using System.Text;
+using Microsoft.AspNetCore.Authentication.JwtBearer;
+using Microsoft.AspNetCore.Identity;
+using Microsoft.IdentityModel.Tokens;
+using TalentAssistant.Api.Authentication;
 using TalentAssistant.Application.Attendance;
 using TalentAssistant.Infrastructure.Attendance;
 using TalentAssistant.Infrastructure;
+using TalentAssistant.Infrastructure.Authentication;
 using TalentAssistant.Application.Diagnostics;
 
 var builder = WebApplication.CreateBuilder(args);
@@ -25,22 +32,89 @@ if (!useMySqlAttendanceSource
         "Attendance:Source must be configured as Memory or MySql.");
 }
 
+var initializeLocalData = args.Contains("--initialize-local-data", StringComparer.Ordinal);
+
+var seedUserName = builder.Configuration["Authentication:SeedUserName"]
+    ?? "demo@talentassistant.local";
+var lockoutMaxFailedAccessAttempts =
+    builder.Configuration.GetValue<int?>("Authentication:LockoutMaxFailedAccessAttempts") ?? 5;
+var lockoutMinutes = builder.Configuration.GetValue<int?>("Authentication:LockoutMinutes") ?? 5;
+
 builder.Services.AddInfrastructure(connectionString, useMySqlAttendanceSource);
+builder.Services.AddIdentityInfrastructure(
+    connectionString,
+    new AuthenticationStoreOptions(
+        lockoutMaxFailedAccessAttempts,
+        TimeSpan.FromMinutes(lockoutMinutes),
+        seedUserName,
+        builder.Configuration["Authentication:SeedPassword"]));
 builder.Services.AddScoped<GetAttendanceInsights>();
+
+var authenticationIssuer = builder.Configuration["Authentication:Issuer"] ?? "TalentAssistant";
+var authenticationAudience = builder.Configuration["Authentication:Audience"] ?? "TalentAssistant.Local";
+var authenticationSigningKey = builder.Configuration["Authentication:SigningKey"];
+var tokenLifetimeMinutes = builder.Configuration.GetValue<int?>("Authentication:TokenLifetimeMinutes") ?? 60;
+
+if (!initializeLocalData)
+{
+    if (string.IsNullOrWhiteSpace(authenticationSigningKey)
+        || authenticationSigningKey.Length < 32)
+    {
+        throw new InvalidOperationException(
+            "Configure Authentication:SigningKey with at least 32 characters using User Secrets or an environment variable.");
+    }
+
+    var issuerSigningKey = new SymmetricSecurityKey(
+        Encoding.UTF8.GetBytes(authenticationSigningKey));
+
+    builder.Services
+        .AddAuthentication(authenticationOptions =>
+        {
+            authenticationOptions.DefaultAuthenticateScheme = JwtBearerDefaults.AuthenticationScheme;
+            authenticationOptions.DefaultChallengeScheme = JwtBearerDefaults.AuthenticationScheme;
+            authenticationOptions.DefaultScheme = JwtBearerDefaults.AuthenticationScheme;
+        })
+        .AddJwtBearer(options =>
+        {
+            options.TokenValidationParameters = new TokenValidationParameters
+            {
+                ValidateIssuer = true,
+                ValidIssuer = authenticationIssuer,
+                ValidateAudience = true,
+                ValidAudience = authenticationAudience,
+                ValidateIssuerSigningKey = true,
+                IssuerSigningKey = issuerSigningKey,
+                ValidateLifetime = true,
+                ClockSkew = TimeSpan.FromMinutes(1)
+            };
+        });
+    builder.Services.AddAuthorization();
+    builder.Services.AddScoped<IAccessTokenService>(_ =>
+        new AccessTokenService(
+            authenticationIssuer,
+            authenticationAudience,
+            authenticationSigningKey,
+            tokenLifetimeMinutes));
+}
 
 var app = builder.Build();
 
-if (args.Contains("--initialize-local-data", StringComparer.Ordinal))
+if (initializeLocalData)
 {
     await using var scope = app.Services.CreateAsyncScope();
     var initializer = scope.ServiceProvider
         .GetRequiredService<InitializeLocalSyntheticAttendanceData>();
     await initializer.InitializeAsync();
+
+    var authenticationInitializer = scope.ServiceProvider
+        .GetRequiredService<InitializeLocalAuthenticationData>();
+    await authenticationInitializer.InitializeAsync();
     return;
 }
 
 app.MapGet("/health", () => Results.Ok(new HealthResponse("healthy")))
-    .WithName("Health");
+    .WithName("Health")
+    .AllowAnonymous();
 
 app.MapGet("/health/database", async (
     IDatabaseAvailabilityCheck databaseCheck,
@@ -55,7 +129,50 @@ app.MapGet("/health/database", async (
         statusCode: StatusCodes.Status503ServiceUnavailable,
         title: "Database unavailable",
         detail: "The database could not be reached.");
-}).WithName("DatabaseHealth");
+}).WithName("DatabaseHealth").AllowAnonymous();
+
+app.MapPost("/auth/login", async (
+    LoginRequest request,
+    SignInManager<IdentityUser> signInManager,
+    IAccessTokenService accessTokenService,
+    CancellationToken cancellationToken) =>
+{
+    if (string.IsNullOrWhiteSpace(request.UserName)
+        || string.IsNullOrWhiteSpace(request.Password))
+    {
+        return InvalidCredentials();
+    }
+
+    var user = await signInManager.UserManager.FindByNameAsync(request.UserName);
+    if (user is null)
+    {
+        return InvalidCredentials();
+    }
+
+    var signInResult = await signInManager.CheckPasswordSignInAsync(
+        user,
+        request.Password,
+        lockoutOnFailure: true);
+    if (!signInResult.Succeeded)
+    {
+        return InvalidCredentials();
+    }
+
+    var accessToken = accessTokenService.Create(user.Id, user.UserName ?? request.UserName);
+    return Results.Ok(new LoginResponse(
+        accessToken.Token,
+        accessToken.ExpiresAtUtc,
+        accessToken.UserName));
+}).WithName("Login").AllowAnonymous();
+
+app.MapPost("/auth/logout", () => Results.Ok(new LogoutResponse("signed out")))
+    .WithName("Logout")
+    .RequireAuthorization();
+
+app.MapGet("/auth/me", (ClaimsPrincipal principal) =>
+    Results.Ok(new AuthenticatedUserResponse(principal.Identity?.Name ?? string.Empty)))
+    .WithName("AuthenticatedUser")
+    .RequireAuthorization();
 
 app.MapGet("/attendance/insights", async (
     string? from,
@@ -111,8 +228,17 @@ app.MapGet("/attendance/insights", async (
             title: "Attendance source unavailable",
             detail: "Attendance insights are temporarily unavailable.");
     }
-}).WithName("AttendanceInsights");
+}).WithName("AttendanceInsights").RequireAuthorization();
 
 app.Run();
 
+static IResult InvalidCredentials() => Results.Problem(
+    statusCode: StatusCodes.Status401Unauthorized,
+    title: "Invalid credentials",
+    detail: "The provided credentials are not valid.");
+
 internal sealed record HealthResponse(string Status);
+internal sealed record LoginRequest(string UserName, string Password);
+internal sealed record LoginResponse(string AccessToken, DateTimeOffset ExpiresAtUtc, string UserName);
+internal sealed record LogoutResponse(string Status);
+internal sealed record AuthenticatedUserResponse(string UserName);

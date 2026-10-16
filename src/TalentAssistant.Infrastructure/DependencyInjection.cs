@@ -1,8 +1,10 @@
+using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
 using TalentAssistant.Application.Attendance;
 using TalentAssistant.Application.Diagnostics;
 using TalentAssistant.Infrastructure.Attendance;
+using TalentAssistant.Infrastructure.Authentication;
 using TalentAssistant.Infrastructure.Persistence;
 
 namespace TalentAssistant.Infrastructure;
@@ -36,6 +38,36 @@ public static class DependencyInjection
         {
             services.AddSingleton<IHcmAttendanceSource, SyntheticHcmAttendanceSource>();
         }
+
+        return services;
+    }
+
+    public static IServiceCollection AddIdentityInfrastructure(
+        this IServiceCollection services,
+        string connectionString,
+        AuthenticationStoreOptions options)
+    {
+        ArgumentNullException.ThrowIfNull(services);
+        ArgumentNullException.ThrowIfNull(options);
+
+        if (string.IsNullOrWhiteSpace(connectionString))
+        {
+            throw new ArgumentException(
+                "A database connection string is required.",
+                nameof(connectionString));
+        }
+
+        services.AddSingleton(options);
+        services.AddDbContext<TalentAssistantIdentityDbContext>(identityOptions =>
+            identityOptions.UseMySQL(connectionString));
+        services.AddIdentity<IdentityUser, IdentityRole>(identity =>
+            {
+                // Identity defaults are kept for password policy; only lockout is configurable.
+                identity.Lockout.MaxFailedAccessAttempts = options.LockoutMaxFailedAccessAttempts;
+                identity.Lockout.DefaultLockoutTimeSpan = options.LockoutTime;
+            })
+            .AddEntityFrameworkStores<TalentAssistantIdentityDbContext>();
+        services.AddScoped<InitializeLocalAuthenticationData>();
 
         return services;
     }
