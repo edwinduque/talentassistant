@@ -64,6 +64,20 @@ Los puertos publicados se limitan a loopback; credenciales y valores locales no 
 
 AC-012..AC-015 fueron aprobados como alcance de SPEC-004 el 2026-10-15. Siguen pendientes de implementación y verificación; no se consideran satisfechos.
 
+## AC-016 — Autenticación de sesión (propuesto en SPEC-005)
+
+Dado el stack local arrancado con el usuario sembrado, cuando el desarrollador abre la interfaz sin sesión entonces es redirigido a `/login`; con credenciales correctas accede a las páginas protegidas, ve los insights como antes y puede cerrar la sesión. Sin sesión válida, la API responde HTTP 401 controlado en `/attendance/insights`, mientras que `/health` y `/health/database` siguen públicas.
+
+## AC-017 — Seguridad de credenciales locales (propuesto en SPEC-005)
+
+Dado el flujo de login local, cuando una autenticación falla entonces la API devuelve una única respuesta 401 genérica, idéntica para usuario inexistente y contraseña errónea, sin enumerar usuarios ni exponer detalles internos, y tras intentos repetidos la cuenta queda bloqueada temporalmente. Las contraseñas se almacenan solo como hash; la clave de firma y las credenciales de siembra provienen exclusivamente de configuración externa; ni la API ni la interfaz registran secretos ni tokens.
+
+## AC-018 — Compatibilidad con lo existente (propuesto en SPEC-005)
+
+Dado el perfil host y el perfil Compose, cuando se aplica la autenticación entonces ambos siguen operativos, la suite completa permanece verde, el dataset de asistencia y su semilla no cambian, la base de pruebas separada no recibe usuarios de demostración y no se introduce ningún servicio externo ni dato real.
+
+AC-016..AC-018 fueron propuestos por SPEC-005; T1/T2 aportan evidencia y T3 completa la documentación.
+
 ## Condiciones generales
 
 Los criterios deberán verificarse con pruebas automatizadas cuando sea razonable y con pruebas de aceptación documentadas cuando la automatización no aporte suficiente valor.
@@ -91,5 +105,8 @@ Los identificadores de esta tabla pertenecen al catálogo general y no se reutil
 | AC-013 | FR-006, FR-020, NFR-005, NFR-017 | Solo persistirá el fixture mínimo necesario para representar respuestas sintéticas del HCM; no crea módulos HCM. |
 | AC-014 | FR-010, NFR-008, NFR-017 | La guía actual se actualiza cuando la implementación Docker sea aprobada y verificada. |
 | AC-015 | NFR-004, NFR-005, NFR-017 | Desarrollo local solamente; no sustituye autenticación ni despliegue productivo. |
+| AC-016 | FR-021, FR-022, NFR-018 | Pertenece a SPEC-005: login y cierre de sesión en Web, token exigido en endpoints de negocio y sondas de salud públicas. |
+| AC-017 | NFR-004, NFR-018, NFR-006 | Respuestas de login genéricas, hash de contraseñas y secretos solo en configuración externa, según SPEC-005 y ADR-0007. |
+| AC-018 | FR-006, FR-007, NFR-005, NFR-017 | La autenticación no cambia el dataset sintético, la fuente HCM ni añade servicios externos ni datos reales. |
 
 Los AC-003 a AC-006 no se consideran satisfechos por la estructura arquitectónica creada en SPEC-001. Cada caso de asistencia necesita requisitos, pruebas y verificación propios; Tasks no forma parte de la primera vertical. NFR-011 no tiene todavía un umbral medible y deberá concretarse cuando se definan dataset y entorno. NFR-012 se verifica en cada especificación de interfaz; estos criterios no inventan un umbral cuantitativo de contraste.

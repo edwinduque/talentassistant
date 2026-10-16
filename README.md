@@ -36,7 +36,7 @@ La fundación fija .NET SDK `10.0.402`, EF Core `10.0.13`, el proveedor Oracle `
 
 ## Ejecución local
 
-El perfil local completo construye y ejecuta API, Web y MySQL con Docker Compose, y carga los fixtures sintéticos en `talentassistant_dev`. Los pasos, comprobaciones HTTP, persistencia del volumen y alternativa host están en la [guía de desarrollo local](docs/development/local-setup.md). La base de integración `talentassistant_tests` permanece separada y no recibe la semilla demo. El alcance aprobado está en [SPEC-004](specs/004-containerized-local-environment/spec.md) y [ADR-0006](docs/architecture/adr/ADR-0006-containerized-local-development.md).
+El perfil local completo construye y ejecuta API, Web y MySQL con Docker Compose, y carga los fixtures sintéticos en `talentassistant_dev`. Desde SPEC-005 el perfil local exige iniciar sesión en Web y API con un usuario y una contraseña configurados en `.env`; el flujo de login, las variables y las limitaciones están documentados en la [guía de desarrollo local](docs/development/local-setup.md), junto con las comprobaciones HTTP, la persistencia del volumen y la alternativa host. La base de integración `talentassistant_tests` permanece separada y no recibe la semilla demo. El alcance aprobado está en [SPEC-004](specs/004-containerized-local-environment/spec.md) y [ADR-0006](docs/architecture/adr/ADR-0006-containerized-local-development.md), y la autenticación en [SPEC-005](specs/005-local-authentication/spec.md) y [ADR-0007](docs/architecture/adr/ADR-0007-local-authentication.md).
 
 La canalización de CI sigue pendiente y se asignará a una especificación posterior (NFR-009 y AC-009); la estrategia de despliegue de producción queda fuera de la fundación técnica.
 
@@ -68,3 +68,5 @@ El flujo de trabajo comprende:
 ## Estado actual
 
 La fundación técnica de SPEC-001 está implementada; su cierre permanece pausado. La primera vertical aprobada de SPEC-002 está implementada: build y smoke HTTP pasan, y la suite xUnit completa obtiene 12/12 pruebas (5 unitarias y 7 de integración, incluida `MySqlPersistenceTests` contra `talentassistant_tests`). SPEC-001 no se declara completa.
+
+De [SPEC-005](specs/005-local-authentication/spec.md) (autenticación local), las tareas T1 y T2 están implementadas y verificadas: 16/16 pruebas de integración y UnitTests con un único fallo ambiental de Application Control documentado en el registro ODD (no es defecto del código). T3 aporta la documentación de la especificación.

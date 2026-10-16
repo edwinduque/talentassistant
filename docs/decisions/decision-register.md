@@ -12,6 +12,7 @@ Este documento resume las decisiones de producto y arquitectura que gobiernan Ta
 | ADR-0004 | Utilizar MySQL con Entity Framework Core | Aceptado | `docs/architecture/adr/ADR-0004-persistence.md` |
 | ADR-0005 | Utilizar CQRS ligero sin MediatR en la etapa inicial | Aceptado | `docs/architecture/adr/ADR-0005-lightweight-cqrs.md` |
 | ADR-0006 | Añadir perfil local Compose para API/Web/MySQL con dataset sintético versionado y fuente MySQL detrás de `IHcmAttendanceSource` | Aceptado; perfil local implementado con limitaciones de verificación documentadas | `docs/architecture/adr/ADR-0006-containerized-local-development.md`; `specs/004-containerized-local-environment/spec.md` |
+| ADR-0007 | Autenticación local con Identity y JWT | Aceptado; implementado con limitaciones documentadas | `docs/architecture/adr/ADR-0007-local-authentication.md`; `specs/005-local-authentication/spec.md` |
 
 ## Línea base tecnológica confirmada
 
@@ -31,7 +32,7 @@ Las siguientes decisiones están aprobadas y deben guiar la implementación inic
 ## Aplazamientos vigentes
 
 - **CI (NFR-009 y AC-009):** la canalización no forma parte de SPEC-001 porque la fundación se verifica inicialmente con los comandos locales documentados. El requisito general sigue vigente y pendiente; debe asignarse a una especificación posterior antes de aceptar el MVP. No se considera cumplido ni se crea esa especificación en este cambio.
-- **Autenticación y despliegue de producción:** quedan fuera de SPEC-001. La ejecución de la fundación sin autenticación se limita a desarrollo local con datos sintéticos; no autoriza exposición a redes compartidas ni uso de datos reales.
+- **Autenticación y despliegue de producción:** quedan fuera de SPEC-001. La autenticación ya existe en el perfil local según ADR-0007 (SPEC-005: identidad local con ASP.NET Core Identity y JWT); el despliegue de producción sigue fuera de alcance y no se autoriza exposición a redes compartidas ni uso de datos reales.
 - **Distribución del proveedor Oracle:** confirmar la aplicabilidad de la licencia del paquete antes de distribuir el producto fuera del entorno de desarrollo interno.
 
 ## Reglas para modificar decisiones

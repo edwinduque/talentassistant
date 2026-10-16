@@ -28,6 +28,8 @@ La fila tendrá una versión de payload que el lector validará antes de deseria
 
 Esta decisión añade un perfil local de Compose para SPEC-004; no cambia el hecho histórico de que SPEC-001 ejecutó API/Web en el host ni elimina esa forma de desarrollo. SPEC-002 conserva su fuente sintética en memoria para el perfil host/tests; el nuevo perfil Compose selecciona el adaptador MySQL a través de `IHcmAttendanceSource`. No se modifican reglas, contratos HCM ni módulos de negocio. El cambio se limita al perfil local adicional; producción sigue fuera de alcance.
 
+ADR-0007 (2026-10-16) sustituye la restricción «sin autenticación» para el perfil local: el stack local pasa a exigir inicio de sesión.
+
 ADR-0002 permite introducir datos de demostración junto con la especificación que define persistencia, siempre que sean fixtures/proyecciones mínimas, sintéticas e idempotentes. SPEC-004 define ese alcance para el perfil Compose.
 
 ## Consecuencias esperadas

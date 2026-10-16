@@ -1,6 +1,6 @@
 # Ejecución local
 
-Esta guía ofrece el perfil completo Docker Compose para API, Web y MySQL, además del perfil alternativo que ejecuta API/Web en el host. Ambos usan exclusivamente respuestas HCM sintéticas. El MVP no incluye autenticación ni está preparado para exponerse a redes compartidas.
+Esta guía ofrece el perfil completo Docker Compose para API, Web y MySQL, además del perfil alternativo que ejecuta API/Web en el host. Ambos usan exclusivamente respuestas HCM sintéticas y exigen iniciar sesión (SPEC-005); el entorno no está preparado para exponerse a redes compartidas ni para un despliegue productivo.
 
 ## Requisitos
 
@@ -19,7 +19,7 @@ Copy-Item .env.example .env
 notepad .env
 ```
 
-Completa `MYSQL_PASSWORD` y `MYSQL_ROOT_PASSWORD` con valores sintéticos locales distintos; conserva `MYSQL_DATABASE=talentassistant_dev` y `MYSQL_USER=talentassistant_app`. `.env` está excluido de Git y del contexto Docker; no lo compartas ni uses credenciales de producción. Si ya existe el volumen MySQL, conserva las contraseñas con las que se inicializó: editarlas en `.env` no cambia las credenciales almacenadas en ese volumen.
+Completa `MYSQL_PASSWORD` y `MYSQL_ROOT_PASSWORD` con valores sintéticos locales distintos; conserva `MYSQL_DATABASE=talentassistant_dev` y `MYSQL_USER=talentassistant_app`. Completa también `AUTH_SIGNING_KEY` y `AUTH_SEED_PASSWORD` según la sección «Autenticación local»; `docker compose config` rechaza valores vacíos. `.env` está excluido de Git y del contexto Docker; no lo compartas ni uses credenciales de producción. Si ya existe el volumen MySQL, conserva las contraseñas con las que se inicializó: editarlas en `.env` no cambia las credenciales almacenadas en ese volumen.
 
 ### 2. Construir e iniciar los servicios
 
@@ -68,7 +68,41 @@ Para consultar logs sin mostrar valores de `.env`:
 docker compose logs --tail 100 mysql api web
 ```
 
-El perfil no incluye autenticación ni TLS y no debe exponerse a redes compartidas ni usarse como despliegue productivo.
+El perfil no incluye TLS y no debe exponerse a redes compartidas ni usarse como despliegue productivo.
+
+## Autenticación local
+
+Desde SPEC-005, Web y API exigen iniciar sesión. No existe ninguna credencial por defecto en el repositorio: completa en tu `.env` local (nunca versionado) estas variables antes de arrancar:
+
+| Variable | Valor esperado |
+|---|---|
+| `AUTH_SIGNING_KEY` | Clave de firma JWT aleatoria de al menos 32 caracteres. Obligatoria: la API falla con un error controlado antes de abrir puerto si falta. |
+| `AUTH_SEED_PASSWORD` | Contraseña del usuario sembrado. Obligatoria para `db-init`; debe cumplir la política de Identity: mayúscula, minúscula, dígito y carácter no alfanumérico, con mínimo 6 caracteres. |
+| `AUTH_TOKEN_LIFETIME_MINUTES` | Duración del token JWT en minutos. Opcional: `60` por defecto. |
+
+`AUTH_SEED_USER` es opcional y por defecto vale `demo@talentassistant.local`.
+
+### Siembra de usuarios
+
+`db-init` aplica las migraciones (incluidas las tablas de Identity) y crea el usuario de siembra solo si no existe. Nunca sobreescribe la contraseña de un usuario ya existente. Para cambiar la contraseña, borra la fila del usuario o edítala por SQL en MySQL y vuelve a ejecutar la inicialización:
+
+```powershell
+docker compose run --rm db-init
+```
+
+### Login, cierre de sesión y limitaciones
+
+1. Abre `http://127.0.0.1:5102`; sin sesión, las páginas protegidas redirigen a `/login`.
+2. Introduce el usuario y la contraseña sembrados. Web envía las credenciales a la API (`POST /auth/login`) y guarda la sesión en una cookie HttpOnly.
+3. «Cerrar sesión» en la interfaz cierra la sesión del navegador y vuelve a exigir login; la API expone `/auth/logout` y `/auth/me`.
+
+Limitaciones conocidas:
+
+- El token JWT caduca a los 60 minutos (`AUTH_TOKEN_LIFETIME_MINUTES`) y no hay refresh token. No hay revocación server-side: tras cerrar sesión, un token ya emitido sigue siendo válido hasta su expiración.
+- Tras 5 intentos fallidos la cuenta se bloquea temporalmente (configurable). El login fallido devuelve siempre la misma respuesta 401 genérica, sin indicar si el usuario existe.
+- Tras recrear el contenedor Web, las cookies de sesión anteriores dejan de ser válidas por rotación de claves de Data Protection.
+
+Las sondas `GET /health` y `GET /health/database` siguen públicas por ser comprobaciones de estado del entorno; los endpoints de negocio (`/attendance/insights`) exigen token. La autenticación es una propiedad de la aplicación: aplica igual en el perfil host y en Compose.
 
 ## Perfil host alternativo: configurar MySQL y ejecutar API/Web en Windows
 
@@ -82,6 +116,8 @@ Esta variante mantiene API y Web fuera de Docker. El perfil host/tests conserva 
    docker compose up -d --wait mysql
    docker compose ps
    ```
+
+4. El perfil host también exige autenticación (SPEC-005): la API necesita `Authentication__SigningKey` (>= 32 caracteres) y `Authentication__SeedPassword` como variables de entorno (`Authentication__*`) o en User Secrets antes de ejecutarse; sin la clave de firma, la API no arranca. El usuario local se crea con el inicializador `--initialize-local-data`, el mismo que ejecuta `db-init` en Compose.
 
 El Dockerfile MySQL construye la imagen local desde `mysql:8.4.11` fijada por digest. Compose publica el puerto únicamente en `127.0.0.1:3306` y conserva los datos en el volumen nombrado `talentassistant_mysql_data`. El script `docker/mysql/init/10-create-test-database.sql` crea `talentassistant_tests` y concede acceso al usuario local en el primer inicio de un volumen vacío.
 

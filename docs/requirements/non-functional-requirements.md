@@ -19,6 +19,7 @@
 | NFR-015 | Trazabilidad | Los requisitos aprobados tendrán correspondencia con criterios de aceptación y pruebas. |
 | NFR-016 | Evaluación | Las futuras respuestas de IA se evaluarán con casos reproducibles, no solo mediante revisión anecdótica. |
 | NFR-017 | Reproducibilidad del entorno local | API, Web y MySQL podrán construirse y ejecutarse localmente mediante Docker Compose y Dockerfiles versionados; el conjunto incluirá una semilla sintética idempotente y documentación completa de configuración, ejecución y persistencia. |
+| NFR-018 | Seguridad de credenciales | Las contraseñas se almacenarán solo como hash; las claves de firma y las credenciales de siembra se suministrarán exclusivamente por configuración externa; los fallos de autenticación devolverán respuestas genéricas y la API y la interfaz no registrarán secretos ni tokens. |
 
 ## Objetivos que quedan por definir
 
@@ -27,12 +28,12 @@ Antes de cerrar los requisitos no funcionales se deberán concretar:
 - Tiempo de respuesta esperado para las consultas principales.
 - Volumen de datos sintéticos.
 - Navegadores y dispositivos objetivo.
-- Estrategia de autenticación para la versión demostrable.
+- ~~Estrategia de autenticación~~: definida por NFR-018 y SPEC-005 (Identity local + JWT).
 - Umbrales de calidad y latencia para IA.
 - Objetivos de cobertura de pruebas, si se considera necesario establecer un porcentaje.
 - Estrategia de despliegue y operación.
 
-NFR-017 está aprobado para planificación mediante SPEC-004 y ADR-0006; no se considera implementado ni satisfecho hasta verificar el stack y la documentación local.
+NFR-017 fue aprobado mediante SPEC-004 y ADR-0006 y está implementado y verificado: el stack Compose, la semilla idempotente y la guía local quedaron comprobados.
 
 No se asignan cifras arbitrarias hasta disponer de un escenario de referencia.
 
