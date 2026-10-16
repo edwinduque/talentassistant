@@ -94,3 +94,7 @@ Implementado en Web: cookie HttpOnly SameSite=Lax con login path `/login`; Fallb
 Evidencia: build 0 warnings/0 errores; integración 16/16; UnitTests 4/5. El fallo es ambiental y reproducido por el padre: `DomainAndApplicationRespectTheirDependencyBoundaries` falla con FileLoadException 0x800711C7 (Application Control) cargando `TalentAssistant.Domain.dll` desde `tests\TalentAssistant.UnitTests\bin`, con SHA256 idéntico al que sí carga desde `IntegrationTests\bin`; se limpió bin/obj y reconstruyó, se reproduce igual; el diff de T2 no toca Domain/Application y la misma suite pasó 21/21 antes de T2. No se desactiva ni elude la política. El smoke de navegador end-to-end queda para T3.
 
 Risk: item 2 (sesión y transporte de credenciales en Web).
+
+### L7 — Corrección del blocker de T2 (2026-10-16)
+
+El verificador detectó que el 401 vacío de `/session/login` con contraseña errónea lo capturaba `UseStatusCodePagesWithReExecute("/not-found")` y salía como 400. Corregido devolviendo un Problem JSON con cuerpo (las páginas de estado solo actúan sobre respuestas sin cuerpo). Recheck limitado del padre: `POST /session/login` con contraseña errónea ? 401; `/login` ? 200. Commits: corrección en esta entrada.

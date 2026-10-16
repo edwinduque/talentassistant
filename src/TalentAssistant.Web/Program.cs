@@ -79,7 +79,10 @@ app.MapPost("/session/login", async (
         cancellationToken);
     if (login is null)
     {
-        return Results.Unauthorized();
+        return Results.Problem(
+            statusCode: StatusCodes.Status401Unauthorized,
+            title: "Invalid credentials",
+            detail: "The provided credentials are not valid.");
     }
 
     var identity = new ClaimsIdentity(CookieAuthenticationDefaults.AuthenticationScheme);
