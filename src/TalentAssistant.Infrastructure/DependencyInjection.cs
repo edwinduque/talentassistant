@@ -11,7 +11,8 @@ public static class DependencyInjection
 {
     public static IServiceCollection AddInfrastructure(
         this IServiceCollection services,
-        string connectionString)
+        string connectionString,
+        bool useMySqlAttendanceSource = false)
     {
         ArgumentNullException.ThrowIfNull(services);
 
@@ -25,7 +26,16 @@ public static class DependencyInjection
         services.AddDbContext<TalentAssistantDbContext>(options =>
             options.UseMySQL(connectionString));
         services.AddScoped<IDatabaseAvailabilityCheck, MySqlDatabaseAvailabilityCheck>();
-        services.AddSingleton<IHcmAttendanceSource, SyntheticHcmAttendanceSource>();
+        services.AddScoped<InitializeLocalSyntheticAttendanceData>();
+
+        if (useMySqlAttendanceSource)
+        {
+            services.AddScoped<IHcmAttendanceSource, MySqlHcmAttendanceSource>();
+        }
+        else
+        {
+            services.AddSingleton<IHcmAttendanceSource, SyntheticHcmAttendanceSource>();
+        }
 
         return services;
     }

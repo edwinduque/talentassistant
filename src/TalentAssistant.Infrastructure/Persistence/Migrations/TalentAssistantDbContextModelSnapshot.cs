@@ -17,6 +17,24 @@ namespace TalentAssistant.Infrastructure.Persistence.Migrations
             modelBuilder
                 .HasAnnotation("ProductVersion", "10.0.13")
                 .HasAnnotation("Relational:MaxIdentifierLength", 64);
+
+            modelBuilder.Entity("TalentAssistant.Infrastructure.Persistence.SyntheticAttendanceDataset", b =>
+                {
+                    b.Property<string>("DatasetId")
+                        .HasMaxLength(64)
+                        .HasColumnType("varchar(64)");
+
+                    b.Property<string>("PayloadJson")
+                        .IsRequired()
+                        .HasColumnType("longtext");
+
+                    b.Property<int>("PayloadVersion")
+                        .HasColumnType("int");
+
+                    b.HasKey("DatasetId");
+
+                    b.ToTable("SyntheticAttendanceDatasets", (string)null);
+                });
 #pragma warning restore 612, 618
         }
     }

@@ -18,6 +18,7 @@
 | NFR-014 | Seguridad de IA | Ningún modelo podrá decidir por sí solo qué datos o herramientas tiene permitido utilizar. |
 | NFR-015 | Trazabilidad | Los requisitos aprobados tendrán correspondencia con criterios de aceptación y pruebas. |
 | NFR-016 | Evaluación | Las futuras respuestas de IA se evaluarán con casos reproducibles, no solo mediante revisión anecdótica. |
+| NFR-017 | Reproducibilidad del entorno local | API, Web y MySQL podrán construirse y ejecutarse localmente mediante Docker Compose y Dockerfiles versionados; el conjunto incluirá una semilla sintética idempotente y documentación completa de configuración, ejecución y persistencia. |
 
 ## Objetivos que quedan por definir
 
@@ -30,6 +31,8 @@ Antes de cerrar los requisitos no funcionales se deberán concretar:
 - Umbrales de calidad y latencia para IA.
 - Objetivos de cobertura de pruebas, si se considera necesario establecer un porcentaje.
 - Estrategia de despliegue y operación.
+
+NFR-017 está aprobado para planificación mediante SPEC-004 y ADR-0006; no se considera implementado ni satisfecho hasta verificar el stack y la documentación local.
 
 No se asignan cifras arbitrarias hasta disponer de un escenario de referencia.
 

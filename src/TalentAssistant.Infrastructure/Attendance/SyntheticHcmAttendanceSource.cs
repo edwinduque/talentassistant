@@ -4,7 +4,7 @@ namespace TalentAssistant.Infrastructure.Attendance;
 
 public sealed class SyntheticHcmAttendanceSource : IHcmAttendanceSource
 {
-    private static readonly IReadOnlyList<HcmAttendanceInsight> Fixtures = Array.AsReadOnly(
+    internal static readonly IReadOnlyList<HcmAttendanceInsight> Fixtures = Array.AsReadOnly(
         new HcmAttendanceInsight[]
         {
         new HcmAttendanceInsight(
@@ -190,6 +190,18 @@ public sealed class SyntheticHcmAttendanceSource : IHcmAttendanceSource
         ArgumentNullException.ThrowIfNull(query);
         cancellationToken.ThrowIfCancellationRequested();
 
+        var matches = Filter(Fixtures, query);
+
+        return Task.FromResult<IReadOnlyList<HcmAttendanceInsight>>(matches);
+    }
+
+    internal static IReadOnlyList<HcmAttendanceInsight> Filter(
+        IReadOnlyList<HcmAttendanceInsight> insights,
+        AttendanceInsightQuery query)
+    {
+        ArgumentNullException.ThrowIfNull(insights);
+        ArgumentNullException.ThrowIfNull(query);
+
         if (query.FromInclusive >= query.ToExclusive)
         {
             throw new ArgumentException(
@@ -197,7 +209,7 @@ public sealed class SyntheticHcmAttendanceSource : IHcmAttendanceSource
                 nameof(query));
         }
 
-        var matches = Fixtures
+        return insights
             .Where(insight => string.IsNullOrWhiteSpace(query.EmployeeId)
                 || string.Equals(
                     insight.Employee.Id,
@@ -205,11 +217,9 @@ public sealed class SyntheticHcmAttendanceSource : IHcmAttendanceSource
                     StringComparison.OrdinalIgnoreCase))
             .Where(insight => IsInOfficeDateRange(insight, query))
             .ToArray();
-
-        return Task.FromResult<IReadOnlyList<HcmAttendanceInsight>>(matches);
     }
 
-    private static bool IsInOfficeDateRange(
+    internal static bool IsInOfficeDateRange(
         HcmAttendanceInsight insight,
         AttendanceInsightQuery query)
     {

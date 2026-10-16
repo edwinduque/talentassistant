@@ -1,5 +1,6 @@
 using System.Globalization;
 using TalentAssistant.Application.Attendance;
+using TalentAssistant.Infrastructure.Attendance;
 using TalentAssistant.Infrastructure;
 using TalentAssistant.Application.Diagnostics;
 
@@ -12,10 +13,31 @@ if (string.IsNullOrWhiteSpace(connectionString))
         "Configure ConnectionStrings:TalentAssistant with User Secrets or an environment variable.");
 }
 
-builder.Services.AddInfrastructure(connectionString);
+var attendanceSource = builder.Configuration["Attendance:Source"] ?? "Memory";
+var useMySqlAttendanceSource = string.Equals(
+    attendanceSource,
+    "MySql",
+    StringComparison.OrdinalIgnoreCase);
+if (!useMySqlAttendanceSource
+    && !string.Equals(attendanceSource, "Memory", StringComparison.OrdinalIgnoreCase))
+{
+    throw new InvalidOperationException(
+        "Attendance:Source must be configured as Memory or MySql.");
+}
+
+builder.Services.AddInfrastructure(connectionString, useMySqlAttendanceSource);
 builder.Services.AddScoped<GetAttendanceInsights>();
 
 var app = builder.Build();
+
+if (args.Contains("--initialize-local-data", StringComparer.Ordinal))
+{
+    await using var scope = app.Services.CreateAsyncScope();
+    var initializer = scope.ServiceProvider
+        .GetRequiredService<InitializeLocalSyntheticAttendanceData>();
+    await initializer.InitializeAsync();
+    return;
+}
 
 app.MapGet("/health", () => Results.Ok(new HealthResponse("healthy")))
     .WithName("Health");
@@ -76,6 +98,13 @@ app.MapGet("/attendance/insights", async (
             detail: "Attendance insights are temporarily unavailable.");
     }
     catch (InvalidTimeZoneException)
+    {
+        return Results.Problem(
+            statusCode: StatusCodes.Status503ServiceUnavailable,
+            title: "Attendance source unavailable",
+            detail: "Attendance insights are temporarily unavailable.");
+    }
+    catch (AttendanceSourceUnavailableException)
     {
         return Results.Problem(
             statusCode: StatusCodes.Status503ServiceUnavailable,

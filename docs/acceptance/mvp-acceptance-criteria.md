@@ -46,6 +46,24 @@ Cada funcionalidad entregada está vinculada con requisitos y criterios de acept
 
 El MVP puede ejecutar sus funcionalidades operativas sin claves de proveedores LLM, frameworks de agentes, n8n o MCP.
 
+## AC-012 — Stack local contenedorizado (propuesto en SPEC-004)
+
+Desde un checkout limpio y con Docker Desktop disponible, el desarrollador puede construir y arrancar API, Web y MySQL usando sus Dockerfiles y Docker Compose; los servicios quedan saludables y la interfaz Web es accesible localmente.
+
+## AC-013 — Semilla sintética reproducible (propuesto en SPEC-004)
+
+La base local contiene una semilla determinista de fixtures sintéticos que consume la fuente HCM de la API. Reaplicar la inicialización no duplica registros ni altera las reglas/resultados HCM; no se utilizan datos reales.
+
+## AC-014 — Guía de ejecución local contenedorizada (propuesto en SPEC-004)
+
+La documentación explica prerrequisitos, configuración local de secretos, construcción, inicio, URLs, estado de salud, parada y conservación/reinicio de la base, incluyendo advertencias para operaciones que eliminan el volumen.
+
+## AC-015 — Límites del entorno contenedorizado local (propuesto en SPEC-004)
+
+Los puertos publicados se limitan a loopback; credenciales y valores locales no se incorporan a imágenes ni al repositorio. La propuesta no habilita exposición en redes compartidas ni despliegue productivo.
+
+AC-012..AC-015 fueron aprobados como alcance de SPEC-004 el 2026-10-15. Siguen pendientes de implementación y verificación; no se consideran satisfechos.
+
 ## Condiciones generales
 
 Los criterios deberán verificarse con pruebas automatizadas cuando sea razonable y con pruebas de aceptación documentadas cuando la automatización no aporte suficiente valor.
@@ -69,5 +87,9 @@ Los identificadores de esta tabla pertenecen al catálogo general y no se reutil
 | AC-009 | NFR-009 | CI queda aplazada a una especificación posterior y sigue sin cumplir. |
 | AC-010 | FR-011, NFR-015 | SPEC-001 incorpora IDs únicos y una matriz de criterio a requisito y verificación. |
 | AC-011 | FR-012–FR-017, NFR-013, NFR-014, NFR-016 | Las capacidades de IA permanecen fuera del alcance de la fundación. |
+| AC-012 | NFR-017, FR-010 | Requiere la aprobación de SPEC-004 y de la propuesta ADR-0006; afecta el supuesto actual de ejecución local en el host. |
+| AC-013 | FR-006, FR-020, NFR-005, NFR-017 | Solo persistirá el fixture mínimo necesario para representar respuestas sintéticas del HCM; no crea módulos HCM. |
+| AC-014 | FR-010, NFR-008, NFR-017 | La guía actual se actualiza cuando la implementación Docker sea aprobada y verificada. |
+| AC-015 | NFR-004, NFR-005, NFR-017 | Desarrollo local solamente; no sustituye autenticación ni despliegue productivo. |
 
 Los AC-003 a AC-006 no se consideran satisfechos por la estructura arquitectónica creada en SPEC-001. Cada caso de asistencia necesita requisitos, pruebas y verificación propios; Tasks no forma parte de la primera vertical. NFR-011 no tiene todavía un umbral medible y deberá concretarse cuando se definan dataset y entorno. NFR-012 se verifica en cada especificación de interfaz; estos criterios no inventan un umbral cuantitativo de contraste.

@@ -2,6 +2,8 @@
 
 Esta guía levanta MySQL 8.4.11 en Docker Compose y ejecuta la API en Windows. La aplicación usa datos sintéticos; la fundación no incluye autenticación ni está preparada para exponerse a redes compartidas.
 
+> **Evolución aprobada para planificación:** SPEC-004 y ADR-0006 definen un perfil Compose para API, Web y MySQL con dataset sintético persistido. La implementación aún no ha comenzado; esta guía conserva el flujo vigente (MySQL en Compose, API/Web en el host) hasta que el nuevo perfil y sus instrucciones se implementen y verifiquen.
+
 ## Requisitos
 
 - Windows con .NET SDK `10.0.402` (el SDK incluye runtime .NET y ASP.NET Core `10.0.13`). `global.json` fija esa versión sin roll-forward.

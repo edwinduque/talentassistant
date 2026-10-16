@@ -27,6 +27,9 @@ Estado inicial: Propuesto. La aprobación del alcance convierte los requisitos s
 | FR-017 | Se podrá evaluar una arquitectura con Supervisor y agentes especializados frente a una alternativa de agente único. | Could |
 | FR-018 | La fuente HCM sintética podrá sustituirse por un adaptador real mediante un contrato estable, sin reescribir los casos de uso de Application. | Must |
 | FR-019 | Las explicaciones mostrarán la evidencia disponible, la procedencia del resultado y la información que la fuente marque para revisión. | Must |
+| FR-020 | En el entorno local, la fuente HCM sintética consultará desde MySQL fixtures de respuestas de asistencia cargados de forma reproducible; Application continuará consumiéndolos mediante su contrato, sin crear módulos HCM. | Must |
+
+FR-020 queda aprobado para planificación mediante SPEC-004; su implementación permanece pendiente de aprobación del plan de trabajo.
 
 ## Reglas de negocio iniciales
 
