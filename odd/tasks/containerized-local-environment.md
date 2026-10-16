@@ -47,7 +47,7 @@ Risk: item 1 (migración/seed sobre persistencia), item 5 (entorno de ejecución
 
 | ID | Specs | Ruta | Estado | Evidencia / commit |
 |---|---|---|---|---|
-| T1 | S2, S4, S5 | Inline | Implementada; build, smoke y verificador pasan; suite completa 11/12, limitación aceptada para continuar | Commit pendiente; estrategia de cadena pendiente |
+| T1 | S2, S4, S5 | Inline | Implementada; build, smoke y verificador pasan; suite completa 11/12, limitación aceptada para continuar | `4b82fe2baa5adddcc90cb0b1e9ad133256ef218d` |
 | T2 | S1, S2, S4 | Inline | Planificada; el usuario autorizó continuar con T1 parcial | Iniciar tras el commit de T1 y elegir cadena |
 | T3 | S3, S4, S5 | Inline | Planificada | Depende de T1/T2 |
 
@@ -104,3 +104,7 @@ Texto exacto del usuario: “continua”. Se reanuda T2 con la limitación de T1
 ### L11 — Estrategia de entrega (2026-10-16)
 
 Texto exacto del usuario: “feature-branch-chain (recomendado)”. Los work-unit commits se organizarán en `feat/containerized-local-environment`; no implica push, PR ni actualización de `main`.
+
+### L12 — Work-unit commit de T1 (2026-10-16)
+
+Commit: `4b82fe2baa5adddcc90cb0b1e9ad133256ef218d` — `feat: persist synthetic attendance dataset`. Incluye T1 y los documentos/criterios SDD aprobados. Commit local en `feat/containerized-local-environment`; no se hizo push.

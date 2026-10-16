@@ -130,3 +130,7 @@ Los criterios SPEC-002-AC-001..010 no se declaran todos aprobados: las comprobac
 La compilación PASS con SDK `10.0.402` registrada arriba corresponde a la verificación previa de SPEC-002. Durante el trabajo de SPEC-003 el entorno carecía de ese SDK y el primer build falló en la selección de versión; el usuario autorizó instalarlo, por lo que el SDK fijado `10.0.402` ya está disponible y `global.json` sigue sin cambios.
 
 Verificación posterior de SPEC-003 con el SDK fijado, ejecutada desde la raíz del repositorio: `dotnet build TalentAssistant.sln --configuration Debug --no-restore --verbosity minimal` terminó con 0 advertencias y 0 errores, incluidos ambos proyectos de pruebas. Los tests quedaron compilados, no ejecutados; `dotnet test` no se ejecutó. La matriz por criterio de la sección anterior no se modifica con esta compilación.
+
+### Suite xUnit ejecutada durante T1 de SPEC-004 (2026-10-15)
+
+El usuario autorizó una ejecución de pruebas para T1. La prueba enfocada de serialización de la fuente sintética pasó 3/3; la suite completa pasó 5/5 UnitTests y 6/7 IntegrationTests. `MySqlPersistenceTests.AppliesMigrationsAndRoundTripsSyntheticDataOnMySql8411` falló antes de conectarse porque falta `ConnectionStrings__TalentAssistantTests`. Esta ejecución posterior no convierte todos los criterios AC-001..AC-010 en aceptados; se conserva la matriz parcial y no se reintentó ni investigó el bloqueo del test DB.

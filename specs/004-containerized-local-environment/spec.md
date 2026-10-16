@@ -138,7 +138,7 @@ La decisión de que la API del perfil Compose lea fixtures desde MySQL fue confi
 
 ## 10. Estado y aprobación
 
-El usuario aprobó SPEC-004 y ADR-0006 para planificación el 2026-10-15. El plan ODD está en `odd/tasks/containerized-local-environment.md`. T1 tiene implementación y evidencia parcial; el usuario autorizó continuar a T2 dejando documentado el fallo de `MySqlPersistenceTests`. El perfil host y los contratos HCM actuales continúan vigentes.
+El usuario aprobó SPEC-004 y ADR-0006 para planificación el 2026-10-15. El plan ODD está en `odd/tasks/containerized-local-environment.md`. T1 está implementada y su work-unit commit es `4b82fe2baa5adddcc90cb0b1e9ad133256ef218d`; la aceptación conserva una limitación de verificación por `MySqlPersistenceTests`. T2/T3 no han comenzado. El perfil host y los contratos HCM actuales continúan vigentes.
 
 ## 11. Verificación de T1
 
@@ -148,4 +148,4 @@ El usuario aprobó SPEC-004 y ADR-0006 para planificación el 2026-10-15. El pla
 - Verificador independiente: S2, S4 y S5 MET en una copia scratch con una instancia MySQL desechable; seed de una fila y segundo seed conservaron el mismo snapshot. El espacio de trabajo no fue modificado por el verificador.
 - La prueba enfocada `SyntheticAttendanceDatasetSerializerTests` pasó 3/3. La suite completa pasó 5/5 UnitTests y 6/7 IntegrationTests; `MySqlPersistenceTests` falló antes de conectarse porque falta `ConnectionStrings__TalentAssistantTests`. No se reintentó ni se investigó ese bloqueo. Una prueba que sembraba `talentassistant_tests` se quitó para mantener esa base separada y sin seed demo.
 
-El usuario aceptó continuar a T2 con el fallo de `MySqlPersistenceTests` documentado; no se reintentará xUnit ni se cambiará configuración de seguridad. T1 queda implementada con esa limitación aceptada. La estrategia `feature-branch-chain` está elegida; T2 inicia después del work-unit commit de T1 y T3 depende de T2. SPEC-004 no se declara completa.
+El usuario aceptó continuar a T2 con el fallo de `MySqlPersistenceTests` documentado; no se reintentará xUnit ni se cambiará configuración de seguridad. T1 queda implementada con esa limitación aceptada y commit local registrado en el task log. La estrategia `feature-branch-chain` está elegida; T2 puede iniciar según el plan y T3 depende de T2. SPEC-004 no se declara completa.
