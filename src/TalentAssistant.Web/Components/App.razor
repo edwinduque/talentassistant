@@ -16,6 +16,25 @@
 <body>
     <Routes @rendermode="InteractiveServer" />
     <ReconnectModal />
+    <script>
+        window.talentAssistantSession = {
+            login: async (url, userName, password) => {
+                const response = await fetch(url, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    credentials: 'same-origin',
+                    body: JSON.stringify({ userName: userName, password: password })
+                });
+                return response.ok;
+            },
+            logout: async (url) => {
+                await fetch(url, {
+                    method: 'POST',
+                    credentials: 'same-origin'
+                });
+            }
+        };
+    </script>
     <script src="@Assets["_framework/blazor.web.js"]"></script>
 </body>
 

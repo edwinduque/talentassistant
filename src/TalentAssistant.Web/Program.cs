@@ -47,7 +47,13 @@ builder.Services
 builder.Services.AddAuthorization(options =>
 {
     options.FallbackPolicy = new AuthorizationPolicyBuilder()
-        .RequireAuthenticatedUser()
+        // The Blazor circuit negotiates anonymously; every other endpoint
+        // requires an authenticated user. Page-level authorization is also
+        // enforced by AuthorizeRouteView.
+        .RequireAssertion(context =>
+            context.Resource is not HttpContext httpContext
+            || httpContext.Request.Path.StartsWithSegments("/_blazor")
+            || httpContext.User?.Identity?.IsAuthenticated == true)
         .Build();
 });
 
@@ -68,21 +74,21 @@ app.MapRazorComponents<App>()
     .AddInteractiveServerRenderMode();
 
 app.MapPost("/session/login", async (
-    SessionLoginRequest request,
     AuthApiClient authApiClient,
     HttpContext httpContext,
     CancellationToken cancellationToken) =>
 {
+    // The form is read manually (no [FromForm] binding), so the antiforgery
+    // middleware does not require a token for this loopback-only, SameSite=Lax
+    // local endpoint; see ADR-0007 for the accepted local-profile tradeoff.
+    var form = await httpContext.Request.ReadFormAsync(cancellationToken);
     var login = await authApiClient.LoginAsync(
-        request.UserName,
-        request.Password,
+        form["UserName"].ToString(),
+        form["Password"].ToString(),
         cancellationToken);
     if (login is null)
     {
-        return Results.Problem(
-            statusCode: StatusCodes.Status401Unauthorized,
-            title: "Invalid credentials",
-            detail: "The provided credentials are not valid.");
+        return Results.Redirect("/login?error=1");
     }
 
     var identity = new ClaimsIdentity(CookieAuthenticationDefaults.AuthenticationScheme);
@@ -93,7 +99,16 @@ app.MapPost("/session/login", async (
     identity.AddClaim(new Claim("expires", login.ExpiresAtUtc.ToString("O")));
     await httpContext.SignInAsync(new ClaimsPrincipal(identity));
 
-    return Results.Ok();
+    // Only local paths are accepted to avoid open redirects.
+    var returnUrl = form["ReturnUrl"].ToString();
+    if (string.IsNullOrEmpty(returnUrl)
+        || !returnUrl.StartsWith('/')
+        || returnUrl.StartsWith("//"))
+    {
+        returnUrl = "/";
+    }
+
+    return Results.Redirect(returnUrl);
 }).WithName("SessionLogin").AllowAnonymous();
 
 app.MapPost("/session/logout", async (
@@ -115,5 +130,3 @@ app.MapPost("/session/logout", async (
 }).WithName("SessionLogout").RequireAuthorization();
 
 app.Run();
-
-internal sealed record SessionLoginRequest(string UserName, string Password);
