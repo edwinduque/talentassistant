@@ -1,0 +1,167 @@
+@page "/login"
+@using System.ComponentModel.DataAnnotations
+@using Microsoft.AspNetCore.Authorization
+@using Microsoft.AspNetCore.Components
+@attribute [AllowAnonymous]
+@inject SessionService Session
+@inject NavigationManager Navigation
+
+<PageTitle>Iniciar sesión | Talent Assistant</PageTitle>
+
+<div class="login-page">
+    <style>
+        .login-card {
+            max-width: 34rem;
+        }
+
+        .login-card-content {
+            padding: 2rem;
+        }
+
+        .login-form {
+            display: grid;
+            gap: 1.25rem;
+        }
+
+        .login-field {
+            display: grid;
+            gap: 0.35rem;
+        }
+
+        .login-field label {
+            font-weight: 600;
+        }
+
+        .login-control {
+            min-height: 2.75rem;
+            padding: 0.5rem 0.75rem;
+            border: 1px solid var(--border);
+            background: var(--surface);
+            color: var(--ink);
+            font: inherit;
+        }
+
+        .login-control:focus-visible {
+            outline: 3px solid var(--focus);
+            outline-offset: 2px;
+        }
+
+        .login-error {
+            margin: 0;
+            color: var(--danger);
+            font-weight: 600;
+        }
+
+        .login-action button {
+            min-height: 2.75rem;
+            padding: 0.5rem 1.5rem;
+            border: 1px solid var(--accent);
+            background: var(--accent);
+            color: var(--canvas);
+            font: inherit;
+            font-weight: 650;
+            cursor: pointer;
+        }
+
+        .login-action button:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+        }
+
+        .login-form .validation-message {
+            color: var(--danger);
+        }
+
+        .login-form .validation-summary ul {
+            margin: 0;
+            padding-left: 1.25rem;
+        }
+    </style>
+
+    <header class="overview-heading">
+        <p class="eyebrow">Talent Assistant</p>
+        <h1>Iniciar sesión</h1>
+        <p class="overview-intro">
+            Introduce tu usuario local para acceder a la aplicación.
+        </p>
+    </header>
+
+    <section class="status-card login-card" aria-label="Formulario de inicio de sesión">
+        <div class="status-rail" aria-hidden="true"></div>
+        <div class="status-card-content login-card-content">
+            <EditForm Model="_model" OnValidSubmit="HandleLoginAsync" class="login-form">
+                <DataAnnotationsValidator />
+                <div class="login-field">
+                    <label for="login-user-name">Usuario</label>
+                    <input id="login-user-name"
+                           class="login-control"
+                           type="text"
+                           autocomplete="username"
+                           autofocus
+                           @bind="_model.UserName" />
+                    <ValidationMessage For="@(() => _model.UserName)" />
+                </div>
+                <div class="login-field">
+                    <label for="login-password">Contraseña</label>
+                    <input id="login-password"
+                           class="login-control"
+                           type="password"
+                           autocomplete="current-password"
+                           @bind="_model.Password" />
+                    <ValidationMessage For="@(() => _model.Password)" />
+                </div>
+
+                @if (_hasFailed)
+                {
+                    <p class="login-error" role="alert">Usuario o contraseña incorrectos</p>
+                }
+
+                <div class="login-action">
+                    <button type="submit" disabled="@_isSubmitting">
+                        @(_isSubmitting ? "Entrando…" : "Entrar")
+                    </button>
+                </div>
+
+                <div class="validation-summary" role="status" aria-live="polite">
+                    <ValidationSummary />
+                </div>
+            </EditForm>
+        </div>
+    </section>
+</div>
+
+@code {
+    private readonly LoginModel _model = new();
+    private bool _isSubmitting;
+    private bool _hasFailed;
+
+    private async Task HandleLoginAsync()
+    {
+        _hasFailed = false;
+        _isSubmitting = true;
+        try
+        {
+            if (await Session.LoginAsync(_model.UserName, _model.Password))
+            {
+                Navigation.NavigateTo("/", forceLoad: true);
+                return;
+            }
+
+            _hasFailed = true;
+        }
+        finally
+        {
+            _isSubmitting = false;
+        }
+    }
+
+    private sealed class LoginModel
+    {
+        [Required(ErrorMessage = "Introduce el usuario.")]
+        public string UserName { get; set; } = string.Empty;
+
+        [Required(ErrorMessage = "Introduce la contraseña.")]
+        [DataType(DataType.Password)]
+        public string Password { get; set; } = string.Empty;
+    }
+}

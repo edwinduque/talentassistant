@@ -50,7 +50,7 @@ Risk: item 2 (autenticaci√≥n, credenciales y permisos). T1 y T2 requieren verifi
 | ID | Specs | Ruta | Estado | Evidencia / commit |
 |---|---|---|---|---|
 | T1 | S1, S3, S4 | Inline | Implementada; suite 21/21, smoke login/401/token/logout y verificaci√≥n independiente sin bloqueos (5/5 claims MET) | `2e89c719ae4e6c18c45b662801b8fcc0284e3783` + snapshot `ab715c16bf62786194eb1126b45b98f95db5ca01` |
-| T2 | S2, S4 | Inline | Planificada | Depende de T1 |
+| T2 | S2, S4 | Inline | Implementada; build 0/0 e integraci√≥n 16/16; UnitTests 4/5 por bloqueo ambiental App Control en `UnitTests\bin` (bytes id√©nticos OK en otra ruta); verificador pendiente | Commit pendiente en `feature-branch-chain` |
 | T3 | S3, S5 | Inline | Planificada | Depende de T1/T2 |
 
 Forecast inicial: aproximadamente 700‚Äì1000 l√≠neas authored entre implementaci√≥n, pruebas y documentaci√≥n; archivos generados excluidos. Estrategia `feature-branch-chain` reutilizada de SPEC-004; el umbral de ~400 l√≠neas es heur√≠stico, no un l√≠mite de tama√±o.
@@ -84,3 +84,13 @@ Risk: item 2 (autenticaci√≥n y credenciales: pol√≠tica de contrase√±as heredada 
 ### L5 ‚Äî Verificaci√≥n independiente de T1 (2026-10-16)
 
 Verificador independiente sin bloqueos, 5/5 claims MET en copia scratch y puertos libres (5107-5109), sin tocar el stack principal: diff acotado (sin cambios en Domain/Application ni referencias a Identity), migraci√≥n aditiva verificada con dumps byte-id√©nticos del dev DB, posture de seguridad (clave vac√≠a en repo, fail-fast antes de abrir puerto, 401 id√©ntico en los tres casos de login inv√°lido, hash solo, 0 secretos en logs), comportamiento completo (initializer idempotente √ó2, insights 401/200 con 5 fixtures byte-id√©nticas a la respuesta baseline, token alterado 401, logout 200) y suite 21/21 le√≠da desde el workspace. Advisory: la pol√≠tica Application Control bloquea la carga de `TalentAssistant.Domain.dll` desde rutas temp del scratch (0x800711C7); no es defecto del c√≥digo. Advisory: el reto 401 del framework lleva cuerpo vac√≠o frente al problem JSON del login fallido. El token sigue v√°lido hasta expirar tras logout (compromiso documentado en ADR-0007).
+
+### L6 ó ImplementaciÛn de T2 (2026-10-16)
+
+Texto exacto del usuario: "si" (autoriza T2). Escrita por worker acotado (context backstop); el writer escalÛ un fallo real del diseÒo original (el POST en loopback desde el circuito no puede entregar la cookie HttpOnly al navegador) y se corrigiÛ con fetch same-origin del navegador vÌa IJSRuntime, conservando el contrato JSON `/session/*`.
+
+Implementado en Web: cookie HttpOnly SameSite=Lax con login path `/login`; FallbackPolicy autenticado con `AllowAnonymous` en assets est·ticos, `/login` y `/session/login`; `AuthApiClient` contra la API; `AuthenticationMessageHandler` adjuntando el token solo al `BackendApiClient`; `AuthorizeRouteView`+`CascadingAuthenticationState`; p·gina `/login` accesible en espaÒol; usuario y "Cerrar sesiÛn" en MainLayout.
+
+Evidencia: build 0 warnings/0 errores; integraciÛn 16/16; UnitTests 4/5. El fallo es ambiental y reproducido por el padre: `DomainAndApplicationRespectTheirDependencyBoundaries` falla con FileLoadException 0x800711C7 (Application Control) cargando `TalentAssistant.Domain.dll` desde `tests\TalentAssistant.UnitTests\bin`, con SHA256 idÈntico al que sÌ carga desde `IntegrationTests\bin`; se limpiÛ bin/obj y reconstruyÛ, se reproduce igual; el diff de T2 no toca Domain/Application y la misma suite pasÛ 21/21 antes de T2. No se desactiva ni elude la polÌtica. El smoke de navegador end-to-end queda para T3.
+
+Risk: item 2 (sesiÛn y transporte de credenciales en Web).

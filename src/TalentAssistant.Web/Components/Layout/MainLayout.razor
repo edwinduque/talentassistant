@@ -1,4 +1,8 @@
+@using Microsoft.AspNetCore.Components
+@using Microsoft.AspNetCore.Components.Authorization
 @inherits LayoutComponentBase
+@inject SessionService Session
+@inject NavigationManager Navigation
 
 <div class="app-shell">
     <a class="skip-link" href="#main-content">Skip to main content</a>
@@ -9,10 +13,21 @@
             <span class="brand-name">Talent Assistant</span>
         </a>
 
-        <nav class="primary-navigation" aria-label="Primary navigation">
-            <NavLink href="" Match="NavLinkMatch.All">Overview</NavLink>
-            <NavLink href="attendance-insights">Attendance insights</NavLink>
-        </nav>
+        <AuthorizeView>
+            <Authorized>
+                <nav class="primary-navigation" aria-label="Primary navigation">
+                    <NavLink href="" Match="NavLinkMatch.All">Overview</NavLink>
+                    <NavLink href="attendance-insights">Attendance insights</NavLink>
+                </nav>
+            </Authorized>
+        </AuthorizeView>
+
+        <AuthorizeView>
+            <Authorized>
+                <span class="user-name">@context.User.Identity?.Name</span>
+                <button type="button" class="sign-out-button" @onclick="SignOutAsync">Cerrar sesión</button>
+            </Authorized>
+        </AuthorizeView>
 
         <p class="environment-label">Local development</p>
     </header>
@@ -34,3 +49,48 @@
     <a href="/">Reload the page</a>
     <button type="button" class="dismiss" aria-label="Dismiss error">×</button>
 </div>
+
+<style>
+    .user-name {
+        color: var(--muted);
+        font-weight: 600;
+    }
+
+    .sign-out-button {
+        min-height: 2.25rem;
+        padding: 0.25rem 0.9rem;
+        border: 1px solid var(--border);
+        background: var(--surface);
+        color: var(--ink);
+        font: inherit;
+        cursor: pointer;
+    }
+</style>
+
+<script>
+    window.talentAssistantSession = {
+        login: async (url, userName, password) => {
+            const response = await fetch(url, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                credentials: 'same-origin',
+                body: JSON.stringify({ userName: userName, password: password })
+            });
+            return response.ok;
+        },
+        logout: async (url) => {
+            await fetch(url, {
+                method: 'POST',
+                credentials: 'same-origin'
+            });
+        }
+    };
+</script>
+
+@code {
+    private async Task SignOutAsync()
+    {
+        await Session.LogoutAsync();
+        Navigation.NavigateTo("/login", forceLoad: true);
+    }
+}
