@@ -1,0 +1,15 @@
+.git/
+.atl/
+.vs/
+**/bin/
+**/obj/
+**/.env
+**/.env.*
+**/secrets.json
+**/*.user
+**/*.suo
+tests/
+docs/
+odd/
+specs/
+scripts/

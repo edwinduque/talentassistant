@@ -48,7 +48,7 @@ Risk: item 1 (migración/seed sobre persistencia), item 5 (entorno de ejecución
 | ID | Specs | Ruta | Estado | Evidencia / commit |
 |---|---|---|---|---|
 | T1 | S2, S4, S5 | Inline | Implementada; build, smoke y verificador pasan; suite completa 11/12, limitación aceptada para continuar | `4b82fe2baa5adddcc90cb0b1e9ad133256ef218d` |
-| T2 | S1, S2, S4 | Inline | Planificada; el usuario autorizó continuar con T1 parcial | Iniciar tras el commit de T1 y elegir cadena |
+| T2 | S1, S2, S4 | Inline | Implementada; imágenes, Compose, seed y smoke HTTP/Web pasan; verificador independiente sin bloqueos | Work-unit commit pendiente en `feature-branch-chain` |
 | T3 | S3, S4, S5 | Inline | Planificada | Depende de T1/T2 |
 
 Forecast inicial: aproximadamente 600–800 líneas authored entre implementación, pruebas y documentación; archivos generados excluidos. El usuario eligió `feature-branch-chain`; el umbral de ~400 líneas es heurístico, no un límite de tamaño.
@@ -108,3 +108,29 @@ Texto exacto del usuario: “feature-branch-chain (recomendado)”. Los work-uni
 ### L12 — Work-unit commit de T1 (2026-10-16)
 
 Commit: `4b82fe2baa5adddcc90cb0b1e9ad133256ef218d` — `feat: persist synthetic attendance dataset`. Incluye T1 y los documentos/criterios SDD aprobados. Commit local en `feat/containerized-local-environment`; no se hizo push.
+
+### L13 — Inicio de T2 (2026-10-16)
+
+Se inicia T2 tras el commit de T1 y con estrategia `feature-branch-chain` seleccionada. La limitación de `MySqlPersistenceTests` permanece documentada; no se reejecutará xUnit ni se modificará la configuración de seguridad.
+
+### L14 — Verificación local parcial de T2 (2026-10-16)
+
+`docker compose config --quiet` pasó con valores sintéticos efímeros. El Dockerfile MySQL construyó usando el digest ya presente en el equipo. Las imágenes base `mcr.microsoft.com/dotnet/sdk:10.0.402` y `mcr.microsoft.com/dotnet/aspnet:10.0.13` no están en caché; no se contactó el registro ni se intentó descargarlas. La compilación de las imágenes API/Web queda pendiente de autorización remota explícita.
+
+### L15 — Autorización de imágenes base (2026-10-16)
+
+Texto exacto del usuario: “Sí, autoriza pulls anónimos”. Autoriza descargar los tags .NET fijados desde `mcr.microsoft.com`, sin credenciales; no autoriza todavía la descarga/restauración de paquetes desde NuGet.
+
+### L16 — Autorización de restore NuGet (2026-10-16)
+
+Texto exacto del usuario: “Sí, autoriza restore anónimo”. Autoriza restaurar únicamente los paquetes ya declarados en los proyectos desde `api.nuget.org`, sin credenciales ni nuevas dependencias.
+
+### L17 — Verificación local de T2 (2026-10-16)
+
+`docker compose config --quiet` pasó. Los Dockerfiles de MySQL, API, Web y la reutilización de API para `db-init` construyeron correctamente; `docker compose -p talentassistant-local up --build -d --wait` terminó con éxito, DB healthy y `db-init` exit code 0. La ejecución repetida de `db-init` no reaplicó migraciones ni duplicó el dataset; API MySQL siguió devolviendo cinco fixtures. `/health`, `/health/database`, Web `/`, `/attendance-insights` y `/_framework/blazor.web.js` respondieron HTTP 200. El navegador mostró los cinco casos sintéticos y la consola quedó sin errores tras corregir el asset Blazor.
+
+La primera comprobación de Blazor detectó 404 de `blazor.web.js`; el restore de Web Dockerfile ocurría antes de copiar los `.razor`. Se añadió restore después de copiar fuentes Razor; el rebuild y la comprobación interactiva posterior pasan. xUnit no se reejecutó. No se hizo commit ni push.
+
+### L18 — Verificación independiente de T2 (2026-10-16)
+
+El verificador independiente validó S1/S2/S4/S5 sin bloqueos en un scratch y con volumen temporal; `db-init` repetido conservó una fila y el mismo payload, y el stack principal permaneció intacto. También confirmó que `name: talentassistant-local` hace que `docker compose` sin `-p` apunte al proyecto y servicios ya existentes. T2 queda lista para su work-unit commit; T3 aún pendiente.

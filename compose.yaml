@@ -1,6 +1,11 @@
+name: talentassistant-local
+
 services:
   mysql:
-    image: mysql:8.4.11@sha256:24989179f58856db763f418010c1169fecc944e3ec1ea7e921572d83eb070f70
+    image: talentassistant-mysql:8.4.11-local
+    build:
+      context: .
+      dockerfile: docker/mysql/Dockerfile
     environment:
       MYSQL_DATABASE: ${MYSQL_DATABASE:?Set MYSQL_DATABASE in the local .env file}
       MYSQL_USER: ${MYSQL_USER:?Set MYSQL_USER in the local .env file}
@@ -10,7 +15,6 @@ services:
       - "127.0.0.1:3306:3306"
     volumes:
       - mysql_data:/var/lib/mysql
-      - ./docker/mysql/init/10-create-test-database.sql:/docker-entrypoint-initdb.d/10-create-test-database.sql:ro
     healthcheck:
       # Liveness only; EF operations verify the application user's authentication.
       test: ["CMD", "mysqladmin", "ping", "--host=127.0.0.1", "--silent"]
@@ -18,6 +22,53 @@ services:
       timeout: 3s
       retries: 30
       start_period: 20s
+
+  db-init:
+    image: talentassistant-api:local
+    build:
+      context: .
+      dockerfile: src/TalentAssistant.Api/Dockerfile
+    command: ["--initialize-local-data"]
+    environment:
+      ASPNETCORE_ENVIRONMENT: Development
+      ConnectionStrings__TalentAssistant: "Server=mysql;Port=3306;Database=${MYSQL_DATABASE:?Set MYSQL_DATABASE in the local .env file};User Id=${MYSQL_USER:?Set MYSQL_USER in the local .env file};Password=${MYSQL_PASSWORD:?Set MYSQL_PASSWORD in the local .env file};"
+    depends_on:
+      mysql:
+        condition: service_healthy
+    restart: "no"
+
+  api:
+    image: talentassistant-api:local
+    build:
+      context: .
+      dockerfile: src/TalentAssistant.Api/Dockerfile
+    environment:
+      ASPNETCORE_ENVIRONMENT: Development
+      ASPNETCORE_URLS: http://+:5101
+      Attendance__Source: MySql
+      ConnectionStrings__TalentAssistant: "Server=mysql;Port=3306;Database=${MYSQL_DATABASE:?Set MYSQL_DATABASE in the local .env file};User Id=${MYSQL_USER:?Set MYSQL_USER in the local .env file};Password=${MYSQL_PASSWORD:?Set MYSQL_PASSWORD in the local .env file};"
+    ports:
+      - "127.0.0.1:5101:5101"
+    depends_on:
+      mysql:
+        condition: service_healthy
+      db-init:
+        condition: service_completed_successfully
+
+  web:
+    image: talentassistant-web:local
+    build:
+      context: .
+      dockerfile: src/TalentAssistant.Web/Dockerfile
+    environment:
+      ASPNETCORE_ENVIRONMENT: Development
+      ASPNETCORE_URLS: http://+:5102
+      BackendApi__BaseUrl: http://api:5101/
+    ports:
+      - "127.0.0.1:5102:5102"
+    depends_on:
+      api:
+        condition: service_started
 
 volumes:
   mysql_data:

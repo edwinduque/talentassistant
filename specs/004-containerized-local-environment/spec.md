@@ -1,7 +1,7 @@
 # SPEC-004 — Entorno local contenedorizado y semilla sintética
 
 - **Estado:** Diseño técnico aprobado para planificación de implementación (2026-10-15).
-- **Implementación:** T1 implementada con verificación parcial; el usuario autorizó continuar a T2 con la limitación documentada. T2/T3 siguen pendientes.
+- **Implementación:** T1 committeada con limitación de suite aceptada; T2 construida y verificada local e independientemente; T3 pendiente.
 - **Requisitos relacionados:** FR-006, FR-010, FR-018, FR-020; NFR-004, NFR-005, NFR-008, NFR-017.
 - **Criterios relacionados:** AC-001, AC-002, AC-007, AC-008, AC-012..AC-015.
 - **Decisión arquitectónica:** ADR-0006 aceptado para planificación el 2026-10-15.
@@ -138,7 +138,7 @@ La decisión de que la API del perfil Compose lea fixtures desde MySQL fue confi
 
 ## 10. Estado y aprobación
 
-El usuario aprobó SPEC-004 y ADR-0006 para planificación el 2026-10-15. El plan ODD está en `odd/tasks/containerized-local-environment.md`. T1 está implementada y su work-unit commit es `4b82fe2baa5adddcc90cb0b1e9ad133256ef218d`; la aceptación conserva una limitación de verificación por `MySqlPersistenceTests`. T2/T3 no han comenzado. El perfil host y los contratos HCM actuales continúan vigentes.
+El usuario aprobó SPEC-004 y ADR-0006 para planificación el 2026-10-15. El plan ODD está en `odd/tasks/containerized-local-environment.md`. T1 está implementada con su work-unit commit `4b82fe2baa5adddcc90cb0b1e9ad133256ef218d`; el usuario autorizó continuar a T2 manteniendo documentada la limitación de `MySqlPersistenceTests`. T2 construye y levanta API/Web/MySQL y pasó la verificación independiente. T3 aún no comienza. El perfil host y los contratos HCM actuales continúan vigentes.
 
 ## 11. Verificación de T1
 
@@ -148,4 +148,15 @@ El usuario aprobó SPEC-004 y ADR-0006 para planificación el 2026-10-15. El pla
 - Verificador independiente: S2, S4 y S5 MET en una copia scratch con una instancia MySQL desechable; seed de una fila y segundo seed conservaron el mismo snapshot. El espacio de trabajo no fue modificado por el verificador.
 - La prueba enfocada `SyntheticAttendanceDatasetSerializerTests` pasó 3/3. La suite completa pasó 5/5 UnitTests y 6/7 IntegrationTests; `MySqlPersistenceTests` falló antes de conectarse porque falta `ConnectionStrings__TalentAssistantTests`. No se reintentó ni se investigó ese bloqueo. Una prueba que sembraba `talentassistant_tests` se quitó para mantener esa base separada y sin seed demo.
 
-El usuario aceptó continuar a T2 con el fallo de `MySqlPersistenceTests` documentado; no se reintentará xUnit ni se cambiará configuración de seguridad. T1 queda implementada con esa limitación aceptada y commit local registrado en el task log. La estrategia `feature-branch-chain` está elegida; T2 puede iniciar según el plan y T3 depende de T2. SPEC-004 no se declara completa.
+El usuario aceptó continuar a T2 con el fallo de `MySqlPersistenceTests` documentado; no se reintentará xUnit ni se cambiará configuración de seguridad. T1 queda implementada con esa limitación aceptada y commit local registrado en el task log. La estrategia `feature-branch-chain` está elegida; T2 está en curso y T3 depende de T2. SPEC-004 no se declara completa.
+
+## 12. Verificación de T2
+
+- `docker compose config --quiet` pasó con variables sintéticas efímeras; no se creó `.env`.
+- El Dockerfile MySQL construyó sin descarga porque su imagen oficial fijada por digest ya estaba en caché local.
+- Los Dockerfiles MySQL/API/Web construyeron correctamente. El usuario autorizó pulls anónimos de las imágenes .NET fijadas desde MCR y restore de paquetes ya declarados desde NuGet; no se añadieron dependencias.
+- `docker compose -p talentassistant-local up --build -d --wait` terminó con éxito; MySQL está healthy, `db-init` salió 0, API y Web están en marcha. Un segundo `db-init` fue no-op de migración y el API siguió devolviendo cinco fixtures.
+- Smoke HTTP: API `/health` 200, `/health/database` 200, `/attendance/insights` 200 con cinco registros; Web `/` y `/attendance-insights` 200. En el navegador, el filtro `2026-10-15` a `2026-10-18` mostró los cinco casos y sus estados fuente.
+- La primera comprobación Web detectó 404 en `/_framework/blazor.web.js`: el restore se ejecutaba antes de copiar los componentes Razor. Se añadió restore después de esa copia; rebuild, script HTTP 200 y conexión interactiva Blazor quedaron observados sin errores de consola.
+- Verificación independiente: S1/S2/S4/S5 MET, sin bloqueos, en copia scratch con volumen temporal; seed repetido conservó una fila y payload idéntico. El stack principal permaneció intacto. La revalidación confirmó que `name: talentassistant-local` hace que `docker compose` sin `-p` resuelva y use el stack ya iniciado.
+- No se modificaron políticas, certificados, `global.json` ni configuración de seguridad. xUnit no se reejecutó; se mantiene documentado el resultado parcial de T1. La guía local completa corresponde a T3.
