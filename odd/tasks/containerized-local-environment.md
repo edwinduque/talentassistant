@@ -48,7 +48,7 @@ Risk: item 1 (migración/seed sobre persistencia), item 5 (entorno de ejecución
 | ID | Specs | Ruta | Estado | Evidencia / commit |
 |---|---|---|---|---|
 | T1 | S2, S4, S5 | Inline | Implementada; build, smoke y verificador pasan; suite completa 11/12, limitación aceptada para continuar | `4b82fe2baa5adddcc90cb0b1e9ad133256ef218d` |
-| T2 | S1, S2, S4 | Inline | Implementada; imágenes, Compose, seed y smoke HTTP/Web pasan; verificador independiente sin bloqueos | Work-unit commit pendiente en `feature-branch-chain` |
+| T2 | S1, S2, S4 | Inline | Implementada; imágenes, Compose, seed y smoke HTTP/Web pasan; verificador independiente sin bloqueos | `bcfec3a26452ee5729a0c804ab7a28f488c815c0` |
 | T3 | S3, S4, S5 | Inline | Planificada | Depende de T1/T2 |
 
 Forecast inicial: aproximadamente 600–800 líneas authored entre implementación, pruebas y documentación; archivos generados excluidos. El usuario eligió `feature-branch-chain`; el umbral de ~400 líneas es heurístico, no un límite de tamaño.
@@ -133,4 +133,10 @@ La primera comprobación de Blazor detectó 404 de `blazor.web.js`; el restore d
 
 ### L18 — Verificación independiente de T2 (2026-10-16)
 
-El verificador independiente validó S1/S2/S4/S5 sin bloqueos en un scratch y con volumen temporal; `db-init` repetido conservó una fila y el mismo payload, y el stack principal permaneció intacto. También confirmó que `name: talentassistant-local` hace que `docker compose` sin `-p` apunte al proyecto y servicios ya existentes. T2 queda lista para su work-unit commit; T3 aún pendiente.
+El verificador independiente validó S1/S2/S4/S5 sin bloqueos en un scratch y con volumen temporal; `db-init` repetido conservó una fila y el mismo payload, y el stack principal permaneció intacto. También confirmó que `name: talentassistant-local` hace que `docker compose` sin `-p` apunte al proyecto y servicios ya existentes. `gentle-ai review mode status` informó OFF global; outcome RDD: `disabled/unmanaged`, sin iniciar lifecycle de review.
+
+### L19 — Work-unit commit de T2 (2026-10-16)
+
+Commit: `bcfec3a26452ee5729a0c804ab7a28f488c815c0` — `feat: containerize local API web and MySQL stack`. Incluye Dockerfiles, Compose y evidencia de verificación de T2; commit local en `feat/containerized-local-environment`, sin push.
+
+Risk: item 5 (Dockerfiles y Compose alteran el entorno local y el arranque de servicios persistentes; sin borrar el volumen).
