@@ -3,7 +3,8 @@ namespace TalentAssistant.Application.Attendance;
 public sealed record AttendanceInsightQuery(
     DateOnly FromInclusive,
     DateOnly ToExclusive,
-    string? EmployeeId = null);
+    string? EmployeeId = null,
+    string Language = "es");
 
 public sealed record HcmOfficeReference(
     string Id,

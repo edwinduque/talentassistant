@@ -11,7 +11,8 @@ public sealed class InitializeLocalSyntheticAttendanceData(
         await dbContext.Database.MigrateAsync(cancellationToken);
 
         var payloadJson = SyntheticAttendanceDatasetSerializer.Serialize(
-            SyntheticHcmAttendanceSource.Fixtures);
+            SyntheticHcmAttendanceSource.FixturesFor(SyntheticHcmAttendanceSource.Spanish),
+            SyntheticHcmAttendanceSource.FixturesFor(SyntheticHcmAttendanceSource.English));
 
         await using var transaction = await dbContext.Database.BeginTransactionAsync(
             cancellationToken);

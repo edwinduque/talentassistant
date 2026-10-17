@@ -3,20 +3,44 @@ using TalentAssistant.Application.Attendance;
 
 namespace TalentAssistant.Infrastructure.Attendance;
 
+public sealed record SyntheticAttendancePayload(
+    IReadOnlyList<HcmAttendanceInsight> Es,
+    IReadOnlyList<HcmAttendanceInsight> En)
+{
+    /// <summary>
+    /// Returns the variant for a supported language and falls back to Spanish
+    /// for unknown values (SPEC-007 §8).
+    /// </summary>
+    public IReadOnlyList<HcmAttendanceInsight> ForLanguage(string language)
+    {
+        if (string.Equals(language, SyntheticHcmAttendanceSource.English, StringComparison.Ordinal))
+        {
+            return En;
+        }
+
+        return Es;
+    }
+}
+
 public static class SyntheticAttendanceDatasetSerializer
 {
-    public const int CurrentPayloadVersion = 1;
+    public const int CurrentPayloadVersion = 2;
 
     private static readonly JsonSerializerOptions JsonOptions =
         new(JsonSerializerDefaults.Web);
 
-    public static string Serialize(IReadOnlyList<HcmAttendanceInsight> insights)
+    public static string Serialize(
+        IReadOnlyList<HcmAttendanceInsight> spanishInsights,
+        IReadOnlyList<HcmAttendanceInsight> englishInsights)
     {
-        ArgumentNullException.ThrowIfNull(insights);
-        return JsonSerializer.Serialize(insights, JsonOptions);
+        ArgumentNullException.ThrowIfNull(spanishInsights);
+        ArgumentNullException.ThrowIfNull(englishInsights);
+        return JsonSerializer.Serialize(
+            new SyntheticAttendancePayload(spanishInsights, englishInsights),
+            JsonOptions);
     }
 
-    public static IReadOnlyList<HcmAttendanceInsight> Deserialize(
+    public static SyntheticAttendancePayload Deserialize(
         int payloadVersion,
         string payloadJson)
     {
@@ -34,16 +58,17 @@ public static class SyntheticAttendanceDatasetSerializer
 
         try
         {
-            var insights = JsonSerializer.Deserialize<List<HcmAttendanceInsight>>(
+            var payload = JsonSerializer.Deserialize<SyntheticAttendancePayload>(
                 payloadJson,
                 JsonOptions);
-            if (insights is null)
+            if (payload?.Es is null || payload.En is null
+                || payload.Es.Count == 0 || payload.En.Count == 0)
             {
                 throw new InvalidDataException(
                     "The synthetic attendance payload is empty.");
             }
 
-            return Array.AsReadOnly(insights.ToArray());
+            return payload;
         }
         catch (JsonException exception)
         {

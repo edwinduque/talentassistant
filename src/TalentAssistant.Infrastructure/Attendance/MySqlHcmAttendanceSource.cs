@@ -46,10 +46,10 @@ public sealed class MySqlHcmAttendanceSource(TalentAssistantDbContext dbContext)
                 "The synthetic attendance dataset has not been initialized.");
         }
 
-        IReadOnlyList<HcmAttendanceInsight> insights;
+        SyntheticAttendancePayload payload;
         try
         {
-            insights = SyntheticAttendanceDatasetSerializer.Deserialize(
+            payload = SyntheticAttendanceDatasetSerializer.Deserialize(
                 dataset.PayloadVersion,
                 dataset.PayloadJson);
         }
@@ -60,6 +60,8 @@ public sealed class MySqlHcmAttendanceSource(TalentAssistantDbContext dbContext)
                 exception);
         }
 
-        return SyntheticHcmAttendanceSource.Filter(insights, query);
+        return SyntheticHcmAttendanceSource.Filter(
+            payload.ForLanguage(query.Language),
+            query);
     }
 }

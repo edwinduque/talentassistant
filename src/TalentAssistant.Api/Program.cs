@@ -257,6 +257,8 @@ app.MapGet("/attendance/insights", async (
     string? from,
     string? to,
     string? employeeId,
+    ClaimsPrincipal principal,
+    UserManager<ApplicationUser> userManager,
     GetAttendanceInsights getAttendanceInsights,
     CancellationToken cancellationToken) =>
 {
@@ -282,7 +284,12 @@ app.MapGet("/attendance/insights", async (
 
     try
     {
-        var query = new AttendanceInsightQuery(fromDate, toDate, employeeId);
+        // The data language always comes from the authenticated user's profile,
+        // so a profile language change applies to the next query without a
+        // re-login (SPEC-007 §8).
+        var user = await userManager.GetUserAsync(principal);
+        var language = user?.PreferredLanguage ?? ApplicationUser.DefaultPreferredLanguage;
+        var query = new AttendanceInsightQuery(fromDate, toDate, employeeId, language);
         var insights = await getAttendanceInsights.ExecuteAsync(query, cancellationToken);
         return Results.Ok(insights);
     }
