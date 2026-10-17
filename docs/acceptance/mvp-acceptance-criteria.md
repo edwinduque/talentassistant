@@ -78,6 +78,20 @@ Dado el perfil host y el perfil Compose, cuando se aplica la autenticación ento
 
 AC-016..AC-018 fueron propuestos por SPEC-005; T1/T2 aportan evidencia y T3 completa la documentación.
 
+## AC-019 — Selector de idioma anónimo (propuesto en SPEC-006)
+
+La persona sin sesión puede cambiar el idioma del login entre español e inglés; la elección se aplica de inmediato y persiste tras recargar.
+
+## AC-020 — Perfil de usuario (propuesto en SPEC-006)
+
+El usuario autenticado gestiona su perfil: el nombre visible aparece en el layout, el idioma elegido localiza home, asistencia y textos de navegación/error, y el cambio de contraseña exige la actual y respeta la política de Identity.
+
+## AC-021 — Localización sin cambiar datos ni contratos (propuesto en SPEC-006)
+
+La localización no altera datos ni contratos: el dataset sintético y los endpoints de asistencia responden igual en cualquier idioma, la migración es aditiva, la suite permanece verde y no se introducen servicios externos ni datos reales.
+
+AC-019..AC-021 fueron propuestos por SPEC-006; T1/T2 aportan evidencia de implementación y T3 completa la documentación.
+
 ## Condiciones generales
 
 Los criterios deberán verificarse con pruebas automatizadas cuando sea razonable y con pruebas de aceptación documentadas cuando la automatización no aporte suficiente valor.
@@ -108,5 +122,8 @@ Los identificadores de esta tabla pertenecen al catálogo general y no se reutil
 | AC-016 | FR-021, FR-022, NFR-018 | Pertenece a SPEC-005: login y cierre de sesión en Web, token exigido en endpoints de negocio y sondas de salud públicas. |
 | AC-017 | NFR-004, NFR-018, NFR-006 | Respuestas de login genéricas, hash de contraseñas y secretos solo en configuración externa, según SPEC-005 y ADR-0007. |
 | AC-018 | FR-006, FR-007, NFR-005, NFR-017 | La autenticación no cambia el dataset sintético, la fuente HCM ni añade servicios externos ni datos reales. |
+| AC-019 | FR-024, NFR-019 | Selector anónimo en el login que fija la cookie de cultura; SPEC-006 y ADR-0008. |
+| AC-020 | FR-023, NFR-018 | Perfil con nombre visible, idioma preferido y cambio de contraseña exigiendo la actual; SPEC-006 y ADR-0008. |
+| AC-021 | FR-024, NFR-005, NFR-017, NFR-019 | La localización es solo de interfaz: datos y contratos intactos, migración aditiva y sin servicios externos ni datos reales. |
 
 Los AC-003 a AC-006 no se consideran satisfechos por la estructura arquitectónica creada en SPEC-001. Cada caso de asistencia necesita requisitos, pruebas y verificación propios; Tasks no forma parte de la primera vertical. NFR-011 no tiene todavía un umbral medible y deberá concretarse cuando se definan dataset y entorno. NFR-012 se verifica en cada especificación de interfaz; estos criterios no inventan un umbral cuantitativo de contraste.

@@ -1,7 +1,7 @@
 # SPEC-006 — Perfil de usuario y localización de la interfaz
 
 - **Estado:** Propuesto para aprobación de planificación (2026-10-17).
-- **Implementación:** Ninguna; todavía no hay código asociado.
+- **Implementación:** T1 y T2 implementadas y verificadas; T3 (documentación) en curso.
 - **Requisitos relacionados (propuestos):** FR-023, FR-024 y NFR-019. Relacionados existentes: FR-007, FR-009, FR-010, FR-021, FR-022; NFR-004, NFR-006, NFR-012, NFR-018.
 - **Criterios relacionados (propuestos):** AC-019, AC-020, AC-021.
 - **Decisión arquitectónica:** ADR-0008 propuesto.
@@ -103,3 +103,16 @@ Supuestos explícitos para aprobación:
 ## 10. Estado y aprobación
 
 SPEC-006 y ADR-0008 quedan propuestos a la espera de aprobación para planificación. La aprobación no autoriza por sí sola cambios de código: cada tarea se autoriza después según el plan ODD.
+
+## 11. Verificación de T3
+
+T3 documenta la implementación de T1/T2 en estos artefactos del repositorio:
+
+- `docs/development/local-setup.md`: sección «Idioma y perfil» (selector anónimo en el login, perfil, cambio de contraseña con la actual y límites de la localización).
+- `README.md`: estado de SPEC-006 en «Ejecución local» y «Estado actual».
+- `docs/decisions/decision-register.md`: ADR-0008 registrado como aceptado e implementado con limitaciones documentadas.
+- `docs/requirements/functional-requirements.md`: FR-023 y FR-024 con su nota de aprobación e implementación.
+- `docs/requirements/non-functional-requirements.md`: NFR-019.
+- `docs/acceptance/mvp-acceptance-criteria.md`: AC-019..AC-021 y sus filas de trazabilidad.
+
+El recorrido de navegador en ambos idiomas (smoke E2E) lo realiza y registra el padre fuera de esta tarea; no se declara en este documento.

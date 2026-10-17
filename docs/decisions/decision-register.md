@@ -13,6 +13,7 @@ Este documento resume las decisiones de producto y arquitectura que gobiernan Ta
 | ADR-0005 | Utilizar CQRS ligero sin MediatR en la etapa inicial | Aceptado | `docs/architecture/adr/ADR-0005-lightweight-cqrs.md` |
 | ADR-0006 | Añadir perfil local Compose para API/Web/MySQL con dataset sintético versionado y fuente MySQL detrás de `IHcmAttendanceSource` | Aceptado; perfil local implementado con limitaciones de verificación documentadas | `docs/architecture/adr/ADR-0006-containerized-local-development.md`; `specs/004-containerized-local-environment/spec.md` |
 | ADR-0007 | Autenticación local con Identity y JWT | Aceptado; implementado con limitaciones documentadas | `docs/architecture/adr/ADR-0007-local-authentication.md`; `specs/005-local-authentication/spec.md` |
+| ADR-0008 | Localización de la interfaz y perfil de usuario | Aceptado; implementado con limitaciones documentadas | `docs/architecture/adr/ADR-0008-ui-localization-and-user-profile.md`; `specs/006-user-profile-localization/spec.md` |
 
 ## Línea base tecnológica confirmada
 

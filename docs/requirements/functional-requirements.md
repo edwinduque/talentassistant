@@ -30,10 +30,14 @@ Estado inicial: Propuesto. La aprobación del alcance convierte los requisitos s
 | FR-020 | En el entorno local, la fuente HCM sintética consultará desde MySQL fixtures de respuestas de asistencia cargados de forma reproducible; Application continuará consumiéndolos mediante su contrato, sin crear módulos HCM. | Must |
 | FR-021 | El usuario podrá autenticarse en la aplicación local; la API exigirá autenticación en los endpoints de negocio y la sesión podrá cerrarse desde la interfaz. | Must |
 | FR-022 | El entorno local dispondrá de usuarios sintéticos creados de forma idempotente desde configuración externa, sin credenciales por defecto ni en el repositorio. | Must |
+| FR-023 | El usuario podrá gestionar su perfil local: nombre visible, idioma preferido y contraseña, con la contraseña actual exigida para el cambio. | Must |
+| FR-024 | La interfaz se mostrará por completo en el idioma seleccionado (español o inglés), incluido el login sin sesión; los datos del HCM y los problem details de la API no se localizan. | Must |
 
 FR-020 fue aprobado mediante SPEC-004 y está implementado y verificado (commits en `main`); el perfil local Compose sirve los fixtures desde MySQL.
 
 FR-021 y FR-022 quedan aprobados para planificación mediante SPEC-005 y ADR-0007; su implementación está verificada en T1/T2 con la documentación pendiente en T3.
+
+FR-023 y FR-024 fueron aprobados mediante SPEC-006 y ADR-0008 y están implementados y verificados en T1/T2.
 
 ## Reglas de negocio iniciales
 

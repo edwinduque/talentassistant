@@ -104,6 +104,17 @@ Limitaciones conocidas:
 
 Las sondas `GET /health` y `GET /health/database` siguen públicas por ser comprobaciones de estado del entorno; los endpoints de negocio (`/attendance/insights`) exigen token. La autenticación es una propiedad de la aplicación: aplica igual en el perfil host y en Compose.
 
+### Idioma y perfil
+
+Desde SPEC-006 la interfaz se muestra por completo en español o inglés según la elección del usuario. El idioma por defecto es español y no se detecta el idioma del navegador.
+
+1. En `/login` hay un selector de idioma que funciona sin sesión: fija la cookie de cultura mediante `POST /session/culture` y recarga la página. La elección persiste tras recargar y tras cerrar sesión.
+2. Al iniciar sesión, la sesión hereda el idioma preferido guardado en el perfil del usuario; el login devuelve el nombre visible y el idioma junto al token.
+3. La página `/profile` (autenticada) permite editar el nombre visible, el idioma preferido y cambiar la contraseña. El cambio de contraseña exige la contraseña actual y aplica la política de Identity descrita en la tabla de `AUTH_SEED_PASSWORD`. Al guardar el perfil, la interfaz aplica el nombre y el idioma nuevos de inmediato.
+4. Cambiar el idioma —en el login o en el perfil— recarga la página; no es una conmutación en vivo.
+
+El alcance de la localización es la interfaz: los datos sintéticos del HCM (nombres de oficinas, tipos de TimeOff) y los títulos de error (problem details) de la API permanecen en su idioma original por decisión de alcance de SPEC-006.
+
 ## Perfil host alternativo: configurar MySQL y ejecutar API/Web en Windows
 
 Esta variante mantiene API y Web fuera de Docker. El perfil host/tests conserva la fuente HCM en memoria por defecto; no necesita ni ejecuta `db-init`.

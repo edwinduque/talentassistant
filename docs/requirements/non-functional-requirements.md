@@ -20,6 +20,7 @@
 | NFR-016 | Evaluación | Las futuras respuestas de IA se evaluarán con casos reproducibles, no solo mediante revisión anecdótica. |
 | NFR-017 | Reproducibilidad del entorno local | API, Web y MySQL podrán construirse y ejecutarse localmente mediante Docker Compose y Dockerfiles versionados; el conjunto incluirá una semilla sintética idempotente y documentación completa de configuración, ejecución y persistencia. |
 | NFR-018 | Seguridad de credenciales | Las contraseñas se almacenarán solo como hash; las claves de firma y las credenciales de siembra se suministrarán exclusivamente por configuración externa; los fallos de autenticación devolverán respuestas genéricas y la API y la interfaz no registrarán secretos ni tokens. |
+| NFR-019 | Localización | Las cadenas visibles vivirán en recursos de localización por componente con español como recurso neutral e inglés como satélite; el cambio de idioma se aplicará mediante cookie de cultura; no se detectará el idioma del navegador. |
 
 ## Objetivos que quedan por definir
 
