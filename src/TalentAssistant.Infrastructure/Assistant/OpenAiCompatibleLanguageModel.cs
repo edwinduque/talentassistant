@@ -1,0 +1,257 @@
+using System.Net;
+using System.Net.Http.Headers;
+using System.Text;
+using System.Text.Json;
+using System.Text.Json.Nodes;
+using TalentAssistant.Application.Assistant;
+
+namespace TalentAssistant.Infrastructure.Assistant;
+
+/// <summary>
+/// OpenAI-compatible language model client over raw HttpClient (SPEC-009 S2,
+/// ADR-0011): POST {BaseUrl}/chat/completions with Bearer auth and function
+/// tools, no SDK and no new packages. Groq is the default provider by
+/// configuration; any OpenAI-compatible endpoint works by changing AI__BaseUrl.
+/// Provider failures translate into <see cref="AssistantProviderUnavailableException"/>;
+/// no exception escapes untranslated and no secret is ever logged (NFR-004).
+/// </summary>
+public sealed class OpenAiCompatibleLanguageModel : IAssistantLanguageModel
+{
+    private static readonly JsonSerializerOptions SerializerOptions =
+        new(JsonSerializerDefaults.Web);
+
+    private readonly HttpClient _httpClient;
+    private readonly AssistantProviderOptions _options;
+
+    public OpenAiCompatibleLanguageModel(
+        HttpClient httpClient,
+        AssistantProviderOptions options)
+    {
+        ArgumentNullException.ThrowIfNull(httpClient);
+        ArgumentNullException.ThrowIfNull(options);
+
+        _httpClient = httpClient;
+        _options = options;
+    }
+
+    public async Task<AssistantCompletion> CompleteAsync(
+        AssistantRequest request,
+        CancellationToken cancellationToken = default)
+    {
+        ArgumentNullException.ThrowIfNull(request);
+
+        // A missing key degrades before any HTTP call (SPEC-009 §8.6).
+        if (string.IsNullOrWhiteSpace(_options.ApiKey))
+        {
+            throw new AssistantProviderUnavailableException(
+                AssistantProviderFailureReason.NotConfigured,
+                "The assistant provider API key is not configured.");
+        }
+
+        using var httpRequest = new HttpRequestMessage(
+            HttpMethod.Post,
+            "chat/completions")
+        {
+            Content = new StringContent(
+                BuildRequestBody(request),
+                Encoding.UTF8,
+                "application/json")
+        };
+        httpRequest.Headers.Authorization =
+            new AuthenticationHeaderValue("Bearer", _options.ApiKey);
+
+        HttpResponseMessage httpResponse;
+        try
+        {
+            httpResponse = await _httpClient.SendAsync(httpRequest, cancellationToken);
+        }
+        catch (HttpRequestException exception)
+        {
+            throw new AssistantProviderUnavailableException(
+                AssistantProviderFailureReason.Unreachable,
+                "The assistant provider could not be reached.",
+                exception);
+        }
+        catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
+        {
+            // The caller cancelled (endpoint shutdown), not the provider timeout.
+            throw;
+        }
+        catch (OperationCanceledException exception)
+        {
+            // HttpClient raises this on its own Timeout elapsing.
+            throw new AssistantProviderUnavailableException(
+                AssistantProviderFailureReason.Timeout,
+                "The assistant provider request timed out.",
+                exception);
+        }
+
+        using (httpResponse)
+        {
+            if (httpResponse.StatusCode == HttpStatusCode.TooManyRequests)
+            {
+                throw new AssistantProviderUnavailableException(
+                    AssistantProviderFailureReason.RateLimited,
+                    "The assistant provider rate limit was exceeded.");
+            }
+
+            if (!httpResponse.IsSuccessStatusCode)
+            {
+                throw new AssistantProviderUnavailableException(
+                    AssistantProviderFailureReason.InvalidResponse,
+                    $"The assistant provider returned HTTP {(int)httpResponse.StatusCode}.");
+            }
+
+            var body = await httpResponse.Content.ReadAsStringAsync(cancellationToken);
+            return ParseCompletion(body);
+        }
+    }
+
+    private string BuildRequestBody(AssistantRequest request)
+    {
+        var messages = new JsonArray();
+        foreach (var message in request.Messages)
+        {
+            var node = new JsonObject
+            {
+                ["role"] = message.Role,
+                ["content"] = message.Content
+            };
+
+            if (message.ToolCalls is { Count: > 0 })
+            {
+                var toolCalls = new JsonArray();
+                foreach (var toolCall in message.ToolCalls)
+                {
+                    toolCalls.Add(new JsonObject
+                    {
+                        ["id"] = toolCall.Id,
+                        ["type"] = "function",
+                        ["function"] = new JsonObject
+                        {
+                            ["name"] = toolCall.Name,
+                            ["arguments"] = toolCall.ArgumentsJson
+                        }
+                    });
+                }
+
+                node["tool_calls"] = toolCalls;
+            }
+
+            if (message.ToolCallId is not null)
+            {
+                node["tool_call_id"] = message.ToolCallId;
+            }
+
+            messages.Add(node);
+        }
+
+        var tools = new JsonArray();
+        foreach (var tool in request.Tools)
+        {
+            tools.Add(new JsonObject
+            {
+                ["type"] = "function",
+                ["function"] = new JsonObject
+                {
+                    ["name"] = tool.Name,
+                    ["description"] = tool.Description,
+                    // The hand-written JSON Schema is embedded verbatim.
+                    ["parameters"] = JsonNode.Parse(tool.ParametersJson)
+                }
+            });
+        }
+
+        var body = new JsonObject
+        {
+            ["model"] = _options.Model,
+            ["messages"] = messages,
+            ["tools"] = tools,
+            ["max_tokens"] = request.MaxTokens,
+            ["temperature"] = 0.1
+        };
+
+        return body.ToJsonString(SerializerOptions);
+    }
+
+    private static AssistantCompletion ParseCompletion(string body)
+    {
+        JsonDocument document;
+        try
+        {
+            document = JsonDocument.Parse(body);
+        }
+        catch (JsonException exception)
+        {
+            throw new AssistantProviderUnavailableException(
+                AssistantProviderFailureReason.InvalidResponse,
+                "The assistant provider returned an unreadable response.",
+                exception);
+        }
+
+        using (document)
+        {
+            var root = document.RootElement;
+            if (!root.TryGetProperty("choices", out var choices)
+                || choices.ValueKind != JsonValueKind.Array
+                || choices.GetArrayLength() == 0)
+            {
+                throw new AssistantProviderUnavailableException(
+                    AssistantProviderFailureReason.InvalidResponse,
+                    "The assistant provider response contains no choices.");
+            }
+
+            var message = choices[0];
+            if (!message.TryGetProperty("message", out var messageElement)
+                || messageElement.ValueKind != JsonValueKind.Object)
+            {
+                throw new AssistantProviderUnavailableException(
+                    AssistantProviderFailureReason.InvalidResponse,
+                    "The assistant provider response contains no message.");
+            }
+
+            string? content = null;
+            if (messageElement.TryGetProperty("content", out var contentElement)
+                && contentElement.ValueKind == JsonValueKind.String)
+            {
+                content = contentElement.GetString();
+            }
+
+            var toolCalls = new List<AssistantToolCall>();
+            if (messageElement.TryGetProperty("tool_calls", out var toolCallsElement)
+                && toolCallsElement.ValueKind == JsonValueKind.Array)
+            {
+                foreach (var toolCallElement in toolCallsElement.EnumerateArray())
+                {
+                    if (!toolCallElement.TryGetProperty("function", out var functionElement)
+                        || functionElement.ValueKind != JsonValueKind.Object)
+                    {
+                        continue;
+                    }
+
+                    var name = functionElement.TryGetProperty("name", out var nameElement)
+                        && nameElement.ValueKind == JsonValueKind.String
+                            ? nameElement.GetString()
+                            : null;
+                    if (string.IsNullOrWhiteSpace(name))
+                    {
+                        continue;
+                    }
+
+                    var arguments = functionElement.TryGetProperty("arguments", out var argumentsElement)
+                        && argumentsElement.ValueKind == JsonValueKind.String
+                            ? argumentsElement.GetString() ?? "{}"
+                            : "{}";
+                    var id = toolCallElement.TryGetProperty("id", out var idElement)
+                        && idElement.ValueKind == JsonValueKind.String
+                            ? idElement.GetString() ?? string.Empty
+                            : string.Empty;
+
+                    toolCalls.Add(new AssistantToolCall(id, name, arguments));
+                }
+            }
+
+            return new AssistantCompletion(content, toolCalls);
+        }
+    }
+}

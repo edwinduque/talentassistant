@@ -5,6 +5,7 @@ using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.IdentityModel.Tokens;
 using TalentAssistant.Api.Authentication;
+using TalentAssistant.Application.Assistant;
 using TalentAssistant.Application.Attendance;
 using TalentAssistant.Infrastructure.Attendance;
 using TalentAssistant.Infrastructure;
@@ -55,6 +56,8 @@ builder.Services.AddScoped<SearchEmployees>();
 builder.Services.AddScoped<GetEmployeePresence>();
 builder.Services.AddScoped<GetEmployeeTimeOff>();
 builder.Services.AddScoped<GetEmployeeTasks>();
+builder.Services.AddAssistantProvider(builder.Configuration.GetSection("AI"));
+builder.Services.AddScoped<ChatOrchestrator>();
 
 var authenticationIssuer = builder.Configuration["Authentication:Issuer"] ?? "TalentAssistant";
 var authenticationAudience = builder.Configuration["Authentication:Audience"] ?? "TalentAssistant.Local";
@@ -399,6 +402,55 @@ app.MapGet("/tasks", async (
     return Results.Ok(tasks);
 }).WithName("TasksByEmployee").RequireAuthorization();
 
+app.MapPost("/chat", async (
+    ChatRequest request,
+    ClaimsPrincipal principal,
+    UserManager<ApplicationUser> userManager,
+    ChatOrchestrator chatOrchestrator,
+    AssistantOrchestratorOptions orchestratorOptions,
+    CancellationToken cancellationToken) =>
+{
+    if (string.IsNullOrWhiteSpace(request.Message))
+    {
+        return Results.Problem(
+            statusCode: StatusCodes.Status400BadRequest,
+            title: "Missing message",
+            detail: "Provide a non-empty message.");
+    }
+
+    // The client holds the history; the server caps it so a client cannot
+    // inflate the provider payload (SPEC-009 §8.1, §8.5).
+    var historyTurns = request.History ?? Array.Empty<ChatTurn>();
+    var history = historyTurns
+        .Where(turn => turn is not null
+            && !string.IsNullOrWhiteSpace(turn.Role)
+            && !string.IsNullOrWhiteSpace(turn.Content))
+        .TakeLast(orchestratorOptions.MaxHistoryMessages)
+        .Select(turn => new ChatMessage(turn.Role, turn.Content))
+        .ToArray();
+
+    try
+    {
+        // The data language always comes from the authenticated user's profile,
+        // same resolution as /attendance/insights (SPEC-007 §8).
+        var user = await userManager.GetUserAsync(principal);
+        var language = user?.PreferredLanguage ?? ApplicationUser.DefaultPreferredLanguage;
+        var result = await chatOrchestrator.ExecuteAsync(
+            new ChatQuery(request.Message, history, language),
+            cancellationToken);
+        return Results.Ok(result);
+    }
+    catch (AssistantProviderUnavailableException exception)
+    {
+        // Machine-readable reason only; the UI localizes the message (SPEC-009 S1).
+        return Results.Json(
+            new { reason = exception.Reason.ToString() },
+            statusCode: exception.Reason == AssistantProviderFailureReason.RateLimited
+                ? StatusCodes.Status429TooManyRequests
+                : StatusCodes.Status503ServiceUnavailable);
+    }
+}).WithName("Chat").RequireAuthorization();
+
 app.Run();
 
 static IResult InvalidCredentials() => Results.Problem(
@@ -419,3 +471,5 @@ internal sealed record ProfileRequest(string FullName, string? PreferredLanguage
 internal sealed record ProfileResponse(string UserName, string FullName, string PreferredLanguage);
 internal sealed record ChangePasswordRequest(string CurrentPassword, string NewPassword);
 internal sealed record ChangePasswordResponse(string Status);
+internal sealed record ChatRequest(string Message, IReadOnlyList<ChatTurn>? History);
+internal sealed record ChatTurn(string Role, string Content);

@@ -24,11 +24,11 @@ public sealed class AssistantScenarioBenchTests
     public const string Question6 = "Dime que tareas tiene pendiente Mauricio Cardenas.";
 
     [Fact]
-    public void Question1AnswersWithEmployeesWorkingToday()
+    public async Task Question1AnswersWithEmployeesWorkingToday()
     {
         Assert.Equal("Dime cuales empleados ya estan trabajando.", Question1);
 
-        var snapshot = Source.GetPresenceAsync(new PresenceQuery(Today)).Result;
+        var snapshot = await Source.GetPresenceAsync(new PresenceQuery(Today));
         var working = snapshot.Entries
             .Where(entry => entry.State == SyntheticWorkforceSource.WorkingState)
             .Select(entry => entry.Employee.DisplayName)
@@ -40,11 +40,11 @@ public sealed class AssistantScenarioBenchTests
     }
 
     [Fact]
-    public void Question2AnswersWithEmployeesNotArrived()
+    public async Task Question2AnswersWithEmployeesNotArrived()
     {
         Assert.Equal("Dime que empleados no han llegado aun.", Question2);
 
-        var snapshot = Source.GetPresenceAsync(new PresenceQuery(Today)).Result;
+        var snapshot = await Source.GetPresenceAsync(new PresenceQuery(Today));
         var notArrived = snapshot.Entries
             .Where(entry => entry.State == SyntheticWorkforceSource.NotArrivedState)
             .Select(entry => entry.Employee.DisplayName)
@@ -55,11 +55,11 @@ public sealed class AssistantScenarioBenchTests
     }
 
     [Fact]
-    public void Question3AnswersWithEmployeesOnVacation()
+    public async Task Question3AnswersWithEmployeesOnVacation()
     {
         Assert.Equal("Dime que empleados estan de vacaciones.", Question3);
 
-        var snapshot = Source.GetPresenceAsync(new PresenceQuery(Today)).Result;
+        var snapshot = await Source.GetPresenceAsync(new PresenceQuery(Today));
         var onVacation = snapshot.Entries
             .Count(entry => entry.State == SyntheticWorkforceSource.VacationState);
 
@@ -67,15 +67,14 @@ public sealed class AssistantScenarioBenchTests
     }
 
     [Fact]
-    public void Question4AnswersJuanPerezVacationDaysFromTheSource()
+    public async Task Question4AnswersJuanPerezVacationDaysFromTheSource()
     {
         Assert.Equal("Dime cuantos dias de vacaciones tiene Juan Perez.", Question4);
 
-        var found = Source.SearchEmployeesAsync(new EmployeeSearchQuery(Name: "Juan")).Result;
+        var found = await Source.SearchEmployeesAsync(new EmployeeSearchQuery(Name: "Juan"));
         var juan = Assert.Single(found);
 
-        var requests = Source.GetTimeOffAsync(
-            new EmployeeDataQuery(EmployeeId: juan.Id)).Result;
+        var requests = await Source.GetTimeOffAsync(new EmployeeDataQuery(EmployeeId: juan.Id));
         var vacation = Assert.Single(requests);
 
         Assert.Equal("Vacación", vacation.Type);
@@ -84,19 +83,18 @@ public sealed class AssistantScenarioBenchTests
         Assert.Equal("día laborable", vacation.DurationUnit);
 
         // Full name with accent works too; only the unaccented form does not fold.
-        Assert.Single(Source.SearchEmployeesAsync(new EmployeeSearchQuery(Name: "Juan Pérez")).Result);
+        Assert.Single(await Source.SearchEmployeesAsync(new EmployeeSearchQuery(Name: "Juan Pérez")));
     }
 
     [Fact]
-    public void Question5AnswersPedroRojasReturnDate()
+    public async Task Question5AnswersPedroRojasReturnDate()
     {
         Assert.Equal("Dime cuando regresa Pedro Rojas.", Question5);
 
-        var found = Source.SearchEmployeesAsync(new EmployeeSearchQuery(Name: "Pedro")).Result;
+        var found = await Source.SearchEmployeesAsync(new EmployeeSearchQuery(Name: "Pedro"));
         var pedro = Assert.Single(found);
 
-        var requests = Source.GetTimeOffAsync(
-            new EmployeeDataQuery(EmployeeId: pedro.Id)).Result;
+        var requests = await Source.GetTimeOffAsync(new EmployeeDataQuery(EmployeeId: pedro.Id));
         var absence = Assert.Single(requests);
 
         Assert.Equal(new DateOnly(2026, 10, 20), absence.EndsBefore);
@@ -104,14 +102,14 @@ public sealed class AssistantScenarioBenchTests
     }
 
     [Fact]
-    public void Question6AnswersMauricioCardenasPendingTasks()
+    public async Task Question6AnswersMauricioCardenasPendingTasks()
     {
         Assert.Equal("Dime que tareas tiene pendiente Mauricio Cardenas.", Question6);
 
-        var found = Source.SearchEmployeesAsync(new EmployeeSearchQuery(Name: "Mauricio")).Result;
+        var found = await Source.SearchEmployeesAsync(new EmployeeSearchQuery(Name: "Mauricio"));
         var mauricio = Assert.Single(found);
 
-        var tasks = Source.GetTasksAsync(new EmployeeDataQuery(EmployeeId: mauricio.Id)).Result;
+        var tasks = await Source.GetTasksAsync(new EmployeeDataQuery(EmployeeId: mauricio.Id));
         var pending = tasks.Where(task => task.Status == "Pendiente").ToArray();
 
         Assert.NotEmpty(pending);

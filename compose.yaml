@@ -53,6 +53,9 @@ services:
       Authentication__SeedPassword: ${AUTH_SEED_PASSWORD:?Set AUTH_SEED_PASSWORD in the local .env file}
       Authentication__SigningKey: ${AUTH_SIGNING_KEY:?Set AUTH_SIGNING_KEY in the local .env file}
       Authentication__TokenLifetimeMinutes: ${AUTH_TOKEN_LIFETIME_MINUTES:-60}
+      AI__BaseUrl: ${AI_BASE_URL:-https://api.groq.com/openai/v1}
+      AI__Model: ${AI_MODEL:-}
+      AI__ApiKey: ${AI_API_KEY:-}
     ports:
       - "127.0.0.1:5101:5101"
     depends_on:

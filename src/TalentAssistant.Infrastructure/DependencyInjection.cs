@@ -1,9 +1,12 @@
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
+using TalentAssistant.Application.Assistant;
 using TalentAssistant.Application.Attendance;
 using TalentAssistant.Application.Diagnostics;
 using TalentAssistant.Application.Workforce;
+using TalentAssistant.Infrastructure.Assistant;
 using TalentAssistant.Infrastructure.Attendance;
 using TalentAssistant.Infrastructure.Authentication;
 using TalentAssistant.Infrastructure.Persistence;
@@ -42,6 +45,44 @@ public static class DependencyInjection
         }
 
         services.AddSingleton<IHcmWorkforceSource, SyntheticWorkforceSource>();
+
+        return services;
+    }
+
+    /// <summary>
+    /// Registers the OpenAI-compatible assistant provider and its limits from
+    /// the "AI" configuration section (SPEC-009 S2). The API may boot with an
+    /// empty ApiKey: the client then fails with NotConfigured before any HTTP
+    /// call and the endpoint degrades in a controlled way (AC-031).
+    /// </summary>
+    public static IServiceCollection AddAssistantProvider(
+        this IServiceCollection services,
+        IConfiguration aiConfiguration)
+    {
+        ArgumentNullException.ThrowIfNull(services);
+        ArgumentNullException.ThrowIfNull(aiConfiguration);
+
+        var baseUrl = aiConfiguration["BaseUrl"] ?? "https://api.groq.com/openai/v1";
+        var apiKey = aiConfiguration["ApiKey"] ?? string.Empty;
+        var model = aiConfiguration["Model"] ?? string.Empty;
+        var timeoutSeconds = aiConfiguration.GetValue<int?>("TimeoutSeconds") ?? 30;
+        var maxTokens = aiConfiguration.GetValue<int?>("MaxTokens") ?? 700;
+        var maxToolRounds = aiConfiguration.GetValue<int?>("MaxToolRounds") ?? 4;
+        var maxHistoryMessages = aiConfiguration.GetValue<int?>("MaxHistoryMessages") ?? 20;
+
+        services.AddSingleton(new AssistantProviderOptions(apiKey, model));
+        services.AddSingleton(new AssistantOrchestratorOptions(
+            maxToolRounds,
+            maxHistoryMessages,
+            maxTokens));
+        services.AddHttpClient<IAssistantLanguageModel, OpenAiCompatibleLanguageModel>(
+            client =>
+            {
+                // The trailing slash keeps relative "chat/completions" URIs from
+                // replacing the last base path segment (e.g. "v1").
+                client.BaseAddress = new Uri(baseUrl.TrimEnd('/') + "/");
+                client.Timeout = TimeSpan.FromSeconds(timeoutSeconds);
+            });
 
         return services;
     }
