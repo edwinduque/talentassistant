@@ -60,7 +60,7 @@ public static class DependencyInjection
         services.AddSingleton(options);
         services.AddDbContext<TalentAssistantIdentityDbContext>(identityOptions =>
             identityOptions.UseMySQL(connectionString));
-        services.AddIdentity<IdentityUser, IdentityRole>(identity =>
+        services.AddIdentity<ApplicationUser, IdentityRole>(identity =>
             {
                 // Identity defaults are kept for password policy; only lockout is configurable.
                 identity.Lockout.MaxFailedAccessAttempts = options.LockoutMaxFailedAccessAttempts;

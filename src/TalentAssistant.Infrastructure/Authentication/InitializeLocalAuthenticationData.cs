@@ -11,7 +11,7 @@ namespace TalentAssistant.Infrastructure.Authentication;
 /// once the user exists.
 /// </summary>
 public sealed class InitializeLocalAuthenticationData(
-    UserManager<IdentityUser> userManager,
+    UserManager<ApplicationUser> userManager,
     TalentAssistantIdentityDbContext identityDbContext,
     AuthenticationStoreOptions options)
 {
@@ -31,11 +31,13 @@ public sealed class InitializeLocalAuthenticationData(
                 "Configure Authentication:SeedPassword to seed the local user; no default password exists.");
         }
 
-        var user = new IdentityUser
+        var user = new ApplicationUser
         {
             UserName = options.SeedUserName,
             Email = options.SeedUserName,
-            EmailConfirmed = true
+            EmailConfirmed = true,
+            FullName = options.SeedUserName,
+            PreferredLanguage = ApplicationUser.DefaultPreferredLanguage
         };
 
         var result = await userManager.CreateAsync(user, options.SeedPassword);

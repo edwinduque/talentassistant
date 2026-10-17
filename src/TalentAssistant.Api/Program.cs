@@ -9,6 +9,7 @@ using TalentAssistant.Application.Attendance;
 using TalentAssistant.Infrastructure.Attendance;
 using TalentAssistant.Infrastructure;
 using TalentAssistant.Infrastructure.Authentication;
+using TalentAssistant.Infrastructure.Persistence;
 using TalentAssistant.Application.Diagnostics;
 
 var builder = WebApplication.CreateBuilder(args);
@@ -133,7 +134,7 @@ app.MapGet("/health/database", async (
 
 app.MapPost("/auth/login", async (
     LoginRequest request,
-    SignInManager<IdentityUser> signInManager,
+    SignInManager<ApplicationUser> signInManager,
     IAccessTokenService accessTokenService,
     CancellationToken cancellationToken) =>
 {
@@ -162,17 +163,95 @@ app.MapPost("/auth/login", async (
     return Results.Ok(new LoginResponse(
         accessToken.Token,
         accessToken.ExpiresAtUtc,
-        accessToken.UserName));
+        accessToken.UserName,
+        user.FullName ?? string.Empty,
+        user.PreferredLanguage));
 }).WithName("Login").AllowAnonymous();
 
 app.MapPost("/auth/logout", () => Results.Ok(new LogoutResponse("signed out")))
     .WithName("Logout")
     .RequireAuthorization();
 
-app.MapGet("/auth/me", (ClaimsPrincipal principal) =>
-    Results.Ok(new AuthenticatedUserResponse(principal.Identity?.Name ?? string.Empty)))
-    .WithName("AuthenticatedUser")
+app.MapGet("/auth/me", async (
+    ClaimsPrincipal principal,
+    UserManager<ApplicationUser> userManager) =>
+{
+    var user = await userManager.GetUserAsync(principal);
+    return user is null
+        ? Results.Unauthorized()
+        : Results.Ok(new ProfileResponse(
+            user.UserName ?? string.Empty,
+            user.FullName ?? string.Empty,
+            user.PreferredLanguage));
+}).WithName("AuthenticatedUser")
     .RequireAuthorization();
+
+app.MapPost("/auth/profile", async (
+    ProfileRequest request,
+    ClaimsPrincipal principal,
+    UserManager<ApplicationUser> userManager,
+    CancellationToken cancellationToken) =>
+{
+    if (!SupportedLanguages.IsSupported(request.PreferredLanguage))
+    {
+        return Results.Problem(
+            statusCode: StatusCodes.Status400BadRequest,
+            title: "Unsupported language",
+            detail: "Provide 'es' or 'en' as the preferred language.");
+    }
+
+    var user = await userManager.GetUserAsync(principal);
+    if (user is null)
+    {
+        return Results.Unauthorized();
+    }
+
+    user.FullName = string.IsNullOrWhiteSpace(request.FullName)
+        ? null
+        : request.FullName.Trim();
+    user.PreferredLanguage = request.PreferredLanguage!;
+
+    var updateResult = await userManager.UpdateAsync(user);
+    if (!updateResult.Succeeded)
+    {
+        return Results.Problem(
+            statusCode: StatusCodes.Status400BadRequest,
+            title: "Profile update failed",
+            detail: string.Join(" ", updateResult.Errors.Select(error => error.Description)));
+    }
+
+    return Results.Ok(new ProfileResponse(
+        user.UserName ?? string.Empty,
+        user.FullName ?? string.Empty,
+        user.PreferredLanguage));
+}).WithName("UpdateProfile").RequireAuthorization();
+
+app.MapPost("/auth/change-password", async (
+    ChangePasswordRequest request,
+    ClaimsPrincipal principal,
+    UserManager<ApplicationUser> userManager,
+    CancellationToken cancellationToken) =>
+{
+    var user = await userManager.GetUserAsync(principal);
+    if (user is null)
+    {
+        return Results.Unauthorized();
+    }
+
+    var changeResult = await userManager.ChangePasswordAsync(
+        user,
+        request.CurrentPassword,
+        request.NewPassword);
+    if (!changeResult.Succeeded)
+    {
+        return Results.Problem(
+            statusCode: StatusCodes.Status400BadRequest,
+            title: "Password change failed",
+            detail: string.Join(" ", changeResult.Errors.Select(error => error.Description)));
+    }
+
+    return Results.Ok(new ChangePasswordResponse("password changed"));
+}).WithName("ChangePassword").RequireAuthorization();
 
 app.MapGet("/attendance/insights", async (
     string? from,
@@ -239,6 +318,14 @@ static IResult InvalidCredentials() => Results.Problem(
 
 internal sealed record HealthResponse(string Status);
 internal sealed record LoginRequest(string UserName, string Password);
-internal sealed record LoginResponse(string AccessToken, DateTimeOffset ExpiresAtUtc, string UserName);
+internal sealed record LoginResponse(
+    string AccessToken,
+    DateTimeOffset ExpiresAtUtc,
+    string UserName,
+    string FullName,
+    string PreferredLanguage);
 internal sealed record LogoutResponse(string Status);
-internal sealed record AuthenticatedUserResponse(string UserName);
+internal sealed record ProfileRequest(string FullName, string? PreferredLanguage);
+internal sealed record ProfileResponse(string UserName, string FullName, string PreferredLanguage);
+internal sealed record ChangePasswordRequest(string CurrentPassword, string NewPassword);
+internal sealed record ChangePasswordResponse(string Status);

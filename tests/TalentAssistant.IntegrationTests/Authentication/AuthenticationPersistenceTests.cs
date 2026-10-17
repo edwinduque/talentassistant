@@ -28,7 +28,7 @@ public sealed class AuthenticationPersistenceTests
         services.AddLogging();
         services.AddDbContext<TalentAssistantIdentityDbContext>(options =>
             options.UseMySQL(connectionString));
-        services.AddIdentity<IdentityUser, IdentityRole>(identity =>
+        services.AddIdentity<ApplicationUser, IdentityRole>(identity =>
             {
                 identity.Lockout.MaxFailedAccessAttempts = lockoutMaxFailedAccessAttempts;
                 identity.Lockout.DefaultLockoutTimeSpan = TimeSpan.FromMinutes(5);
@@ -49,14 +49,14 @@ public sealed class AuthenticationPersistenceTests
     {
         await using var provider = await BuildProviderAsync(ConnectionString());
         using var scope = provider.CreateScope();
-        var userManager = scope.ServiceProvider.GetRequiredService<UserManager<IdentityUser>>();
+        var userManager = scope.ServiceProvider.GetRequiredService<UserManager<ApplicationUser>>();
         var context = scope.ServiceProvider
             .GetRequiredService<TalentAssistantIdentityDbContext>();
         var userName = $"integration-auth-{Guid.NewGuid():N}";
 
         try
         {
-            var user = new IdentityUser
+            var user = new ApplicationUser
             {
                 UserName = userName,
                 Email = userName,
@@ -95,12 +95,12 @@ public sealed class AuthenticationPersistenceTests
             ConnectionString(),
             lockoutMaxFailedAccessAttempts: 2);
         using var scope = provider.CreateScope();
-        var userManager = scope.ServiceProvider.GetRequiredService<UserManager<IdentityUser>>();
+        var userManager = scope.ServiceProvider.GetRequiredService<UserManager<ApplicationUser>>();
         var userName = $"integration-lockout-{Guid.NewGuid():N}";
 
         try
         {
-            var user = new IdentityUser
+            var user = new ApplicationUser
             {
                 UserName = userName,
                 Email = userName,
@@ -132,7 +132,7 @@ public sealed class AuthenticationPersistenceTests
     {
         await using var provider = await BuildProviderAsync(ConnectionString());
         using var scope = provider.CreateScope();
-        var userManager = scope.ServiceProvider.GetRequiredService<UserManager<IdentityUser>>();
+        var userManager = scope.ServiceProvider.GetRequiredService<UserManager<ApplicationUser>>();
         var context = scope.ServiceProvider
             .GetRequiredService<TalentAssistantIdentityDbContext>();
         var seedUserName = $"integration-seed-{Guid.NewGuid():N}";
@@ -171,7 +171,7 @@ public sealed class AuthenticationPersistenceTests
     {
         await using var provider = await BuildProviderAsync(ConnectionString());
         using var scope = provider.CreateScope();
-        var userManager = scope.ServiceProvider.GetRequiredService<UserManager<IdentityUser>>();
+        var userManager = scope.ServiceProvider.GetRequiredService<UserManager<ApplicationUser>>();
         var context = scope.ServiceProvider
             .GetRequiredService<TalentAssistantIdentityDbContext>();
         var options = new AuthenticationStoreOptions(
