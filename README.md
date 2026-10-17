@@ -72,3 +72,5 @@ La fundación técnica de SPEC-001 está implementada; su cierre permanece pausa
 De [SPEC-005](specs/005-local-authentication/spec.md) (autenticación local), las tareas T1 y T2 están implementadas y verificadas: 16/16 pruebas de integración y UnitTests con un único fallo ambiental de Application Control documentado en el registro ODD (no es defecto del código). T3 aporta la documentación de la especificación.
 
 De [SPEC-006](specs/006-user-profile-localization/spec.md) (perfil de usuario y localización de la interfaz), las tareas T1/T2 están implementadas y verificadas: integración 23/23 y recursos ES/EN con paridad comprobada; la salvedad de la suite completa (bloqueo ambiental de Application Control) queda documentada en el registro ODD. T3 aporta esta documentación.
+
+De [SPEC-007](specs/007-bilingual-hcm-data/spec.md) (datos sintéticos del HCM bilingües), T1 está implementada y verificada: el contenido se sirve en el idioma del usuario autenticado (identificadores idénticos en ambos idiomas) y la suite completa pasa 30/30.

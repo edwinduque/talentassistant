@@ -1,7 +1,7 @@
 # SPEC-007 — Datos sintéticos del HCM bilingües
 
 - **Estado:** Propuesto para aprobación de planificación (2026-10-17).
-- **Implementación:** Ninguna; todavía no hay código asociado.
+- **Implementación:** T1 implementada y verificada; T2 (documentación) en curso.
 - **Requisitos relacionados (propuestos):** FR-025 y NFR-020. Relacionados existentes: FR-006, FR-019, FR-024; NFR-005, NFR-017.
 - **Criterios relacionados (propuestos):** AC-023 y AC-024 (amendan AC-021 de SPEC-006, ver §7).
 - **Decisión arquitectónica:** ADR-0009 propuesto.
@@ -93,3 +93,16 @@ Supuestos explícitos para aprobación: la variante por defecto ante un idioma d
 ## 10. Estado y aprobación
 
 SPEC-007 y ADR-0009 quedan propuestos a la espera de aprobación para planificación; la aprobación no autoriza cambios de código hasta autorizar tareas.
+
+## 11. Verificación de T2
+
+T2 documenta y enmienda los artefactos siguientes (recorrido de navegador en ES y EN pendiente de que lo ejecute y registre el padre):
+
+- `docs/requirements/functional-requirements.md`: FR-025 con nota de aprobación (SPEC-007 y ADR-0009).
+- `docs/requirements/non-functional-requirements.md`: NFR-020 (Localización de datos).
+- `docs/acceptance/mvp-acceptance-criteria.md`: AC-023 y AC-024, enmienda y nota de AC-021, y filas de trazabilidad AC-023 → FR-025/NFR-020 y AC-024 → FR-025/NFR-006/NFR-017.
+- `docs/decisions/decision-register.md`: fila ADR-0009 (Aceptado; implementado con limitaciones documentadas).
+- `docs/architecture/adr/ADR-0008-ui-localization-and-user-profile.md`: «Compromisos» actualizado; solo los problem details permanecen en su idioma original y se remite a ADR-0009.
+- `specs/006-user-profile-localization/spec.md`: «Fuera de alcance» y fila AC-021 enmendadas hacia SPEC-007/ADR-0009.
+- `docs/development/local-setup.md`: sección «Idioma y perfil» con el comportamiento por idioma y el paso de re-sembrado (`docker compose run --rm db-init`; Compose lo hace en `up --build`).
+- `README.md`: «Estado actual» con T1 implementada y verificada (suite 30/30).

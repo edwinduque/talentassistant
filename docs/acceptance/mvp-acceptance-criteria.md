@@ -88,9 +88,19 @@ El usuario autenticado gestiona su perfil: el nombre visible aparece en el layou
 
 ## AC-021 — Localización sin cambiar datos ni contratos (propuesto en SPEC-006)
 
-La localización no altera datos ni contratos: el dataset sintético y los endpoints de asistencia responden igual en cualquier idioma, la migración es aditiva, la suite permanece verde y no se introducen servicios externos ni datos reales.
+La localización no altera los identificadores ni el contrato: el dataset sintético y los endpoints de asistencia conservan ids, fechas, zonas horarias y campos idénticos en cualquier idioma, mientras que los textos de presentación se sirven en el idioma del usuario, la migración es aditiva, la suite permanece verde y no se introducen servicios externos ni datos reales.
 
 AC-019..AC-021 fueron propuestos por SPEC-006; T1/T2 aportan evidencia de implementación y T3 completa la documentación.
+
+Nota: SPEC-007 enmienda AC-021; la igualdad en cualquier idioma se mantiene para identificadores y contrato, y cambia para los textos de presentación, que pasan a servirse por idioma.
+
+## AC-023 — Contenido por idioma del usuario (propuesto en SPEC-007)
+
+Con el usuario en español, la API devuelve reglas, evidencias, tipos y estados de TimeOff en español; en inglés, la variante inglesa; los identificadores y fechas son idénticos entre ambas respuestas. El cambio de idioma en el perfil se refleja en la siguiente consulta, sin volver a iniciar sesión.
+
+## AC-024 — Semilla bilingüe idempotente (propuesto en SPEC-007)
+
+La semilla es idempotente en la versión 2, un payload de versión desconocida sigue fallando de forma controlada, la suite permanece verde y `talentassistant_tests` no recibe la semilla.
 
 ## Condiciones generales
 
@@ -124,6 +134,8 @@ Los identificadores de esta tabla pertenecen al catálogo general y no se reutil
 | AC-018 | FR-006, FR-007, NFR-005, NFR-017 | La autenticación no cambia el dataset sintético, la fuente HCM ni añade servicios externos ni datos reales. |
 | AC-019 | FR-024, NFR-019 | Selector anónimo en el login que fija la cookie de cultura; SPEC-006 y ADR-0008. |
 | AC-020 | FR-023, NFR-018 | Perfil con nombre visible, idioma preferido y cambio de contraseña exigiendo la actual; SPEC-006 y ADR-0008. |
-| AC-021 | FR-024, NFR-005, NFR-017, NFR-019 | La localización es solo de interfaz: datos y contratos intactos, migración aditiva y sin servicios externos ni datos reales. |
+| AC-021 | FR-024, NFR-005, NFR-017, NFR-019 | La localización es solo de interfaz: datos y contratos intactos, migración aditiva y sin servicios externos ni datos reales. Enmienda SPEC-007: los textos de presentación se sirven por idioma. |
+| AC-023 | FR-025, NFR-020 | Contenido sintético por idioma del usuario autenticado con identificadores idénticos; SPEC-007. |
+| AC-024 | FR-025, NFR-006, NFR-017 | Semilla bilingüe idempotente en versión 2 y fallo controlado ante versión desconocida; SPEC-007. |
 
 Los AC-003 a AC-006 no se consideran satisfechos por la estructura arquitectónica creada en SPEC-001. Cada caso de asistencia necesita requisitos, pruebas y verificación propios; Tasks no forma parte de la primera vertical. NFR-011 no tiene todavía un umbral medible y deberá concretarse cuando se definan dataset y entorno. NFR-012 se verifica en cada especificación de interfaz; estos criterios no inventan un umbral cuantitativo de contraste.

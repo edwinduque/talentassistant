@@ -18,7 +18,7 @@ SPEC-005 ya puso a la API como dueña de la identidad con Identity en MySQL y un
 - El login incluye un selector de idioma que fija la cookie de cultura mediante un endpoint pequeño y recarga la página; funciona sin sesión y sirve de base para la sesión autenticada.
 - El idioma preferido se guarda en el perfil del usuario. Al iniciar sesión, la API devuelve nombre e idioma junto al token y Web fija la cookie de cultura; al guardar el perfil se actualiza la base, la cookie y la sesión se recargan.
 - El cambio de contraseña se expone en la API exigiendo la contraseña actual, con la política de Identity y respuestas controladas.
-- El alcance de la localización es la interfaz: los datos sintéticos del HCM y los problem details de la API no se localizan; la interfaz traduce los mensajes que muestra.
+- El alcance inicial de la localización fue la interfaz; la localización de los datos sintéticos del HCM se resolvió después mediante ADR-0009. Los problem details de la API no se localizan; la interfaz traduce los mensajes que muestra.
 
 ## Impacto en decisiones vigentes
 
@@ -38,7 +38,7 @@ SPEC-005 ya puso a la API como dueña de la identidad con Identity en MySQL y un
 
 - Cada nueva página o cadena visible debe añadirse a los recursos de los dos idiomas; el coste de mantener la localización crece con la superficie de UI.
 - Cambiar de idioma recarga la página (no es una conmutación en vivo dentro del circuito).
-- Los datos del HCM y los títulos técnicos de la API permanecen en su idioma original; es una decisión explícita de alcance.
+- Los problem details de la API permanecen en su idioma original; es una decisión explícita de alcance (los datos del HCM se localizaron después mediante ADR-0009).
 - La subclase de Identity añade dos columnas y una migración que convive con la de SPEC-005 en el mismo historial.
 
 ## Alternativas consideradas

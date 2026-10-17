@@ -113,7 +113,9 @@ Desde SPEC-006 la interfaz se muestra por completo en español o inglés según 
 3. La página `/profile` (autenticada) permite editar el nombre visible, el idioma preferido y cambiar la contraseña. El cambio de contraseña exige la contraseña actual y aplica la política de Identity descrita en la tabla de `AUTH_SEED_PASSWORD`. Al guardar el perfil, la interfaz aplica el nombre y el idioma nuevos de inmediato.
 4. Cambiar el idioma —en el login o en el perfil— recarga la página; no es una conmutación en vivo.
 
-El alcance de la localización es la interfaz: los datos sintéticos del HCM (nombres de oficinas, tipos de TimeOff) y los títulos de error (problem details) de la API permanecen en su idioma original por decisión de alcance de SPEC-006.
+El alcance de la localización de SPEC-006 es la interfaz: los títulos de error (problem details) de la API permanecen en su idioma original por decisión de alcance. Desde SPEC-007 el contenido sintético del HCM también sigue el idioma del usuario: reglas, evidencias, fichajes, TimeOff, nombres, países, tipos y estados se muestran en español o inglés según el idioma preferido del perfil, mientras que identificadores, fechas, horas, ciudades y zonas horarias son idénticos en ambos idiomas.
+
+Tras actualizar a SPEC-007 hay que reemplazar el dataset por el payload bilingüe versión 2: ejecuta `docker compose run --rm db-init` (Compose lo ejecuta automáticamente en `up --build`).
 
 ## Perfil host alternativo: configurar MySQL y ejecutar API/Web en Windows
 

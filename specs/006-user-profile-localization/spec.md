@@ -26,7 +26,7 @@ Cerrar el desajuste de idiomas actual (página de login y algunos textos en espa
 
 ### Fuera de alcance
 
-- Localizar la DATA sintética del HCM (nombres de oficinas, tipos de ausencia, evidencias) y los problem details de la API: son datos/contrato, no interfaz; la interfaz traduce lo que muestra.
+- Localizar los problem details de la API: son contrato, no interfaz; la interfaz traduce lo que muestra. La localización de la DATA sintética del HCM (nombres de oficinas, tipos de ausencia, evidencias) pasó a SPEC-007/ADR-0009.
 - Más de dos idiomas, traducciones automáticas, detección automática del idioma del navegador y soporte RTL.
 - Registro de usuarios, recuperación de contraseñas, MFA y cualquier cambio en los roles o en la autorización.
 - Cambios en el contrato JSON de los endpoints de asistencia.
@@ -35,7 +35,7 @@ Cerrar el desajuste de idiomas actual (página de login y algunos textos en espa
 
 - La API sigue siendo la dueña de la identidad: el perfil se expone como endpoints de la API y Web vuelve a consumirlos por contrato HTTP, sin acceso a base de datos (FR-007, NFR-001/NFR-002).
 - El nombre visible y el idioma son atributos del usuario local; no introducen entidades de negocio ni datos reales.
-- El idioma elegido se aplica en la interfaz, no en los datos: el mismo dataset sintético responde en cualquier idioma.
+- El idioma elegido se aplica en la interfaz; la localización del contenido del HCM se resolvió después en SPEC-007/ADR-0009 (datos bilingües servidos por el idioma del usuario).
 - Los secretos y la política de contraseñas de SPEC-005 se conservan: la contraseña nueva cumple la política de Identity y solo se almacena como hash (NFR-018).
 - La interfaz accesible mantiene sus propiedades: etiquetas asociadas, navegación por teclado, contraste (NFR-012), y los textos localizados no rompen el marcado (NFR-010).
 
@@ -74,7 +74,7 @@ Cerrar el desajuste de idiomas actual (página de login y algunos textos en espa
 |---|---|---|
 | AC-019 | La persona sin sesión puede cambiar el idioma del login entre español e inglés; la elección se aplica de inmediato y persiste tras recargar. | Prueba de navegador en ambos idiomas y sondeo de la cookie de cultura. |
 | AC-020 | El usuario autenticado gestiona su perfil: el nombre visible aparece en el layout, el idioma elegido localiza home, asistencia y textos de navegación/error, y el cambio de contraseña exige la actual y respeta la política. | Pruebas de API de perfil/contraseña y recorrido de navegador en ambos idiomas. |
-| AC-021 | La localización no altera datos ni contratos: el dataset sintético y los endpoints de asistencia responden igual en cualquier idioma, la migración es aditiva, la suite permanece verde y no se introducen servicios externos ni datos reales. | Suite completa, comparación de respuestas de la API y revisión de la migración. |
+| AC-021 | La localización no altera los identificadores ni el contrato: el dataset sintético y los endpoints de asistencia conservan ids, fechas, zonas horarias y campos idénticos en cualquier idioma, mientras que los textos de presentación se sirven en el idioma del usuario (enmienda de SPEC-007), la migración es aditiva, la suite permanece verde y no se introducen servicios externos ni datos reales. | Suite completa, comparación de respuestas de la API y revisión de la migración. |
 | AC-022 | El login se presenta como el mockup aprobado: píldora de idioma autoenviante, tarjeta de bienvenida, inputs suaves, mostrador de contraseña y botón de acento. «Permanecer conectado» extiende la cookie a 30 días y sin él la cookie es de sesión; el enlace de recuperación no existe (fuera de alcance). | Comprobación de cabeceras Set-Cookie con y sin la opción, recorrido de navegador y suite. |
 
 AC-019..AC-022 son propuestos y no se declaran aceptados hasta aprobar SPEC-006 y ADR-0008.
