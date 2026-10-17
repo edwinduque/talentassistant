@@ -47,7 +47,7 @@ Risk: item 2 (nuevos endpoints con autorizaciÃ³n de sesiÃ³n). T1 y T2 requieren 
 
 | ID | Specs | Ruta | Estado | Evidencia / commit |
 |---|---|---|---|---|
-| T1 | S1, S3 | Inline | Implementada; suite 36/36, endpoints con 401 sin sesiÃ³n, presencia en el home y poda verificada en navegador | Commit pendiente en `feature-branch-chain` |
+| T1 | S1, S3 | Inline | Implementada; suite 36/36, endpoints con 401 sin sesiÃ³n, presencia en el home y poda verificada; verificador independiente 5/5 sin bloqueos | `46fadc0a25ec5ccfee17f5a98d6b2d7b1c756f77` |
 | T2 | S2, S3 | Inline | Planificada | TimeOff y tareas por empleado + fixtures + endpoints + pruebas |
 | T3 | S4, S5 | Inline | Planificada | Depende de T1/T2 |
 
@@ -76,3 +76,11 @@ Implementado: puerto `IHcmWorkforceSource` con `EmployeeSearchQuery`/`PresenceQu
 Evidencia: build 0 warnings/0 errores; suite completa 36/36 (5 unit + 31 integraciÃ³n) con pruebas nuevas de bÃºsqueda por nombre (insensible a mayÃºsculas; hallazgo: el orden mayÃºsculas dobla casos pero no acentos, corregido en el test), directorio completo bilingÃ¼e, mÃºltiples coincidencias, presencia de hoy que responde las tres preguntas, fecha desconocida vacÃ­a y nombres por idioma; smoke API: `/employees` y `/presence` sin sesiÃ³n â†’ 401, `?name=juan` â†’ Juan PÃ©rez, `presence?date=hoy` â†’ 8 empleados con `working/not-arrived/vacation`; navegador: panel en espaÃ±ol con los tres estados y nombres de demostraciÃ³n, pÃ¡gina de asistencia sin campo de id, consola sin errores.
 
 Risk: item 2 (nuevos endpoints que aÃ±aden superficie de autorizaciÃ³n de sesiÃ³n).
+
+### L5 — Verificación independiente de T1 (2026-10-17)
+
+El verificador validó los cinco claims sin bloqueos: alcance del diff acotado (15 ficheros, sin cambios en Domain ni csproj, sin secretos); superficie de autorización en vivo (401 sin token en /employees y /presence, 200 con token); sin derivación de reglas (estáticos por fecha, fecha desconocida ? vacío, directorio derivado del catálogo compartido y nombres de demostración idénticos entre idiomas); comportamiento de API (8 empleados, name=juan ? Juan Pérez, presencia de hoy con los tres estados, fecha inválida ? 400 con texto exacto, insights sin regresión y employeeId sigue soportado en el contrato); y suite 36/36 desde el workspace.
+
+Advisories registrados: el ancla estática `Today` congela la presencia de un proceso largo al cruzar medianoche (dentro del supuesto §8 del spec; candidato a mejora futura); la búsqueda no pliega acentos (la S1 solo exige insensibilidad a mayúsculas); y las respuestas HTTP de validación no tienen pruebas automatizadas (cubiertas por probes). Se difiere el test de oficina propuesto.
+
+Risk: item 2 (nuevos endpoints con autorización de sesión) — verificado sin bloqueos.
