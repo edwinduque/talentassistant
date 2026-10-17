@@ -1,0 +1,174 @@
+<?xml version="1.0" encoding="utf-8"?>
+<root>
+  <resheader name="resmimetype">
+    <value>text/microsoft-resx</value>
+  </resheader>
+  <resheader name="version">
+    <value>2.0</value>
+  </resheader>
+  <resheader name="reader">
+    <value>System.Resources.ResXResourceReader, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </resheader>
+  <resheader name="writer">
+    <value>System.Resources.ResXResourceWriter, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </resheader>
+  <data name="PageTitle" xml:space="preserve">
+    <value>Asistencia | Talent Assistant</value>
+  </data>
+  <data name="Eyebrow" xml:space="preserve">
+    <value>Asistencia HCM</value>
+  </data>
+  <data name="Title" xml:space="preserve">
+    <value>Información de asistencia</value>
+  </data>
+  <data name="Subtitle" xml:space="preserve">
+    <value>Revisa los hallazgos de asistencia que aporta el HCM, su evidencia de respaldo y el contexto relacionado que puede requerir tu atención.</value>
+  </data>
+  <data name="SyntheticNoticeTitle" xml:space="preserve">
+    <value>Datos sintéticos del HCM</value>
+  </data>
+  <data name="SyntheticNoticeText" xml:space="preserve">
+    <value>Las personas y las oficinas que se muestran aquí son ejemplos, no registros de la empresa.</value>
+  </data>
+  <data name="FiltersEyebrow" xml:space="preserve">
+    <value>Busca en la muestra del HCM</value>
+  </data>
+  <data name="FiltersHeading" xml:space="preserve">
+    <value>Elige un periodo de asistencia</value>
+  </data>
+  <data name="DateRangeHelp" xml:space="preserve">
+    <value>La fecha de inicio se incluye y la de fin se excluye, usando la zona horaria de cada oficina.</value>
+  </data>
+  <data name="FiltersLegend" xml:space="preserve">
+    <value>Filtros de asistencia</value>
+  </data>
+  <data name="FromDateLabel" xml:space="preserve">
+    <value>Desde (incluido)</value>
+  </data>
+  <data name="ToDateLabel" xml:space="preserve">
+    <value>Hasta (excluido)</value>
+  </data>
+  <data name="EmployeeIdLabel" xml:space="preserve">
+    <value>ID de empleado (opcional)</value>
+  </data>
+  <data name="LoadingButton" xml:space="preserve">
+    <value>Cargando…</value>
+  </data>
+  <data name="SearchButton" xml:space="preserve">
+    <value>Buscar asistencia</value>
+  </data>
+  <data name="FromDateRequired" xml:space="preserve">
+    <value>Introduce una fecha de inicio.</value>
+  </data>
+  <data name="ToDateRequired" xml:space="preserve">
+    <value>Introduce una fecha de fin.</value>
+  </data>
+  <data name="InvalidDateRange" xml:space="preserve">
+    <value>La fecha de fin debe ser posterior a la fecha de inicio.</value>
+  </data>
+  <data name="ResultsEyebrow" xml:space="preserve">
+    <value>Hallazgos aportados por la fuente</value>
+  </data>
+  <data name="ResultsHeading" xml:space="preserve">
+    <value>Contexto de asistencia</value>
+  </data>
+  <data name="FindingsCount" xml:space="preserve">
+    <value>{0} hallazgos</value>
+  </data>
+  <data name="LoadingMessage" xml:space="preserve">
+    <value>Cargando el contexto de asistencia del HCM…</value>
+  </data>
+  <data name="NoResults" xml:space="preserve">
+    <value>Ningún hallazgo de asistencia coincide con este periodo.</value>
+  </data>
+  <data name="NoSearchHint" xml:space="preserve">
+    <value>Elige un rango de fechas para ver los hallazgos sintéticos del HCM.</value>
+  </data>
+  <data name="ErrorBadRequest" xml:space="preserve">
+    <value>Revisa el rango de fechas y el empleado seleccionado.</value>
+  </data>
+  <data name="ErrorUnreachable" xml:space="preserve">
+    <value>No se pudo contactar con la fuente de asistencia.</value>
+  </data>
+  <data name="ErrorTimeout" xml:space="preserve">
+    <value>La solicitud de asistencia no respondió a tiempo.</value>
+  </data>
+  <data name="ErrorInvalidPayload" xml:space="preserve">
+    <value>No se pudo interpretar la respuesta de la API.</value>
+  </data>
+  <data name="FindingEyebrow" xml:space="preserve">
+    <value>Hallazgo del HCM · {0}</value>
+  </data>
+  <data name="NeedsReview" xml:space="preserve">
+    <value>Necesita revisión</value>
+  </data>
+  <data name="NoReview" xml:space="preserve">
+    <value>Sin revisión pendiente</value>
+  </data>
+  <data name="OfficeLabel" xml:space="preserve">
+    <value>Oficina</value>
+  </data>
+  <data name="OfficeTimeZoneLabel" xml:space="preserve">
+    <value>Zona horaria de la oficina</value>
+  </data>
+  <data name="AttendanceTimeLabel" xml:space="preserve">
+    <value>Hora de asistencia</value>
+  </data>
+  <data name="ScheduledShiftLabel" xml:space="preserve">
+    <value>Turno programado</value>
+  </data>
+  <data name="RuleSectionLabel" xml:space="preserve">
+    <value>Resultado de la regla del HCM</value>
+  </data>
+  <data name="RuleResultEyebrow" xml:space="preserve">
+    <value>Resultado informado por el HCM · {0}</value>
+  </data>
+  <data name="EvidenceSectionLabel" xml:space="preserve">
+    <value>Evidencia de respaldo</value>
+  </data>
+  <data name="EvidenceHeading" xml:space="preserve">
+    <value>Evidencia aportada por el HCM</value>
+  </data>
+  <data name="ReviewSectionLabel" xml:space="preserve">
+    <value>Información a revisar</value>
+  </data>
+  <data name="ReviewHeading" xml:space="preserve">
+    <value>Información a revisar</value>
+  </data>
+  <data name="ViewPunches" xml:space="preserve">
+    <value>Ver eventos de fichaje aportados</value>
+  </data>
+  <data name="TimeOffHeading" xml:space="preserve">
+    <value>Contexto de TimeOff relacionado</value>
+  </data>
+  <data name="TimeOffTypeLabel" xml:space="preserve">
+    <value>Tipo</value>
+  </data>
+  <data name="TimeOffStatusLabel" xml:space="preserve">
+    <value>Estado proporcionado por el HCM</value>
+  </data>
+  <data name="TimeOffReferenceLabel" xml:space="preserve">
+    <value>Referencia</value>
+  </data>
+  <data name="TimeOffStartDateLabel" xml:space="preserve">
+    <value>Fecha de inicio proporcionada</value>
+  </data>
+  <data name="TimeOffEndDateLabel" xml:space="preserve">
+    <value>Fecha de fin proporcionada</value>
+  </data>
+  <data name="TimeOffDurationLabel" xml:space="preserve">
+    <value>Duración</value>
+  </data>
+  <data name="TimeOffDurationUnitLabel" xml:space="preserve">
+    <value>Unidad de duración</value>
+  </data>
+  <data name="TimeOffDisclaimer" xml:space="preserve">
+    <value>La relación declarada por la fuente no establece que esta ausencia explique el hallazgo de asistencia.</value>
+  </data>
+  <data name="TimeOffMissing" xml:space="preserve">
+    <value>El HCM no proporcionó contexto de TimeOff relacionado para este hallazgo de asistencia.</value>
+  </data>
+  <data name="NotProvided" xml:space="preserve">
+    <value>No proporcionado por el HCM</value>
+  </data>
+</root>

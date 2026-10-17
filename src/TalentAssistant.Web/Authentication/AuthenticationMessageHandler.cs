@@ -10,6 +10,7 @@ public sealed class AuthenticationMessageHandler(
     IHttpContextAccessor httpContextAccessor) : DelegatingHandler
 {
     public const string AccessTokenClaimType = "access_token";
+    public const string FullNameClaimType = "full_name";
 
     protected override Task<HttpResponseMessage> SendAsync(
         HttpRequestMessage request,

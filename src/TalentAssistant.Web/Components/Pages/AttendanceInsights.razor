@@ -1,93 +1,94 @@
 @page "/attendance-insights"
-@using System.ComponentModel.DataAnnotations
 @using System.Globalization
 @using Microsoft.AspNetCore.Components.Forms
 @inject BackendApiClient BackendApi
+@inject IStringLocalizer<AttendanceInsights> Local
 
-<PageTitle>Attendance insights | Talent Assistant</PageTitle>
+<PageTitle>@Local["PageTitle"]</PageTitle>
 
 <div class="attendance-page">
     <header class="attendance-heading">
-        <p class="eyebrow">HCM assistance</p>
-        <h1>Attendance insights</h1>
+        <p class="eyebrow">@Local["Eyebrow"]</p>
+        <h1>@Local["Title"]</h1>
         <p class="attendance-intro">
-            Review attendance findings supplied by the HCM, their supporting evidence,
-            and related context that may need your attention.
+            @Local["Subtitle"]
         </p>
         <p class="synthetic-notice">
-            <strong>Synthetic HCM data</strong>
-            <span>People and office locations shown here are examples, not company records.</span>
+            <strong>@Local["SyntheticNoticeTitle"]</strong>
+            <span>@Local["SyntheticNoticeText"]</span>
         </p>
     </header>
 
     <section class="filter-panel" aria-labelledby="filters-heading">
         <div class="section-heading">
             <div>
-                <p class="eyebrow">Search the HCM sample</p>
-                <h2 id="filters-heading">Choose an attendance period</h2>
+                <p class="eyebrow">@Local["FiltersEyebrow"]</p>
+                <h2 id="filters-heading">@Local["FiltersHeading"]</h2>
             </div>
             <p id="date-range-help" class="filter-help">
-                The start date is included and the end date is excluded, using each office's time zone.
+                @Local["DateRangeHelp"]
             </p>
         </div>
 
         <EditForm Model="_filters" OnValidSubmit="LoadAsync">
-            <DataAnnotationsValidator />
             <fieldset class="filter-fields">
-                <legend class="visually-hidden">Attendance filters</legend>
+                <legend class="visually-hidden">@Local["FiltersLegend"]</legend>
                 <div class="filter-field">
-                    <label for="from-date">From (inclusive)</label>
+                    <label for="from-date">@Local["FromDateLabel"]</label>
                     <InputDate id="from-date"
                                TValue="DateTime?"
                                class="filter-control"
                                aria-describedby="date-range-help"
                                @bind-Value="_filters.From" />
-                    <ValidationMessage For="@(() => _filters.From)" />
+                    @if (_fromError is not null)
+                    {
+                        <p class="error-message" role="alert">@_fromError</p>
+                    }
                 </div>
                 <div class="filter-field">
-                    <label for="to-date">To (exclusive)</label>
+                    <label for="to-date">@Local["ToDateLabel"]</label>
                     <InputDate id="to-date"
                                TValue="DateTime?"
                                class="filter-control"
                                aria-describedby="date-range-help"
                                @bind-Value="_filters.To" />
-                    <ValidationMessage For="@(() => _filters.To)" />
+                    @if (_toError is not null)
+                    {
+                        <p class="error-message" role="alert">@_toError</p>
+                    }
                 </div>
                 <div class="filter-field">
-                    <label for="employee-id">Employee ID (optional)</label>
+                    <label for="employee-id">@Local["EmployeeIdLabel"]</label>
                     <InputText id="employee-id"
                                class="filter-control"
                                @bind-Value="_filters.EmployeeId" />
                 </div>
                 <div class="filter-action">
                     <button type="submit" disabled="@_isLoading">
-                        @(_isLoading ? "Loading…" : "Search attendance")
+                        @(_isLoading ? Local["LoadingButton"] : Local["SearchButton"])
                     </button>
                 </div>
             </fieldset>
-            <div class="validation-summary" role="status" aria-live="polite">
-                <ValidationSummary />
-            </div>
         </EditForm>
     </section>
 
     <section class="results-section" aria-labelledby="results-heading">
         <div class="section-heading">
             <div>
-                <p class="eyebrow">Source-provided findings</p>
-                <h2 id="results-heading">Attendance context</h2>
+                <p class="eyebrow">@Local["ResultsEyebrow"]</p>
+                <h2 id="results-heading">@Local["ResultsHeading"]</h2>
             </div>
             @if (_hasSearched && _error is null)
             {
                 <p class="result-count" role="status" aria-live="polite">
-                    @_insights.Count finding(s)
+                    @Local["FindingsCount", _insights.Count]
                 </p>
             }
         </div>
 
         @if (_isLoading)
         {
-            <p class="status-message" role="status" aria-live="polite">Loading HCM attendance context…</p>
+            <p class="status-message" role="status" aria-live="polite">@Local["LoadingMessage"]</p>
         }
         else if (_error is not null)
         {
@@ -95,7 +96,7 @@
         }
         else if (_hasSearched && _insights.Count == 0)
         {
-            <p class="empty-message" role="status">No attendance findings matched this period.</p>
+            <p class="empty-message" role="status">@Local["NoResults"]</p>
         }
         else if (_insights.Count > 0)
         {
@@ -106,40 +107,40 @@
                         <article class="insight-card @(insight.RuleFinding.RequiresReview ? "insight-card--review" : string.Empty)">
                             <header class="insight-card-heading">
                                 <div>
-                                    <p class="eyebrow">HCM finding · @insight.IncidentId</p>
+                                    <p class="eyebrow">@Local["FindingEyebrow", insight.IncidentId]</p>
                                     <h3>@insight.Employee.DisplayName</h3>
                                 </div>
                                 <span class="review-badge @(insight.RuleFinding.RequiresReview ? "review-badge--needed" : "review-badge--clear")">
-                                    @(insight.RuleFinding.RequiresReview ? "Needs review" : "No review flagged")
+                                    @(insight.RuleFinding.RequiresReview ? Local["NeedsReview"] : Local["NoReview"])
                                 </span>
                             </header>
 
                             <dl class="insight-facts">
                                 <div>
-                                    <dt>Office</dt>
+                                    <dt>@Local["OfficeLabel"]</dt>
                                     <dd>@insight.Office.Country · @insight.Office.City</dd>
                                 </div>
                                 <div>
-                                    <dt>Office time zone</dt>
+                                    <dt>@Local["OfficeTimeZoneLabel"]</dt>
                                     <dd><code>@insight.Office.IanaTimeZoneId</code></dd>
                                 </div>
                                 <div>
-                                    <dt>Attendance time</dt>
+                                    <dt>@Local["AttendanceTimeLabel"]</dt>
                                     <dd>@FormatOfficeTime(insight)</dd>
                                 </div>
                                 <div>
-                                    <dt>Scheduled shift</dt>
+                                    <dt>@Local["ScheduledShiftLabel"]</dt>
                                     <dd>@insight.Schedule.WorkDate.ToString("yyyy-MM-dd", CultureInfo.InvariantCulture) · @insight.Schedule.StartsAt.ToString("HH:mm", CultureInfo.InvariantCulture)–@insight.Schedule.EndsAt.ToString("HH:mm", CultureInfo.InvariantCulture)</dd>
                                 </div>
                             </dl>
 
-                            <section class="finding-details" aria-label="HCM rule result">
-                                <p class="eyebrow">HCM-reported result · @insight.RuleFinding.RuleReference</p>
+                            <section class="finding-details" aria-label="@Local["RuleSectionLabel"]">
+                                <p class="eyebrow">@Local["RuleResultEyebrow", insight.RuleFinding.RuleReference]</p>
                                 <p class="finding-summary">@insight.RuleFinding.Summary</p>
                             </section>
 
-                            <section class="evidence-section" aria-label="Supporting evidence">
-                                <h4>Evidence supplied by the HCM</h4>
+                            <section class="evidence-section" aria-label="@Local["EvidenceSectionLabel"]">
+                                <h4>@Local["EvidenceHeading"]</h4>
                                 <ul>
                                     @foreach (var evidence in insight.RuleFinding.Evidence)
                                     {
@@ -150,8 +151,8 @@
 
                             @if (insight.RuleFinding.ReviewItems.Count > 0)
                             {
-                                <section class="review-section" aria-label="Information to review">
-                                    <h4>Information to review</h4>
+                                <section class="review-section" aria-label="@Local["ReviewSectionLabel"]">
+                                    <h4>@Local["ReviewHeading"]</h4>
                                     <ul>
                                         @foreach (var item in insight.RuleFinding.ReviewItems)
                                         {
@@ -164,7 +165,7 @@
                             @if (insight.Punches.Count > 0)
                             {
                                 <details class="punch-details">
-                                    <summary>View supplied punch events</summary>
+                                    <summary>@Local["ViewPunches"]</summary>
                                     <ul>
                                         @foreach (var punch in insight.Punches)
                                         {
@@ -176,49 +177,49 @@
 
                             @if (insight.RelatedTimeOff is not null)
                             {
-                                <section class="timeoff-context" aria-label="Related TimeOff context">
-                                    <h4>Related TimeOff context</h4>
+                                <section class="timeoff-context" aria-label="@Local["TimeOffHeading"]">
+                                    <h4>@Local["TimeOffHeading"]</h4>
                                     <p>@insight.RelatedTimeOff.Summary</p>
                                     <dl class="insight-facts">
                                         <div>
-                                            <dt>Type</dt>
+                                            <dt>@Local["TimeOffTypeLabel"]</dt>
                                             <dd>@FormatSourceValue(insight.RelatedTimeOff.Type)</dd>
                                         </div>
                                         <div>
-                                            <dt>Status supplied by the HCM</dt>
+                                            <dt>@Local["TimeOffStatusLabel"]</dt>
                                             <dd>@FormatSourceValue(insight.RelatedTimeOff.Status)</dd>
                                         </div>
                                         <div>
-                                            <dt>Reference</dt>
+                                            <dt>@Local["TimeOffReferenceLabel"]</dt>
                                             <dd>@insight.RelatedTimeOff.Reference</dd>
                                         </div>
                                         <div>
-                                            <dt>Start date value supplied</dt>
+                                            <dt>@Local["TimeOffStartDateLabel"]</dt>
                                             <dd>@insight.RelatedTimeOff.StartsOn.ToString("yyyy-MM-dd", CultureInfo.InvariantCulture)</dd>
                                         </div>
                                         <div>
-                                            <dt>End date value supplied</dt>
+                                            <dt>@Local["TimeOffEndDateLabel"]</dt>
                                             <dd>@insight.RelatedTimeOff.EndsBefore.ToString("yyyy-MM-dd", CultureInfo.InvariantCulture)</dd>
                                         </div>
                                         <div>
-                                            <dt>Duration</dt>
+                                            <dt>@Local["TimeOffDurationLabel"]</dt>
                                             <dd>@FormatSourceValue(insight.RelatedTimeOff.Duration)</dd>
                                         </div>
                                         <div>
-                                            <dt>Duration unit</dt>
+                                            <dt>@Local["TimeOffDurationUnitLabel"]</dt>
                                             <dd>@FormatSourceValue(insight.RelatedTimeOff.DurationUnit)</dd>
                                         </div>
                                     </dl>
                                     <p class="context-reference">
-                                        The source-declared relationship does not establish that this absence explains the attendance finding.
+                                        @Local["TimeOffDisclaimer"]
                                     </p>
                                 </section>
                             }
                             else
                             {
-                                <section class="timeoff-context" aria-label="Related TimeOff context">
-                                    <h4>Related TimeOff context</h4>
-                                    <p>The HCM did not provide related TimeOff context for this attendance finding.</p>
+                                <section class="timeoff-context" aria-label="@Local["TimeOffHeading"]">
+                                    <h4>@Local["TimeOffHeading"]</h4>
+                                    <p>@Local["TimeOffMissing"]</p>
                                 </section>
                             }
                         </article>
@@ -228,7 +229,7 @@
         }
         else
         {
-            <p class="empty-message">Choose a date range to view the synthetic HCM findings.</p>
+            <p class="empty-message">@Local["NoSearchHint"]</p>
         }
     </section>
 </div>
@@ -239,23 +240,39 @@
     private bool _isLoading;
     private bool _hasSearched;
     private string? _error;
+    private string? _fromError;
+    private string? _toError;
 
     private async Task LoadAsync()
     {
         _error = null;
+        _fromError = null;
+        _toError = null;
         _hasSearched = true;
 
-        if (_filters.From is null || _filters.To is null)
+        // Explicit checks instead of [Required(ErrorMessage)]: Blazor cannot
+        // localize DataAnnotations attribute messages without resource-type
+        // attributes, and S3 requires no hardcoded visible strings.
+        if (_filters.From is null)
         {
-            _error = "Enter both dates to search the HCM sample.";
+            _fromError = Local["FromDateRequired"].Value;
+        }
+
+        if (_filters.To is null)
+        {
+            _toError = Local["ToDateRequired"].Value;
+        }
+
+        if (_fromError is not null || _toError is not null)
+        {
             return;
         }
 
-        var from = DateOnly.FromDateTime(_filters.From.Value);
-        var to = DateOnly.FromDateTime(_filters.To.Value);
+        var from = DateOnly.FromDateTime(_filters.From!.Value);
+        var to = DateOnly.FromDateTime(_filters.To!.Value);
         if (from >= to)
         {
-            _error = "The end date must be later than the start date.";
+            _error = Local["InvalidDateRange"].Value;
             return;
         }
 
@@ -273,7 +290,7 @@
             else
             {
                 _insights = Array.Empty<AttendanceInsightResponse>();
-                _error = result.Message;
+                _error = Local[FailureMessageKey(result.Failure)].Value;
             }
         }
         finally
@@ -281,6 +298,15 @@
             _isLoading = false;
         }
     }
+
+    private static string FailureMessageKey(AttendanceInsightsFailure failure) =>
+        failure switch
+        {
+            AttendanceInsightsFailure.BadRequest => "ErrorBadRequest",
+            AttendanceInsightsFailure.Unreachable => "ErrorUnreachable",
+            AttendanceInsightsFailure.Timeout => "ErrorTimeout",
+            _ => "ErrorInvalidPayload",
+        };
 
     private static string FormatOfficeTime(
         AttendanceInsightResponse insight) =>
@@ -293,15 +319,13 @@
             .ToString("yyyy-MM-dd HH:mm zzz", CultureInfo.InvariantCulture);
     }
 
-    private static string FormatSourceValue(string? value) =>
-        string.IsNullOrWhiteSpace(value) ? "Not provided by the HCM" : value;
+    private string FormatSourceValue(string? value) =>
+        string.IsNullOrWhiteSpace(value) ? Local["NotProvided"].Value : value;
 
     private sealed class AttendanceFilterModel
     {
-        [Required(ErrorMessage = "Enter a start date.")]
         public DateTime? From { get; set; }
 
-        [Required(ErrorMessage = "Enter an end date.")]
         public DateTime? To { get; set; }
 
         public string? EmployeeId { get; set; }

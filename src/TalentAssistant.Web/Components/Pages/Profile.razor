@@ -1,0 +1,247 @@
+@page "/profile"
+@using Microsoft.AspNetCore.Components.Authorization
+@using Microsoft.AspNetCore.WebUtilities
+@inject NavigationManager Navigation
+@inject AuthenticationStateProvider AuthenticationState
+@inject AuthApiClient AuthApi
+@inject IStringLocalizer<Profile> Local
+@inject IStringLocalizer<Common> CommonLocal
+
+<PageTitle>@Local["PageTitle"]</PageTitle>
+
+<div class="profile-page">
+    <style>
+        .profile-card {
+            max-width: 34rem;
+            margin-bottom: 1.5rem;
+        }
+
+        .profile-card-content {
+            padding: 2rem;
+        }
+
+        .profile-form {
+            display: grid;
+            gap: 1.25rem;
+        }
+
+        .profile-field {
+            display: grid;
+            gap: 0.35rem;
+        }
+
+        .profile-field label {
+            font-weight: 600;
+        }
+
+        .profile-control {
+            min-height: 2.75rem;
+            padding: 0.5rem 0.75rem;
+            border: 1px solid var(--border);
+            background: var(--surface);
+            color: var(--ink);
+            font: inherit;
+        }
+
+        .profile-control:focus-visible {
+            outline: 3px solid var(--focus);
+            outline-offset: 2px;
+        }
+
+        .profile-hint {
+            margin: 0;
+            color: var(--muted);
+        }
+
+        .profile-message {
+            margin: 0;
+            font-weight: 600;
+        }
+
+        .profile-message--error {
+            color: var(--danger);
+        }
+
+        .profile-message--success {
+            color: var(--success);
+        }
+
+        .profile-action button {
+            min-height: 2.75rem;
+            padding: 0.5rem 1.5rem;
+            border: 1px solid var(--accent);
+            background: var(--accent);
+            color: var(--canvas);
+            font: inherit;
+            font-weight: 650;
+            cursor: pointer;
+        }
+    </style>
+
+    <header class="overview-heading">
+        <p class="eyebrow">@CommonLocal["AppName"]</p>
+        <h1>@Local["Title"]</h1>
+        <p class="overview-intro">@Local["Subtitle"]</p>
+    </header>
+
+    @if (_loadFailed)
+    {
+        <p class="profile-message profile-message--error" role="alert">@Local["ProfileLoadFailed"]</p>
+    }
+    else if (_profile is not null)
+    {
+        <p class="profile-hint">@Local["UserNameHint", _profile.UserName]</p>
+    }
+
+    <section class="status-card profile-card" aria-labelledby="profile-display-name-heading">
+        <div class="status-rail" aria-hidden="true"></div>
+        <div class="status-card-content profile-card-content">
+            <h2 id="profile-display-name-heading">@Local["DisplayNameHeading"]</h2>
+            <form action="/session/profile" method="post" class="profile-form">
+                <input type="hidden" name="ReturnUrl" value="@_returnUrl" />
+                <div class="profile-field">
+                    <label for="profile-full-name">@Local["FullNameLabel"]</label>
+                    <input id="profile-full-name"
+                           class="profile-control"
+                           type="text"
+                           name="FullName"
+                           value="@_fullName"
+                           maxlength="100"
+                           autocomplete="name" />
+                </div>
+                <div class="profile-field">
+                    <label for="profile-language">@CommonLocal["Language"]</label>
+                    <select id="profile-language"
+                            class="profile-control"
+                            name="PreferredLanguage"
+                            aria-label="@CommonLocal["Language"]">
+                        <option value="es" selected="@(_preferredLanguage == "es")">@CommonLocal["LanguageEs"]</option>
+                        <option value="en" selected="@(_preferredLanguage == "en")">@CommonLocal["LanguageEn"]</option>
+                    </select>
+                </div>
+
+                @if (_profileError)
+                {
+                    <p class="profile-message profile-message--error" role="alert">@Local["ProfileSaveFailed"]</p>
+                }
+
+                <div class="profile-action">
+                    <button type="submit">@CommonLocal["Save"]</button>
+                </div>
+            </form>
+        </div>
+    </section>
+
+    <section class="status-card profile-card" aria-labelledby="profile-password-heading">
+        <div class="status-rail" aria-hidden="true"></div>
+        <div class="status-card-content profile-card-content">
+            <h2 id="profile-password-heading">@Local["ChangePasswordHeading"]</h2>
+            <p class="profile-hint" id="profile-password-help">@Local["PasswordPolicyHint"]</p>
+            <form action="/session/password" method="post" class="profile-form">
+                <input type="hidden" name="ReturnUrl" value="@_returnUrl" />
+                <div class="profile-field">
+                    <label for="profile-current-password">@Local["CurrentPasswordLabel"]</label>
+                    <input id="profile-current-password"
+                           class="profile-control"
+                           type="password"
+                           name="CurrentPassword"
+                           autocomplete="current-password"
+                           required />
+                </div>
+                <div class="profile-field">
+                    <label for="profile-new-password">@Local["NewPasswordLabel"]</label>
+                    <input id="profile-new-password"
+                           class="profile-control"
+                           type="password"
+                           name="NewPassword"
+                           autocomplete="new-password"
+                           aria-describedby="profile-password-help"
+                           required />
+                </div>
+                <div class="profile-field">
+                    <label for="profile-confirm-password">@Local["ConfirmPasswordLabel"]</label>
+                    <input id="profile-confirm-password"
+                           class="profile-control"
+                           type="password"
+                           name="ConfirmPassword"
+                           autocomplete="new-password"
+                           aria-describedby="profile-password-help"
+                           required />
+                </div>
+
+                @if (_passwordChanged)
+                {
+                    <p class="profile-message profile-message--success" role="status">@Local["PasswordChanged"]</p>
+                }
+
+                @if (_passwordError is not null)
+                {
+                    <p class="profile-message profile-message--error" role="alert">@Local[_passwordError]</p>
+                }
+
+                <div class="profile-action">
+                    <button type="submit">@Local["ChangePasswordButton"]</button>
+                </div>
+            </form>
+        </div>
+    </section>
+</div>
+
+@code {
+    private string _returnUrl = "/profile";
+    private UserProfileResult? _profile;
+    private bool _loadFailed;
+    private string _fullName = string.Empty;
+    private string _preferredLanguage = SessionCulture.Default;
+    private bool _profileError;
+    private bool _passwordChanged;
+    private string? _passwordError;
+
+    protected override async Task OnInitializedAsync()
+    {
+        var uri = Navigation.ToAbsoluteUri(Navigation.Uri);
+        var query = QueryHelpers.ParseQuery(uri.Query);
+
+        // Flags are consumed once and dropped: the forms post to the clean path
+        // so a result message cannot be replayed on the next navigation.
+        _returnUrl = uri.AbsolutePath;
+        _profileError = query.ContainsKey("profileError");
+        _passwordChanged = query.ContainsKey("passwordChanged");
+        _passwordError = query.TryGetValue("passwordError", out var errors)
+            ? PasswordErrorKey(errors.FirstOrDefault())
+            : null;
+
+        var authenticationState = await AuthenticationState.GetAuthenticationStateAsync();
+        var accessToken = authenticationState.User.FindFirst(
+            AuthenticationMessageHandler.AccessTokenClaimType)?.Value;
+        if (string.IsNullOrEmpty(accessToken))
+        {
+            _loadFailed = true;
+            return;
+        }
+
+        _profile = await AuthApi.GetProfileAsync(accessToken);
+        if (_profile is null)
+        {
+            _loadFailed = true;
+            return;
+        }
+
+        _fullName = _profile.FullName;
+        if (SessionCulture.IsSupported(_profile.PreferredLanguage))
+        {
+            _preferredLanguage = _profile.PreferredLanguage;
+        }
+    }
+
+    // Maps the ?passwordError= query flag to a resource key.
+    private static string? PasswordErrorKey(string? flag) =>
+        flag switch
+        {
+            "confirm" => "PasswordsDoNotMatch",
+            "current" => "WrongCurrentPassword",
+            "policy" => "PasswordPolicyNotMet",
+            "service" => "PasswordChangeFailed",
+            _ => null,
+        };
+}

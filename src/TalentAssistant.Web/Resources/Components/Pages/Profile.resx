@@ -1,0 +1,72 @@
+<?xml version="1.0" encoding="utf-8"?>
+<root>
+  <resheader name="resmimetype">
+    <value>text/microsoft-resx</value>
+  </resheader>
+  <resheader name="version">
+    <value>2.0</value>
+  </resheader>
+  <resheader name="reader">
+    <value>System.Resources.ResXResourceReader, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </resheader>
+  <resheader name="writer">
+    <value>System.Resources.ResXResourceWriter, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </resheader>
+  <data name="PageTitle" xml:space="preserve">
+    <value>Perfil | Talent Assistant</value>
+  </data>
+  <data name="Title" xml:space="preserve">
+    <value>Perfil</value>
+  </data>
+  <data name="Subtitle" xml:space="preserve">
+    <value>Gestiona tu nombre visible, tu idioma preferido y tu contraseña.</value>
+  </data>
+  <data name="ProfileLoadFailed" xml:space="preserve">
+    <value>No se pudo cargar tu perfil. Vuelve a iniciar sesión e inténtalo de nuevo.</value>
+  </data>
+  <data name="UserNameHint" xml:space="preserve">
+    <value>Nombre de usuario: {0}</value>
+  </data>
+  <data name="DisplayNameHeading" xml:space="preserve">
+    <value>Nombre visible e idioma</value>
+  </data>
+  <data name="FullNameLabel" xml:space="preserve">
+    <value>Nombre visible</value>
+  </data>
+  <data name="ProfileSaveFailed" xml:space="preserve">
+    <value>No se pudo guardar el perfil. Inténtalo de nuevo.</value>
+  </data>
+  <data name="ChangePasswordHeading" xml:space="preserve">
+    <value>Cambiar contraseña</value>
+  </data>
+  <data name="PasswordPolicyHint" xml:space="preserve">
+    <value>La contraseña nueva debe tener al menos 6 caracteres e incluir mayúsculas, minúsculas, números y caracteres no alfanuméricos.</value>
+  </data>
+  <data name="CurrentPasswordLabel" xml:space="preserve">
+    <value>Contraseña actual</value>
+  </data>
+  <data name="NewPasswordLabel" xml:space="preserve">
+    <value>Contraseña nueva</value>
+  </data>
+  <data name="ConfirmPasswordLabel" xml:space="preserve">
+    <value>Confirmar contraseña nueva</value>
+  </data>
+  <data name="PasswordChanged" xml:space="preserve">
+    <value>Contraseña actualizada correctamente.</value>
+  </data>
+  <data name="PasswordsDoNotMatch" xml:space="preserve">
+    <value>Las contraseñas no coinciden.</value>
+  </data>
+  <data name="WrongCurrentPassword" xml:space="preserve">
+    <value>La contraseña actual es incorrecta.</value>
+  </data>
+  <data name="PasswordPolicyNotMet" xml:space="preserve">
+    <value>La contraseña nueva no cumple la política de contraseñas.</value>
+  </data>
+  <data name="PasswordChangeFailed" xml:space="preserve">
+    <value>No se pudo cambiar la contraseña. Inténtalo de nuevo.</value>
+  </data>
+  <data name="ChangePasswordButton" xml:space="preserve">
+    <value>Cambiar contraseña</value>
+  </data>
+</root>

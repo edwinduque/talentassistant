@@ -50,7 +50,7 @@ Risk: item 2 (datos de usuario y cambio de credenciales). T1 y T2 requieren veri
 | ID | Specs | Ruta | Estado | Evidencia / commit |
 |---|---|---|---|---|
 | T1 | S2, S4 | Inline | Planificada | Usuario extendido + migración aditiva + endpoints de perfil/contraseña + login ampliado + pruebas |
-| T2 | S1, S3, S4 | Inline | Planificada | Depende de T1 |
+| T2 | S1, S3, S4 | Inline | Implementada; build 0/0, integración 23/23 y unit 5/5; recursos ES/EN con paridad verificada; E2E de navegador pendiente en T3 | Commit pendiente en `feature-branch-chain` |
 | T3 | S2, S5 | Inline | Planificada | Depende de T1/T2 |
 
 Forecast inicial: aproximadamente 700–1000 líneas authored entre implementación, recursos de cadenas, pruebas y documentación; archivos generados excluidos. Estrategia `feature-branch-chain`; el umbral de ~400 líneas es heurístico, no un límite de tamaño.
@@ -86,3 +86,15 @@ Risk: item 2 (datos de usuario y cambio de credenciales).
 El verificador independiente validó los cinco claims sin bloqueos en scratch propio (MySQL desechable en puerto 3307 y API en 5115; el stack del usuario y la base dev no se tocaron): alcance del diff acotado con cero referencias a Identity en Domain/Application; migración aditiva ejecutada en vivo con prueba de reaplicación sobre tabla poblada (backfill de `es`, identidad y hash intactos); comportamiento completo de perfil/contraseña/idioma (trim, catálogo cerrado incluido el caso sensible `ES` → 400, política de Identity, contraseña vieja → 401 tras el cambio); integración 23/23 desde el workspace y también desde rebuild scratch; 0 secretos en el diff.
 
 Advisories: bloqueo ambiental App Control 0x800711C7 en UnitTests (reproducido incluso fuera del workspace; firma idéntica a la conocida) y codificación UTF-8 inválida en este logbook causada por `Add-Content`/`Set-Content` de PowerShell 5.1 en ANSI; reparada con reescritura UTF-8 y verificación estricta de todos los Markdown del repo. El verificador propuso un test de regresión de reaplicación de migración; se difiere porque muta el esquema de la base compartida de pruebas y podría ejecutarse en paralelo con las pruebas de autenticación.
+
+### L6 — Implementación de T2 (2026-10-17)
+
+Texto exacto del usuario: “si” (autoriza T2). Escrito por worker acotado (context backstop), solo dentro de `src/TalentAssistant.Web`; el padre revisó diff contra superficies y los endpoints nuevos (catálogo cerrado, redirect solo a rutas locales, token tomado del claim de sesión, cookie de cultura HttpOnly/SameSite=Lax y re-emisión de la cookie con el nombre guardado).
+
+Implementado: infraestructura de localización (`AddLocalization` + `UseRequestLocalization` con cookie, sin detección de navegador, `NeutralLanguage=es`); recursos por componente (Login, MainLayout, Home, AttendanceInsights, Profile y Common compartido) con español neutral e inglés satélite; dropdown nativo en `/login` con `POST /session/culture`; página `/profile` con nombre, idioma y cambio de contraseña vía endpoints nativos `/session/profile` y `/session/password`; layout con nombre visible, enlace a perfil y textos localizados; `AuthApiClient` con `GetProfileAsync`/`UpdateProfileAsync`/`ChangePasswordAsync`; login aplica el idioma del perfil.
+
+Desviaciones aceptadas del writer (todas justificadas): los recursos viven en rutas que reflejan el namespace del componente (regla de la factory; una ruta plana devolvería claves en crudo); los servicios devuelven enums de estado y la copia vive en la página; la validación es explícita porque `DataAnnotationsValidator` no localiza mensajes en .NET 10; `/session/password` clasifica el fallo por el problem detail de Identity.
+
+Evidencia: build 0 warnings/0 errores; suite integración 23/23 y unitarias 5/5 (el bloqueo ambiental no se reprodujo en esta ejecución); paridad de claves entre recursos es/en y sonda real de `IStringLocalizer<T>` resolviendo todas las claves en ambos idiomas. El navegador end-to-end queda para T3.
+
+Risk: item 2 (transporte de credenciales y datos de usuario en Web).

@@ -1,50 +1,65 @@
 ﻿@page "/"
 @inject BackendApiClient BackendApi
+@inject IStringLocalizer<Home> Local
+@inject IStringLocalizer<Common> CommonLocal
 
-<PageTitle>Overview | Talent Assistant</PageTitle>
+<PageTitle>@Local["PageTitle"]</PageTitle>
 
 <div class="overview">
     <header class="overview-heading">
-        <p class="eyebrow">Local environment</p>
-        <h1>Talent Assistant</h1>
-        <p class="overview-intro">A technical foundation for local development.</p>
+        <p class="eyebrow">@Local["Eyebrow"]</p>
+        <h1>@CommonLocal["AppName"]</h1>
+        <p class="overview-intro">@Local["Subtitle"]</p>
     </header>
 
     <section class="status-card" aria-labelledby="api-status-heading">
         <div class="status-rail" aria-hidden="true"></div>
         <div class="status-card-content">
-            <p class="eyebrow">Service check</p>
-            <h2 id="api-status-heading">Backend API</h2>
+            <p class="eyebrow">@Local["ServiceCheck"]</p>
+            <h2 id="api-status-heading">@Local["ApiName"]</h2>
             <p class="health-result" role="status" aria-live="polite" aria-atomic="true">
                 <span class="health-indicator @(health.IsHealthy ? "health-indicator--healthy" : "health-indicator--unavailable")"
                       aria-hidden="true"></span>
-                <span>@health.Message</span>
+                <span>@Local[HealthMessageKey(health.Status)]</span>
             </p>
         </div>
-        <p class="status-protocol">HTTP</p>
+        <p class="status-protocol">@Local["Protocol"]</p>
     </section>
 
     <dl class="foundation-details">
         <div>
-            <dt>Rendering</dt>
-            <dd>Interactive Server</dd>
+            <dt>@Local["RenderingLabel"]</dt>
+            <dd>@Local["RenderingValue"]</dd>
         </div>
         <div>
-            <dt>API transport</dt>
-            <dd>Typed server-side HTTP client</dd>
+            <dt>@Local["ApiTransportLabel"]</dt>
+            <dd>@Local["ApiTransportValue"]</dd>
         </div>
         <div>
-            <dt>Data policy</dt>
-            <dd>Synthetic development data only</dd>
+            <dt>@Local["DataPolicyLabel"]</dt>
+            <dd>@Local["DataPolicyValue"]</dd>
         </div>
     </dl>
 </div>
 
 @code {
-    private BackendHealthResult health = new(false, "Checking the API…");
+    private BackendHealthResult health = new(BackendHealthStatus.Checking);
 
     protected override async Task OnInitializedAsync()
     {
         health = await BackendApi.GetHealthAsync();
     }
+
+    private static string HealthMessageKey(BackendHealthStatus status) =>
+        status switch
+        {
+            BackendHealthStatus.Checking => "HealthChecking",
+            BackendHealthStatus.Healthy => "HealthOk",
+            BackendHealthStatus.ApiErrorResponse => "HealthApiError",
+            BackendHealthStatus.UnrecognizedResponse => "HealthUnrecognized",
+            BackendHealthStatus.Unreachable => "HealthUnreachable",
+            BackendHealthStatus.Timeout => "HealthTimeout",
+            BackendHealthStatus.InvalidPayload => "HealthInvalidPayload",
+            _ => "HealthUnrecognized",
+        };
 }

@@ -1,0 +1,54 @@
+<?xml version="1.0" encoding="utf-8"?>
+<root>
+  <resheader name="resmimetype">
+    <value>text/microsoft-resx</value>
+  </resheader>
+  <resheader name="version">
+    <value>2.0</value>
+  </resheader>
+  <resheader name="reader">
+    <value>System.Resources.ResXResourceReader, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </resheader>
+  <resheader name="writer">
+    <value>System.Resources.ResXResourceWriter, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </resheader>
+  <data name="SkipLink" xml:space="preserve">
+    <value>Skip to main content</value>
+  </data>
+  <data name="BrandHomeLabel" xml:space="preserve">
+    <value>Talent Assistant home</value>
+  </data>
+  <data name="PrimaryNavigation" xml:space="preserve">
+    <value>Primary navigation</value>
+  </data>
+  <data name="NavOverview" xml:space="preserve">
+    <value>Overview</value>
+  </data>
+  <data name="NavAttendance" xml:space="preserve">
+    <value>Attendance insights</value>
+  </data>
+  <data name="NavProfile" xml:space="preserve">
+    <value>Profile</value>
+  </data>
+  <data name="SignOut" xml:space="preserve">
+    <value>Sign out</value>
+  </data>
+  <data name="EnvironmentLabel" xml:space="preserve">
+    <value>Local development</value>
+  </data>
+  <data name="FooterFoundation" xml:space="preserve">
+    <value>Technical foundation</value>
+  </data>
+  <data name="FooterEnvironment" xml:space="preserve">
+    <value>Local environment · synthetic data</value>
+  </data>
+  <data name="ErrorUnexpected" xml:space="preserve">
+    <value>An unexpected error occurred.</value>
+  </data>
+  <data name="ErrorReload" xml:space="preserve">
+    <value>Reload the page</value>
+  </data>
+  <data name="ErrorDismiss" xml:space="preserve">
+    <value>Dismiss error</value>
+  </data>
+</root>

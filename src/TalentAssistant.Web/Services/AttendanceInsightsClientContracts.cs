@@ -1,9 +1,25 @@
 namespace TalentAssistant.Web.Services;
 
+/// <summary>
+/// Failure kind reported by <c>GET attendance/insights</c>. User-facing copy lives
+/// in the <c>AttendanceInsights</c> page resource, keyed by this value, so the
+/// contract stays culture-neutral (SPEC-006 S3).
+/// </summary>
+public enum AttendanceInsightsFailure
+{
+    None,
+    BadRequest,
+    Unreachable,
+    Timeout,
+    InvalidPayload,
+}
+
 public sealed record AttendanceInsightsResult(
-    bool IsSuccess,
-    string Message,
-    IReadOnlyList<AttendanceInsightResponse> Insights);
+    AttendanceInsightsFailure Failure,
+    IReadOnlyList<AttendanceInsightResponse> Insights)
+{
+    public bool IsSuccess => Failure == AttendanceInsightsFailure.None;
+}
 
 public sealed record AttendanceInsightResponse(
     string IncidentId,

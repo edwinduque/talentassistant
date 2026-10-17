@@ -4,8 +4,10 @@
 @using Microsoft.AspNetCore.Components
 @attribute [AllowAnonymous]
 @inject NavigationManager Navigation
+@inject IStringLocalizer<Login> Local
+@inject IStringLocalizer<Common> CommonLocal
 
-<PageTitle>Iniciar sesión | Talent Assistant</PageTitle>
+<PageTitle>@Local["PageTitle"]</PageTitle>
 
 <div class="login-page">
     <style>
@@ -61,23 +63,28 @@
             font-weight: 650;
             cursor: pointer;
         }
+
+        .language-card {
+            max-width: 34rem;
+            margin-top: 1.5rem;
+        }
     </style>
 
     <header class="overview-heading">
-        <p class="eyebrow">Talent Assistant</p>
-        <h1>Iniciar sesión</h1>
+        <p class="eyebrow">@CommonLocal["AppName"]</p>
+        <h1>@Local["Title"]</h1>
         <p class="overview-intro">
-            Introduce tu usuario local para acceder a la aplicación.
+            @Local["Subtitle"]
         </p>
     </header>
 
-    <section class="status-card login-card" aria-label="Formulario de inicio de sesión">
+    <section class="status-card login-card" aria-label="@Local["SignInFormLabel"]">
         <div class="status-rail" aria-hidden="true"></div>
         <div class="status-card-content login-card-content">
             <form action="/session/login" method="post" class="login-form">
                 <input type="hidden" name="ReturnUrl" value="@_returnUrl" />
                 <div class="login-field">
-                    <label for="login-user-name">Usuario</label>
+                    <label for="login-user-name">@Local["UserName"]</label>
                     <input id="login-user-name"
                            class="login-control"
                            type="text"
@@ -87,7 +94,7 @@
                            required />
                 </div>
                 <div class="login-field">
-                    <label for="login-password">Contraseña</label>
+                    <label for="login-password">@Local["Password"]</label>
                     <input id="login-password"
                            class="login-control"
                            type="password"
@@ -98,11 +105,39 @@
 
                 @if (_hasFailed)
                 {
-                    <p class="login-error" role="alert">Usuario o contraseña incorrectos</p>
+                    <p class="login-error" role="alert">@Local["InvalidCredentials"]</p>
                 }
 
                 <div class="login-action">
-                    <button type="submit">Entrar</button>
+                    <button type="submit">@Local["SignIn"]</button>
+                </div>
+            </form>
+        </div>
+    </section>
+
+    <section class="status-card language-card" aria-label="@Local["LanguageFormLabel"]">
+        <div class="status-rail" aria-hidden="true"></div>
+        <div class="status-card-content login-card-content">
+            <form action="/session/culture" method="post" class="login-form">
+                <input type="hidden" name="ReturnUrl" value="@_cultureReturnUrl" />
+                <div class="login-field">
+                    <label for="login-culture">@CommonLocal["Language"]</label>
+                    <select id="login-culture"
+                            class="login-control"
+                            name="culture"
+                            aria-label="@CommonLocal["Language"]">
+                        <option value="es" selected="@(_selectedCulture == "es")">@CommonLocal["LanguageEs"]</option>
+                        <option value="en" selected="@(_selectedCulture == "en")">@CommonLocal["LanguageEn"]</option>
+                    </select>
+                </div>
+
+                @if (_cultureFailed)
+                {
+                    <p class="login-error" role="alert">@Local["CultureError"]</p>
+                }
+
+                <div class="login-action">
+                    <button type="submit">@CommonLocal["Apply"]</button>
                 </div>
             </form>
         </div>
@@ -111,7 +146,10 @@
 
 @code {
     private string _returnUrl = "/";
+    private string _cultureReturnUrl = "/";
     private bool _hasFailed;
+    private bool _cultureFailed;
+    private string _selectedCulture = SessionCulture.Default;
 
     protected override void OnInitialized()
     {
@@ -119,6 +157,13 @@
         var query = QueryHelpers.ParseQuery(uri.Query);
 
         _hasFailed = query.ContainsKey("error");
+        _cultureFailed = query.ContainsKey("cultureError");
+
+        var culture = CultureInfo.CurrentUICulture.TwoLetterISOLanguageName;
+        if (SessionCulture.IsSupported(culture))
+        {
+            _selectedCulture = culture;
+        }
 
         var returnUrl = query.TryGetValue("ReturnUrl", out var values)
             ? values.FirstOrDefault()
@@ -129,5 +174,9 @@
         {
             _returnUrl = returnUrl;
         }
+
+        // The language form returns to the current path only: query flags such as
+        // ?cultureError=1 must not survive a successful language change.
+        _cultureReturnUrl = uri.AbsolutePath;
     }
 }

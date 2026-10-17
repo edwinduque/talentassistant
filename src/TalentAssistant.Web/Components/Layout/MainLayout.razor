@@ -3,33 +3,36 @@
 @inherits LayoutComponentBase
 @inject SessionService Session
 @inject NavigationManager Navigation
+@inject IStringLocalizer<MainLayout> Local
+@inject IStringLocalizer<Common> CommonLocal
 
 <div class="app-shell">
-    <a class="skip-link" href="#main-content">Skip to main content</a>
+    <a class="skip-link" href="#main-content">@Local["SkipLink"]</a>
 
     <header class="masthead">
-        <a class="brand" href="/" aria-label="Talent Assistant home">
+        <a class="brand" href="/" aria-label="@Local["BrandHomeLabel"]">
             <span class="brand-mark" aria-hidden="true">TA</span>
-            <span class="brand-name">Talent Assistant</span>
+            <span class="brand-name">@CommonLocal["AppName"]</span>
         </a>
 
         <AuthorizeView>
             <Authorized>
-                <nav class="primary-navigation" aria-label="Primary navigation">
-                    <NavLink href="" Match="NavLinkMatch.All">Overview</NavLink>
-                    <NavLink href="attendance-insights">Attendance insights</NavLink>
+                <nav class="primary-navigation" aria-label="@Local["PrimaryNavigation"]">
+                    <NavLink href="" Match="NavLinkMatch.All">@Local["NavOverview"]</NavLink>
+                    <NavLink href="attendance-insights">@Local["NavAttendance"]</NavLink>
+                    <NavLink href="profile">@Local["NavProfile"]</NavLink>
                 </nav>
             </Authorized>
         </AuthorizeView>
 
         <AuthorizeView>
             <Authorized>
-                <span class="user-name">@context.User.Identity?.Name</span>
-                <button type="button" class="sign-out-button" @onclick="SignOutAsync">Cerrar sesión</button>
+                <span class="user-name">@GetDisplayName(context.User)</span>
+                <button type="button" class="sign-out-button" @onclick="SignOutAsync">@Local["SignOut"]</button>
             </Authorized>
         </AuthorizeView>
 
-        <p class="environment-label">Local development</p>
+        <p class="environment-label">@Local["EnvironmentLabel"]</p>
     </header>
 
     <main class="page-content" id="main-content" tabindex="-1">
@@ -39,15 +42,15 @@
     </main>
 
     <footer class="site-footer">
-        <span>Technical foundation</span>
-        <span>Local environment · synthetic data</span>
+        <span>@Local["FooterFoundation"]</span>
+        <span>@Local["FooterEnvironment"]</span>
     </footer>
 </div>
 
 <div id="blazor-error-ui" role="alert" data-nosnippet>
-    <span>An unexpected error occurred.</span>
-    <a href="/">Reload the page</a>
-    <button type="button" class="dismiss" aria-label="Dismiss error">×</button>
+    <span>@Local["ErrorUnexpected"]</span>
+    <a href="/">@Local["ErrorReload"]</a>
+    <button type="button" class="dismiss" aria-label="@Local["ErrorDismiss"]">×</button>
 </div>
 
 <style>
@@ -68,6 +71,15 @@
 </style>
 
 @code {
+    private static string GetDisplayName(ClaimsPrincipal user)
+    {
+        // The saved display name wins over the technical user name (SPEC-006 S6).
+        var fullName = user.FindFirst(AuthenticationMessageHandler.FullNameClaimType)?.Value;
+        return string.IsNullOrEmpty(fullName)
+            ? user.Identity?.Name ?? string.Empty
+            : fullName;
+    }
+
     private async Task SignOutAsync()
     {
         await Session.LogoutAsync();

@@ -4,7 +4,26 @@ using System.Net.Http.Json;
 
 namespace TalentAssistant.Web.Services;
 
-public sealed record BackendHealthResult(bool IsHealthy, string Message);
+/// <summary>
+/// Facts returned by <c>GET health</c>. User-facing copy lives in the
+/// <c>Home</c> resource, keyed by this status, so the service stays
+/// culture-neutral (SPEC-006 S3).
+/// </summary>
+public enum BackendHealthStatus
+{
+    Checking,
+    Healthy,
+    ApiErrorResponse,
+    UnrecognizedResponse,
+    Unreachable,
+    Timeout,
+    InvalidPayload,
+}
+
+public sealed record BackendHealthResult(BackendHealthStatus Status)
+{
+    public bool IsHealthy => Status == BackendHealthStatus.Healthy;
+}
 
 public sealed class BackendApiClient(
     HttpClient httpClient,
@@ -33,11 +52,11 @@ public sealed class BackendApiClient(
                     "The attendance insights endpoint returned HTTP {StatusCode}.",
                     (int)response.StatusCode);
 
-                var message = response.StatusCode == HttpStatusCode.BadRequest
-                    ? "Check the selected date range and employee."
-                    : "The attendance source could not be reached.";
+                var failure = response.StatusCode == HttpStatusCode.BadRequest
+                    ? AttendanceInsightsFailure.BadRequest
+                    : AttendanceInsightsFailure.Unreachable;
 
-                return new AttendanceInsightsResult(false, message, []);
+                return new AttendanceInsightsResult(failure, []);
             }
 
             var payload = await response.Content.ReadFromJsonAsync<List<AttendanceInsightResponse>>(
@@ -45,42 +64,27 @@ public sealed class BackendApiClient(
             if (payload is null)
             {
                 logger.LogWarning("The attendance insights endpoint returned an empty response.");
-                return new AttendanceInsightsResult(
-                    false,
-                    "The API response could not be read.",
-                    []);
+                return new AttendanceInsightsResult(AttendanceInsightsFailure.InvalidPayload, []);
             }
 
             return new AttendanceInsightsResult(
-                true,
-                payload.Count == 0
-                    ? "No attendance findings matched the selected filters."
-                    : $"{payload.Count} attendance finding(s) returned.",
+                AttendanceInsightsFailure.None,
                 payload);
         }
         catch (HttpRequestException exception)
         {
             logger.LogWarning(exception, "Could not reach the attendance insights endpoint.");
-            return new AttendanceInsightsResult(
-                false,
-                "The attendance source could not be reached.",
-                []);
+            return new AttendanceInsightsResult(AttendanceInsightsFailure.Unreachable, []);
         }
         catch (TaskCanceledException exception) when (!cancellationToken.IsCancellationRequested)
         {
             logger.LogWarning(exception, "The attendance insights request timed out.");
-            return new AttendanceInsightsResult(
-                false,
-                "The attendance request did not respond in time.",
-                []);
+            return new AttendanceInsightsResult(AttendanceInsightsFailure.Timeout, []);
         }
         catch (System.Text.Json.JsonException exception)
         {
             logger.LogWarning(exception, "The attendance insights response was not valid JSON.");
-            return new AttendanceInsightsResult(
-                false,
-                "The API response could not be read.",
-                []);
+            return new AttendanceInsightsResult(AttendanceInsightsFailure.InvalidPayload, []);
         }
     }
 
@@ -96,7 +100,7 @@ public sealed class BackendApiClient(
                     "The backend health endpoint returned HTTP {StatusCode}.",
                     (int)response.StatusCode);
 
-                return new BackendHealthResult(false, "The API returned an error response.");
+                return new BackendHealthResult(BackendHealthStatus.ApiErrorResponse);
             }
 
             var payload = await response.Content.ReadFromJsonAsync<BackendHealthPayload>(
@@ -104,27 +108,25 @@ public sealed class BackendApiClient(
             if (!string.Equals(payload?.Status, "healthy", StringComparison.OrdinalIgnoreCase))
             {
                 logger.LogWarning("The backend health endpoint returned an unexpected response.");
-                return new BackendHealthResult(false, "The API response was not recognized.");
+                return new BackendHealthResult(BackendHealthStatus.UnrecognizedResponse);
             }
 
-            return new BackendHealthResult(true, "The API is responding.");
+            return new BackendHealthResult(BackendHealthStatus.Healthy);
         }
         catch (HttpRequestException exception)
         {
             logger.LogWarning(exception, "Could not reach the backend health endpoint.");
-            return new BackendHealthResult(
-                false,
-                "The API could not be reached. Check that it is running.");
+            return new BackendHealthResult(BackendHealthStatus.Unreachable);
         }
         catch (TaskCanceledException exception) when (!cancellationToken.IsCancellationRequested)
         {
             logger.LogWarning(exception, "The backend health request timed out.");
-            return new BackendHealthResult(false, "The API did not respond in time.");
+            return new BackendHealthResult(BackendHealthStatus.Timeout);
         }
         catch (System.Text.Json.JsonException exception)
         {
             logger.LogWarning(exception, "The backend health response was not valid JSON.");
-            return new BackendHealthResult(false, "The API response could not be read.");
+            return new BackendHealthResult(BackendHealthStatus.InvalidPayload);
         }
     }
 

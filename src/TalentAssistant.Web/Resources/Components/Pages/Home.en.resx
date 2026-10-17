@@ -1,0 +1,72 @@
+<?xml version="1.0" encoding="utf-8"?>
+<root>
+  <resheader name="resmimetype">
+    <value>text/microsoft-resx</value>
+  </resheader>
+  <resheader name="version">
+    <value>2.0</value>
+  </resheader>
+  <resheader name="reader">
+    <value>System.Resources.ResXResourceReader, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </resheader>
+  <resheader name="writer">
+    <value>System.Resources.ResXResourceWriter, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </resheader>
+  <data name="PageTitle" xml:space="preserve">
+    <value>Overview | Talent Assistant</value>
+  </data>
+  <data name="Eyebrow" xml:space="preserve">
+    <value>Local environment</value>
+  </data>
+  <data name="Subtitle" xml:space="preserve">
+    <value>A technical foundation for local development.</value>
+  </data>
+  <data name="ServiceCheck" xml:space="preserve">
+    <value>Service check</value>
+  </data>
+  <data name="ApiName" xml:space="preserve">
+    <value>Backend API</value>
+  </data>
+  <data name="HealthChecking" xml:space="preserve">
+    <value>Checking the API…</value>
+  </data>
+  <data name="HealthOk" xml:space="preserve">
+    <value>The API is responding.</value>
+  </data>
+  <data name="HealthApiError" xml:space="preserve">
+    <value>The API returned an error response.</value>
+  </data>
+  <data name="HealthUnrecognized" xml:space="preserve">
+    <value>The API response was not recognized.</value>
+  </data>
+  <data name="HealthUnreachable" xml:space="preserve">
+    <value>The API could not be reached. Check that it is running.</value>
+  </data>
+  <data name="HealthTimeout" xml:space="preserve">
+    <value>The API did not respond in time.</value>
+  </data>
+  <data name="HealthInvalidPayload" xml:space="preserve">
+    <value>The API response could not be read.</value>
+  </data>
+  <data name="Protocol" xml:space="preserve">
+    <value>HTTP</value>
+  </data>
+  <data name="RenderingLabel" xml:space="preserve">
+    <value>Rendering</value>
+  </data>
+  <data name="RenderingValue" xml:space="preserve">
+    <value>Interactive Server</value>
+  </data>
+  <data name="ApiTransportLabel" xml:space="preserve">
+    <value>API transport</value>
+  </data>
+  <data name="ApiTransportValue" xml:space="preserve">
+    <value>Typed server-side HTTP client</value>
+  </data>
+  <data name="DataPolicyLabel" xml:space="preserve">
+    <value>Data policy</value>
+  </data>
+  <data name="DataPolicyValue" xml:space="preserve">
+    <value>Synthetic development data only</value>
+  </data>
+</root>

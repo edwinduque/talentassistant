@@ -1,0 +1,174 @@
+<?xml version="1.0" encoding="utf-8"?>
+<root>
+  <resheader name="resmimetype">
+    <value>text/microsoft-resx</value>
+  </resheader>
+  <resheader name="version">
+    <value>2.0</value>
+  </resheader>
+  <resheader name="reader">
+    <value>System.Resources.ResXResourceReader, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </resheader>
+  <resheader name="writer">
+    <value>System.Resources.ResXResourceWriter, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </resheader>
+  <data name="PageTitle" xml:space="preserve">
+    <value>Attendance insights | Talent Assistant</value>
+  </data>
+  <data name="Eyebrow" xml:space="preserve">
+    <value>HCM assistance</value>
+  </data>
+  <data name="Title" xml:space="preserve">
+    <value>Attendance insights</value>
+  </data>
+  <data name="Subtitle" xml:space="preserve">
+    <value>Review attendance findings supplied by the HCM, their supporting evidence, and related context that may need your attention.</value>
+  </data>
+  <data name="SyntheticNoticeTitle" xml:space="preserve">
+    <value>Synthetic HCM data</value>
+  </data>
+  <data name="SyntheticNoticeText" xml:space="preserve">
+    <value>People and office locations shown here are examples, not company records.</value>
+  </data>
+  <data name="FiltersEyebrow" xml:space="preserve">
+    <value>Search the HCM sample</value>
+  </data>
+  <data name="FiltersHeading" xml:space="preserve">
+    <value>Choose an attendance period</value>
+  </data>
+  <data name="DateRangeHelp" xml:space="preserve">
+    <value>The start date is included and the end date is excluded, using each office's time zone.</value>
+  </data>
+  <data name="FiltersLegend" xml:space="preserve">
+    <value>Attendance filters</value>
+  </data>
+  <data name="FromDateLabel" xml:space="preserve">
+    <value>From (inclusive)</value>
+  </data>
+  <data name="ToDateLabel" xml:space="preserve">
+    <value>To (exclusive)</value>
+  </data>
+  <data name="EmployeeIdLabel" xml:space="preserve">
+    <value>Employee ID (optional)</value>
+  </data>
+  <data name="LoadingButton" xml:space="preserve">
+    <value>Loading…</value>
+  </data>
+  <data name="SearchButton" xml:space="preserve">
+    <value>Search attendance</value>
+  </data>
+  <data name="FromDateRequired" xml:space="preserve">
+    <value>Enter a start date.</value>
+  </data>
+  <data name="ToDateRequired" xml:space="preserve">
+    <value>Enter an end date.</value>
+  </data>
+  <data name="InvalidDateRange" xml:space="preserve">
+    <value>The end date must be later than the start date.</value>
+  </data>
+  <data name="ResultsEyebrow" xml:space="preserve">
+    <value>Source-provided findings</value>
+  </data>
+  <data name="ResultsHeading" xml:space="preserve">
+    <value>Attendance context</value>
+  </data>
+  <data name="FindingsCount" xml:space="preserve">
+    <value>{0} finding(s)</value>
+  </data>
+  <data name="LoadingMessage" xml:space="preserve">
+    <value>Loading HCM attendance context…</value>
+  </data>
+  <data name="NoResults" xml:space="preserve">
+    <value>No attendance findings matched this period.</value>
+  </data>
+  <data name="NoSearchHint" xml:space="preserve">
+    <value>Choose a date range to view the synthetic HCM findings.</value>
+  </data>
+  <data name="ErrorBadRequest" xml:space="preserve">
+    <value>Check the selected date range and employee.</value>
+  </data>
+  <data name="ErrorUnreachable" xml:space="preserve">
+    <value>The attendance source could not be reached.</value>
+  </data>
+  <data name="ErrorTimeout" xml:space="preserve">
+    <value>The attendance request did not respond in time.</value>
+  </data>
+  <data name="ErrorInvalidPayload" xml:space="preserve">
+    <value>The API response could not be read.</value>
+  </data>
+  <data name="FindingEyebrow" xml:space="preserve">
+    <value>HCM finding · {0}</value>
+  </data>
+  <data name="NeedsReview" xml:space="preserve">
+    <value>Needs review</value>
+  </data>
+  <data name="NoReview" xml:space="preserve">
+    <value>No review flagged</value>
+  </data>
+  <data name="OfficeLabel" xml:space="preserve">
+    <value>Office</value>
+  </data>
+  <data name="OfficeTimeZoneLabel" xml:space="preserve">
+    <value>Office time zone</value>
+  </data>
+  <data name="AttendanceTimeLabel" xml:space="preserve">
+    <value>Attendance time</value>
+  </data>
+  <data name="ScheduledShiftLabel" xml:space="preserve">
+    <value>Scheduled shift</value>
+  </data>
+  <data name="RuleSectionLabel" xml:space="preserve">
+    <value>HCM rule result</value>
+  </data>
+  <data name="RuleResultEyebrow" xml:space="preserve">
+    <value>HCM-reported result · {0}</value>
+  </data>
+  <data name="EvidenceSectionLabel" xml:space="preserve">
+    <value>Supporting evidence</value>
+  </data>
+  <data name="EvidenceHeading" xml:space="preserve">
+    <value>Evidence supplied by the HCM</value>
+  </data>
+  <data name="ReviewSectionLabel" xml:space="preserve">
+    <value>Information to review</value>
+  </data>
+  <data name="ReviewHeading" xml:space="preserve">
+    <value>Information to review</value>
+  </data>
+  <data name="ViewPunches" xml:space="preserve">
+    <value>View supplied punch events</value>
+  </data>
+  <data name="TimeOffHeading" xml:space="preserve">
+    <value>Related TimeOff context</value>
+  </data>
+  <data name="TimeOffTypeLabel" xml:space="preserve">
+    <value>Type</value>
+  </data>
+  <data name="TimeOffStatusLabel" xml:space="preserve">
+    <value>Status supplied by the HCM</value>
+  </data>
+  <data name="TimeOffReferenceLabel" xml:space="preserve">
+    <value>Reference</value>
+  </data>
+  <data name="TimeOffStartDateLabel" xml:space="preserve">
+    <value>Start date value supplied</value>
+  </data>
+  <data name="TimeOffEndDateLabel" xml:space="preserve">
+    <value>End date value supplied</value>
+  </data>
+  <data name="TimeOffDurationLabel" xml:space="preserve">
+    <value>Duration</value>
+  </data>
+  <data name="TimeOffDurationUnitLabel" xml:space="preserve">
+    <value>Duration unit</value>
+  </data>
+  <data name="TimeOffDisclaimer" xml:space="preserve">
+    <value>The source-declared relationship does not establish that this absence explains the attendance finding.</value>
+  </data>
+  <data name="TimeOffMissing" xml:space="preserve">
+    <value>The HCM did not provide related TimeOff context for this attendance finding.</value>
+  </data>
+  <data name="NotProvided" xml:space="preserve">
+    <value>Not provided by the HCM</value>
+  </data>
+</root>

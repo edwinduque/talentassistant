@@ -1,0 +1,126 @@
+<?xml version="1.0" encoding="utf-8"?>
+<root>
+  <resheader name="resmimetype">
+    <value>text/microsoft-resx</value>
+  </resheader>
+  <resheader name="version">
+    <value>2.0</value>
+  </resheader>
+  <resheader name="reader">
+    <value>System.Resources.ResXResourceReader, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </resheader>
+  <resheader name="writer">
+    <value>System.Resources.ResXResourceWriter, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </resheader>
+  <data name="AppName" xml:space="preserve">
+    <value>Talent Assistant</value>
+  </data>
+  <data name="Language" xml:space="preserve">
+    <value>Idioma</value>
+  </data>
+  <data name="LanguageEs" xml:space="preserve">
+    <value>Español</value>
+  </data>
+  <data name="LanguageEn" xml:space="preserve">
+    <value>English</value>
+  </data>
+  <data name="Apply" xml:space="preserve">
+    <value>Aplicar</value>
+  </data>
+  <data name="Save" xml:space="preserve">
+    <value>Guardar</value>
+  </data>
+  <data name="SkipLink" xml:space="preserve">
+    <value>Saltar al contenido principal</value>
+  </data>
+  <data name="BrandHomeLabel" xml:space="preserve">
+    <value>Inicio de Talent Assistant</value>
+  </data>
+  <data name="PrimaryNavigation" xml:space="preserve">
+    <value>Navegación principal</value>
+  </data>
+  <data name="NavOverview" xml:space="preserve">
+    <value>Resumen</value>
+  </data>
+  <data name="NavAttendance" xml:space="preserve">
+    <value>Asistencia</value>
+  </data>
+  <data name="NavProfile" xml:space="preserve">
+    <value>Perfil</value>
+  </data>
+  <data name="SignOut" xml:space="preserve">
+    <value>Cerrar sesión</value>
+  </data>
+  <data name="EnvironmentLabel" xml:space="preserve">
+    <value>Desarrollo local</value>
+  </data>
+  <data name="FooterFoundation" xml:space="preserve">
+    <value>Fundación técnica</value>
+  </data>
+  <data name="FooterEnvironment" xml:space="preserve">
+    <value>Entorno local · datos sintéticos</value>
+  </data>
+  <data name="ErrorUnexpected" xml:space="preserve">
+    <value>Se produjo un error inesperado.</value>
+  </data>
+  <data name="ErrorReload" xml:space="preserve">
+    <value>Recargar la página</value>
+  </data>
+  <data name="ErrorDismiss" xml:space="preserve">
+    <value>Descartar el error</value>
+  </data>
+  <data name="NotFoundTitle" xml:space="preserve">
+    <value>No encontrado</value>
+  </data>
+  <data name="NotFoundMessage" xml:space="preserve">
+    <value>Lo sentimos, el contenido que buscas no existe.</value>
+  </data>
+  <data name="ErrorTitle" xml:space="preserve">
+    <value>Error</value>
+  </data>
+  <data name="ErrorMessage" xml:space="preserve">
+    <value>Se produjo un error al procesar tu solicitud.</value>
+  </data>
+  <data name="RequestId" xml:space="preserve">
+    <value>ID de solicitud</value>
+  </data>
+  <data name="ErrorGuidanceTitle" xml:space="preserve">
+    <value>Modo de desarrollo</value>
+  </data>
+  <data name="ErrorGuidanceIntro" xml:space="preserve">
+    <value>Cambiar el entorno a Development muestra información más detallada sobre el error ocurrido.</value>
+  </data>
+  <data name="ErrorGuidanceDetail" xml:space="preserve">
+    <value>No actives el entorno Development en aplicaciones desplegadas: puede exponer información sensible de las excepciones. Para depurar localmente, define la variable de entorno ASPNETCORE_ENVIRONMENT como Development y reinicia la aplicación.</value>
+  </data>
+  <data name="ReconnectRetrying" xml:space="preserve">
+    <value>Reconectando con el servidor…</value>
+  </data>
+  <data name="ReconnectWaiting" xml:space="preserve">
+    <value>Reintento fallido… nuevo intento en</value>
+  </data>
+  <data name="ReconnectSeconds" xml:space="preserve">
+    <value>segundos.</value>
+  </data>
+  <data name="ReconnectFailed" xml:space="preserve">
+    <value>No se pudo volver a conectar.</value>
+  </data>
+  <data name="ReconnectFailedHelp" xml:space="preserve">
+    <value>Reintenta o recarga la página.</value>
+  </data>
+  <data name="ReconnectRetry" xml:space="preserve">
+    <value>Reintentar</value>
+  </data>
+  <data name="ReconnectPaused" xml:space="preserve">
+    <value>El servidor pausó la sesión.</value>
+  </data>
+  <data name="ResumeFailed" xml:space="preserve">
+    <value>No se pudo reanudar la sesión.</value>
+  </data>
+  <data name="ResumeFailedHelp" xml:space="preserve">
+    <value>Reintenta o recarga la página.</value>
+  </data>
+  <data name="ReconnectResume" xml:space="preserve">
+    <value>Reanudar</value>
+  </data>
+</root>
