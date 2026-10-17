@@ -53,6 +53,8 @@ builder.Services.AddIdentityInfrastructure(
 builder.Services.AddScoped<GetAttendanceInsights>();
 builder.Services.AddScoped<SearchEmployees>();
 builder.Services.AddScoped<GetEmployeePresence>();
+builder.Services.AddScoped<GetEmployeeTimeOff>();
+builder.Services.AddScoped<GetEmployeeTasks>();
 
 var authenticationIssuer = builder.Configuration["Authentication:Issuer"] ?? "TalentAssistant";
 var authenticationAudience = builder.Configuration["Authentication:Audience"] ?? "TalentAssistant.Local";
@@ -364,6 +366,38 @@ app.MapGet("/presence", async (
         cancellationToken);
     return Results.Ok(snapshot);
 }).WithName("Presence").RequireAuthorization();
+
+app.MapGet("/timeoff", async (
+    string? employeeId,
+    string? name,
+    ClaimsPrincipal principal,
+    UserManager<ApplicationUser> userManager,
+    GetEmployeeTimeOff getTimeOff,
+    CancellationToken cancellationToken) =>
+{
+    var user = await userManager.GetUserAsync(principal);
+    var language = user?.PreferredLanguage ?? ApplicationUser.DefaultPreferredLanguage;
+    var requests = await getTimeOff.ExecuteAsync(
+        new EmployeeDataQuery(employeeId, name, language),
+        cancellationToken);
+    return Results.Ok(requests);
+}).WithName("TimeOffByEmployee").RequireAuthorization();
+
+app.MapGet("/tasks", async (
+    string? employeeId,
+    string? name,
+    ClaimsPrincipal principal,
+    UserManager<ApplicationUser> userManager,
+    GetEmployeeTasks getTasks,
+    CancellationToken cancellationToken) =>
+{
+    var user = await userManager.GetUserAsync(principal);
+    var language = user?.PreferredLanguage ?? ApplicationUser.DefaultPreferredLanguage;
+    var tasks = await getTasks.ExecuteAsync(
+        new EmployeeDataQuery(employeeId, name, language),
+        cancellationToken);
+    return Results.Ok(tasks);
+}).WithName("TasksByEmployee").RequireAuthorization();
 
 app.Run();
 

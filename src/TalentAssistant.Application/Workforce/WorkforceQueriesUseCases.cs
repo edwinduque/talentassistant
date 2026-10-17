@@ -23,3 +23,27 @@ public sealed class GetEmployeePresence(IHcmWorkforceSource workforceSource)
         return await workforceSource.GetPresenceAsync(query, cancellationToken);
     }
 }
+
+public sealed class GetEmployeeTimeOff(IHcmWorkforceSource workforceSource)
+{
+    public async Task<IReadOnlyList<HcmTimeOffRequest>> ExecuteAsync(
+        EmployeeDataQuery query,
+        CancellationToken cancellationToken = default)
+    {
+        ArgumentNullException.ThrowIfNull(query);
+
+        return await workforceSource.GetTimeOffAsync(query, cancellationToken);
+    }
+}
+
+public sealed class GetEmployeeTasks(IHcmWorkforceSource workforceSource)
+{
+    public async Task<IReadOnlyList<HcmTask>> ExecuteAsync(
+        EmployeeDataQuery query,
+        CancellationToken cancellationToken = default)
+    {
+        ArgumentNullException.ThrowIfNull(query);
+
+        return await workforceSource.GetTasksAsync(query, cancellationToken);
+    }
+}

@@ -15,6 +15,37 @@ public sealed record EmployeeSearchQuery(
 /// <summary>Presence snapshot for a single local date in a supported UI language.</summary>
 public sealed record PresenceQuery(DateOnly Date, string Language = "es");
 
+/// <summary>
+/// Employee-scoped data query: exact id, or case-insensitive name contains.
+/// With no filter the whole collection is returned; a name matching several
+/// employees returns the items of all of them instead of choosing silently.
+/// </summary>
+public sealed record EmployeeDataQuery(
+    string? EmployeeId = null,
+    string? Name = null,
+    string Language = "es");
+
+/// <summary>TimeOff request exactly as declared by the source (SPEC-008 §6).</summary>
+public sealed record HcmTimeOffRequest(
+    string Reference,
+    string EmployeeId,
+    string Type,
+    string Status,
+    DateOnly StartsOn,
+    DateOnly? EndsBefore,
+    string? Duration,
+    string? DurationUnit,
+    string? Summary);
+
+/// <summary>Task exactly as declared by the source; status is source data.</summary>
+public sealed record HcmTask(
+    string Reference,
+    string EmployeeId,
+    string Title,
+    string Status,
+    DateOnly? DueOn,
+    string? Summary);
+
 /// <summary>Directory entry; display names are data from the source.</summary>
 public sealed record HcmEmployeeDirectoryEntry(
     string Id,

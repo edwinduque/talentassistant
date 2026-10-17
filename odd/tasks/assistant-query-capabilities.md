@@ -48,7 +48,7 @@ Risk: item 2 (nuevos endpoints con autorizaciÃ³n de sesiÃ³n). T1 y T2 requieren 
 | ID | Specs | Ruta | Estado | Evidencia / commit |
 |---|---|---|---|---|
 | T1 | S1, S3 | Inline | Implementada; suite 36/36, endpoints con 401 sin sesiÃ³n, presencia en el home y poda verificada; verificador independiente 5/5 sin bloqueos | `46fadc0a25ec5ccfee17f5a98d6b2d7b1c756f77` |
-| T2 | S2, S3 | Inline | Planificada | TimeOff y tareas por empleado + fixtures + endpoints + pruebas |
+| T2 | S2, S3 | Inline | Implementada; suite 42/42 y smoke de las preguntas 4â€“6 en ES/EN con 401 sin sesiÃ³n | Commit pendiente en `feature-branch-chain` |
 | T3 | S4, S5 | Inline | Planificada | Depende de T1/T2 |
 
 Forecast inicial: aproximadamente 1200â€“1800 lÃ­neas authored entre capacidades, fixtures, pruebas, interfaz y documentaciÃ³n; archivos generados excluidos. Estrategia `feature-branch-chain`; el umbral de ~400 lÃ­neas es heurÃ­stico, no un lÃ­mite de tamaÃ±o.
@@ -77,10 +77,20 @@ Evidencia: build 0 warnings/0 errores; suite completa 36/36 (5 unit + 31 integra
 
 Risk: item 2 (nuevos endpoints que aÃ±aden superficie de autorizaciÃ³n de sesiÃ³n).
 
-### L5 — Verificación independiente de T1 (2026-10-17)
+### L5 ï¿½ Verificaciï¿½n independiente de T1 (2026-10-17)
 
-El verificador validó los cinco claims sin bloqueos: alcance del diff acotado (15 ficheros, sin cambios en Domain ni csproj, sin secretos); superficie de autorización en vivo (401 sin token en /employees y /presence, 200 con token); sin derivación de reglas (estáticos por fecha, fecha desconocida ? vacío, directorio derivado del catálogo compartido y nombres de demostración idénticos entre idiomas); comportamiento de API (8 empleados, name=juan ? Juan Pérez, presencia de hoy con los tres estados, fecha inválida ? 400 con texto exacto, insights sin regresión y employeeId sigue soportado en el contrato); y suite 36/36 desde el workspace.
+El verificador validï¿½ los cinco claims sin bloqueos: alcance del diff acotado (15 ficheros, sin cambios en Domain ni csproj, sin secretos); superficie de autorizaciï¿½n en vivo (401 sin token en /employees y /presence, 200 con token); sin derivaciï¿½n de reglas (estï¿½ticos por fecha, fecha desconocida ? vacï¿½o, directorio derivado del catï¿½logo compartido y nombres de demostraciï¿½n idï¿½nticos entre idiomas); comportamiento de API (8 empleados, name=juan ? Juan Pï¿½rez, presencia de hoy con los tres estados, fecha invï¿½lida ? 400 con texto exacto, insights sin regresiï¿½n y employeeId sigue soportado en el contrato); y suite 36/36 desde el workspace.
 
-Advisories registrados: el ancla estática `Today` congela la presencia de un proceso largo al cruzar medianoche (dentro del supuesto §8 del spec; candidato a mejora futura); la búsqueda no pliega acentos (la S1 solo exige insensibilidad a mayúsculas); y las respuestas HTTP de validación no tienen pruebas automatizadas (cubiertas por probes). Se difiere el test de oficina propuesto.
+Advisories registrados: el ancla estï¿½tica `Today` congela la presencia de un proceso largo al cruzar medianoche (dentro del supuesto ï¿½8 del spec; candidato a mejora futura); la bï¿½squeda no pliega acentos (la S1 solo exige insensibilidad a mayï¿½sculas); y las respuestas HTTP de validaciï¿½n no tienen pruebas automatizadas (cubiertas por probes). Se difiere el test de oficina propuesto.
 
-Risk: item 2 (nuevos endpoints con autorización de sesión) — verificado sin bloqueos.
+Risk: item 2 (nuevos endpoints con autorizaciï¿½n de sesiï¿½n) ï¿½ verificado sin bloqueos.
+
+### L6 — Implementación y verificación de T2 (2026-10-17)
+
+Texto exacto del usuario: “si” (autoriza T2).
+
+Implementado: `HcmTimeOffRequest` y `HcmTask` en Application con `EmployeeDataQuery` (id exacto o nombre insensible a mayúsculas; sin filtro ? toda la colección; varios nombres ? elementos de todos, nunca selección silenciosa); métodos `GetTimeOffAsync`/`GetTasksAsync` en el puerto workforce (mismo puerto por ADR-0010); fixtures bilingües propios con textos por clave: ausencias de Juan Pérez (Vacación/Aprobado, 3 días, fin 2026-10-16), Pedro Rojas (fin 2026-10-20), calamidad rechazada de Mauricio, y tareas con estados fuente `Pendiente/En curso/Completado` (Payroll, Onboarding, Archivo de Mauricio + Validar marcajes de Juan); endpoints `/timeoff` y `/tasks` con sesión y resolución de idioma desde el perfil; casos de uso registrados en DI.
+
+Evidencia: build 0/0; suite completa 42/42 (5 unit + 37 integración) con 6 pruebas de capacidad (preguntas 4–6 en español, filtro por id y sin filtro, nombre inexistente ? vacío, variante inglesa con referencias idénticas); corrección de aserciones del test (los estados de la fuente van con mayúscula inicial, coherente con Aprobado/Rechazado); smoke API en el contenedor: `/timeoff` y `/tasks` sin sesión ? 401; `?name=juan` ? Vacación/Aprobado/3 día laborable/final 2026-10-16; `?name=pedro` ? regreso 2026-10-20; `?name=mauricio` ? 3 tareas con Pendiente/En curso/Completado; variante `en` ? “Prepare the October payroll report”/“Pending”; perfil restaurado a `es`.
+
+Risk: item 2 (nuevos endpoints con autorización de sesión).

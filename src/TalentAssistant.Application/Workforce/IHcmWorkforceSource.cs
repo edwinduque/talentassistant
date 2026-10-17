@@ -13,4 +13,12 @@ public interface IHcmWorkforceSource
     Task<HcmPresenceSnapshot> GetPresenceAsync(
         PresenceQuery query,
         CancellationToken cancellationToken = default);
+
+    Task<IReadOnlyList<HcmTimeOffRequest>> GetTimeOffAsync(
+        EmployeeDataQuery query,
+        CancellationToken cancellationToken = default);
+
+    Task<IReadOnlyList<HcmTask>> GetTasksAsync(
+        EmployeeDataQuery query,
+        CancellationToken cancellationToken = default);
 }

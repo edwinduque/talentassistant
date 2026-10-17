@@ -32,6 +32,60 @@ public sealed class SyntheticWorkforceSource : IHcmWorkforceSource
             new("employee-demo-mauricio", "Mauricio Cardenas", "office-demo-madrid")
         ]);
 
+    // Presentation texts for the workforce capabilities (SPEC-008 §6).
+    private static readonly IReadOnlyDictionary<string, (string Es, string En)> WorkforceTexts =
+        new Dictionary<string, (string Es, string En)>(StringComparer.Ordinal)
+        {
+            ["type.vacation"] = ("Vacación", "Vacation"),
+            ["type.calamity"] = ("Calamidad", "Calamity"),
+            ["status.approved"] = ("Aprobado", "Approved"),
+            ["status.rejected"] = ("Rechazado", "Rejected"),
+            ["status.pending"] = ("Pendiente", "Pending"),
+            ["status.in-progress"] = ("En curso", "In progress"),
+            ["status.completed"] = ("Completado", "Completed"),
+            ["unit.workday"] = ("día laborable", "workday"),
+            ["summary.juan"] = (
+                "El HCM sintético informa una ausencia de vacaciones aprobada de Juan Pérez.",
+                "The synthetic HCM reports an approved vacation absence for Juan Pérez."),
+            ["summary.pedro"] = (
+                "El HCM sintético informa la ausencia de vacaciones en curso de Pedro Rojas.",
+                "The synthetic HCM reports an in-progress vacation absence for Pedro Rojas."),
+            ["summary.mauricio"] = (
+                "El HCM sintético informa una solicitud de calamidad rechazada de Mauricio Cardenas.",
+                "The synthetic HCM reports a rejected calamity request for Mauricio Cardenas."),
+            ["task.payroll"] = (
+                "Preparar el informe de nómina de octubre",
+                "Prepare the October payroll report"),
+            ["task.onboarding"] = (
+                "Revisar el alta de nuevas incorporaciones",
+                "Review new hire onboarding"),
+            ["task.archive"] = (
+                "Archivar la documentación del trimestre",
+                "Archive the quarterly documentation"),
+            ["task.timesheet"] = (
+                "Validar los marcajes de la semana",
+                "Validate the week's punch records"),
+            ["summary.task"] = (
+                "El HCM sintético asigna esta tarea a Mauricio Cardenas.",
+                "The synthetic HCM assigns this task to Mauricio Cardenas.")
+        };
+
+    private static readonly IReadOnlyDictionary<string, IReadOnlyList<HcmTimeOffRequest>>
+        TimeOffByLanguage = new Dictionary<string, IReadOnlyList<HcmTimeOffRequest>>(
+            StringComparer.Ordinal)
+        {
+            ["es"] = BuildTimeOff(SyntheticHcmAttendanceSource.Spanish),
+            ["en"] = BuildTimeOff(SyntheticHcmAttendanceSource.English)
+        };
+
+    private static readonly IReadOnlyDictionary<string, IReadOnlyList<HcmTask>>
+        TasksByLanguage = new Dictionary<string, IReadOnlyList<HcmTask>>(
+            StringComparer.Ordinal)
+        {
+            ["es"] = BuildTasks(SyntheticHcmAttendanceSource.Spanish),
+            ["en"] = BuildTasks(SyntheticHcmAttendanceSource.English)
+        };
+
     private static readonly DateOnly Today = DateOnly.FromDateTime(DateTime.Today);
 
     private static readonly IReadOnlyDictionary<DateOnly, IReadOnlyDictionary<string, string>>
@@ -176,4 +230,148 @@ public sealed class SyntheticWorkforceSource : IHcmWorkforceSource
 
         return references;
     }
+
+    private static string L(string language, string key)
+    {
+        if (!WorkforceTexts.TryGetValue(key, out var text))
+        {
+            throw new InvalidOperationException(
+                $"The workforce text '{key}' is missing from the synthetic catalog.");
+        }
+
+        return string.Equals(language, SyntheticHcmAttendanceSource.English, StringComparison.Ordinal)
+            ? text.En
+            : text.Es;
+    }
+
+    private static IReadOnlyList<HcmTimeOffRequest> BuildTimeOff(string language) =>
+        Array.AsReadOnly(
+        [
+            new HcmTimeOffRequest(
+                "timeoff-juan-2026-10",
+                "employee-demo-juan",
+                L(language, "type.vacation"),
+                L(language, "status.approved"),
+                new DateOnly(2026, 10, 13),
+                new DateOnly(2026, 10, 16),
+                "3",
+                L(language, "unit.workday"),
+                L(language, "summary.juan")),
+            new HcmTimeOffRequest(
+                "timeoff-pedro-2026-10",
+                "employee-demo-pedro",
+                L(language, "type.vacation"),
+                L(language, "status.approved"),
+                new DateOnly(2026, 10, 15),
+                new DateOnly(2026, 10, 20),
+                "4",
+                L(language, "unit.workday"),
+                L(language, "summary.pedro")),
+            new HcmTimeOffRequest(
+                "timeoff-mauricio-2026-10",
+                "employee-demo-mauricio",
+                L(language, "type.calamity"),
+                L(language, "status.rejected"),
+                new DateOnly(2026, 10, 16),
+                new DateOnly(2026, 10, 17),
+                "2",
+                L(language, "unit.workday"),
+                L(language, "summary.mauricio"))
+        ]);
+
+    private static IReadOnlyList<HcmTask> BuildTasks(string language) =>
+        Array.AsReadOnly(
+        [
+            new HcmTask(
+                "task-mauricio-payroll",
+                "employee-demo-mauricio",
+                L(language, "task.payroll"),
+                L(language, "status.pending"),
+                new DateOnly(2026, 10, 20),
+                L(language, "summary.task")),
+            new HcmTask(
+                "task-mauricio-onboarding",
+                "employee-demo-mauricio",
+                L(language, "task.onboarding"),
+                L(language, "status.in-progress"),
+                new DateOnly(2026, 10, 22),
+                null),
+            new HcmTask(
+                "task-mauricio-archive",
+                "employee-demo-mauricio",
+                L(language, "task.archive"),
+                L(language, "status.completed"),
+                new DateOnly(2026, 10, 10),
+                null),
+            new HcmTask(
+                "task-juan-timesheet",
+                "employee-demo-juan",
+                L(language, "task.timesheet"),
+                L(language, "status.pending"),
+                new DateOnly(2026, 10, 21),
+                null)
+        ]);
+
+    private static HashSet<string>? ResolveEmployeeIds(EmployeeDataQuery query, string language)
+    {
+        if (!string.IsNullOrWhiteSpace(query.EmployeeId))
+        {
+            return new HashSet<string>(StringComparer.OrdinalIgnoreCase)
+            {
+                query.EmployeeId
+            };
+        }
+
+        if (!string.IsNullOrWhiteSpace(query.Name))
+        {
+            return DirectoryFor(language)
+                .Where(employee =>
+                    employee.DisplayName.Contains(query.Name, StringComparison.OrdinalIgnoreCase))
+                .Select(employee => employee.Id)
+                .ToHashSet(StringComparer.OrdinalIgnoreCase);
+        }
+
+        // No filter: the whole collection (no silent selection).
+        return null;
+    }
+
+    public Task<IReadOnlyList<HcmTimeOffRequest>> GetTimeOffAsync(
+        EmployeeDataQuery query,
+        CancellationToken cancellationToken = default)
+    {
+        ArgumentNullException.ThrowIfNull(query);
+        cancellationToken.ThrowIfCancellationRequested();
+
+        var employeeIds = ResolveEmployeeIds(query, query.Language);
+        var requests = TimeOffFor(query.Language)
+            .Where(request => employeeIds is null || employeeIds.Contains(request.EmployeeId))
+            .ToArray();
+
+        return Task.FromResult<IReadOnlyList<HcmTimeOffRequest>>(requests);
+    }
+
+    public Task<IReadOnlyList<HcmTask>> GetTasksAsync(
+        EmployeeDataQuery query,
+        CancellationToken cancellationToken = default)
+    {
+        ArgumentNullException.ThrowIfNull(query);
+        cancellationToken.ThrowIfCancellationRequested();
+
+        var employeeIds = ResolveEmployeeIds(query, query.Language);
+        var tasks = TasksFor(query.Language)
+            .Where(task => employeeIds is null || employeeIds.Contains(task.EmployeeId))
+            .ToArray();
+
+        return Task.FromResult<IReadOnlyList<HcmTask>>(tasks);
+    }
+
+    private static IReadOnlyList<HcmTimeOffRequest> TimeOffFor(string language) =>
+        TimeOffByLanguage.TryGetValue(language, out var requests)
+            ? requests
+            : TimeOffByLanguage[SyntheticHcmAttendanceSource.Spanish];
+
+    private static IReadOnlyList<HcmTask> TasksFor(string language) =>
+        TasksByLanguage.TryGetValue(language, out var tasks)
+            ? tasks
+            : TasksByLanguage[SyntheticHcmAttendanceSource.Spanish];
 }
