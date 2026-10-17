@@ -39,7 +39,7 @@ Risk: item 1 (cambio del formato de payload persistido con bump de versión, ree
 
 | ID | Specs | Ruta | Estado | Evidencia / commit |
 |---|---|---|---|---|
-| T1 | S1, S2, S3 | Inline | Implementada; suite 30/30, resemilla v2 y smoke ES/EN por perfil en verde | Commit pendiente en `feature-branch-chain` |
+| T1 | S1, S2, S3 | Inline | Implementada; suite 30/30, resemilla v2 y smoke ES/EN por perfil; verificador independiente 5/5 claims sin bloqueos | `beef19547076f8006c511fb1ec7cb0fc82b69614` |
 | T2 | S4 | Inline | Planificada | Depende de T1 |
 
 Forecast inicial: aproximadamente 500–800 líneas authored entre catálogo, serializer, selección, pruebas y documentación; archivos generados excluidos. Estrategia `feature-branch-chain`; el umbral de ~400 líneas es heurístico, no un límite de tamaño.
@@ -67,3 +67,9 @@ Implementado: catálogo reconstruido con diccionario de textos por clave e idiom
 Pruebas: reescritura del test de serializer con round-trip bilingüe, identificadores idénticos entre variantes, fallback de idioma y control de versión; tests de fuente ahora explícitos en inglés más uno nuevo que documenta el español por defecto. Evidencia: build 0 warnings/0 errores; suite completa 30/30 (5 unit + 25 integración); resemilla de `talentassistant_dev` con `PayloadVersion = 2` y payload `{es,en}`; smoke contra la API con la misma sesión: perfil `es` → `Vacación`/`Aprobado`, cambio de perfil a `en` → `Vacation`/`Approved` sin re-login, ids idénticos, perfil restaurado a `es`.
 
 Risk: item 1 (formato de payload persistido con bump de versión, reemplazado por upsert idempotente).
+
+### L5 — Verificación independiente de T1 (2026-10-17)
+
+El verificador validó los cinco claims sin bloqueos en su propio MySQL desechable (el stack del usuario nunca se tocó): alcance del diff acotado (11 ficheros, sin Web/migraciones/Dominio); payload v2 con `{es,en}` leído en vivo; paridad bilingüe verificada a través de la fuente MySQL real con un recorrido completo del árbol JSON (47 diferencias, todas en superficies de texto permitidas, ids/dates/zonas byte-idénticos, cambio de perfil con el mismo token sin re-login, 401/400/500 controlados); semilla doble byte-idéntica (SHA2 del payload y del hash sin cambios, 1 fila); suite 30/30 desde el workspace; y sonda extra: `PayloadVersion=99` → 503 controlado (restaurado en su scratch).
+
+Advisories registrados: (1) existía una fila v1 residual en `talentassistant_tests.SyntheticAttendanceDatasets` de ejecuciones anteriores — eliminada por el padre para cumplir S4 (base sin semilla, ahora 0 filas); (2) la selección de idioma de la fuente MySQL no tiene prueba en suite (cubierta por el smoke y el probe vivo); (3) el atajo `--no-build` de suite requiere `bin/` preexistentes. Se difieren las pruebas de regresión propuestas (forma cruda `{es,en}` y doble semilla) para no añadir dependencia de BD a más pruebas sin decisión explícita.
