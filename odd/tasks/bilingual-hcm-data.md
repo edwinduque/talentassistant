@@ -40,7 +40,7 @@ Risk: item 1 (cambio del formato de payload persistido con bump de versión, ree
 | ID | Specs | Ruta | Estado | Evidencia / commit |
 |---|---|---|---|---|
 | T1 | S1, S2, S3 | Inline | Implementada; suite 30/30, resemilla v2 y smoke ES/EN por perfil; verificador independiente 5/5 claims sin bloqueos | `beef19547076f8006c511fb1ec7cb0fc82b69614` |
-| T2 | S4 | Inline | Planificada | Depende de T1 |
+| T2 | S4 | Inline | Implementada; catálogos enmendados y smoke de navegador ES/EN con contenido por idioma | `0e01e18994f967ab2e36413155fae2bb1bfb65b3` |
 
 Forecast inicial: aproximadamente 500–800 líneas authored entre catálogo, serializer, selección, pruebas y documentación; archivos generados excluidos. Estrategia `feature-branch-chain`; el umbral de ~400 líneas es heurístico, no un límite de tamaño.
 
@@ -73,3 +73,11 @@ Risk: item 1 (formato de payload persistido con bump de versión, reemplazado po
 El verificador validó los cinco claims sin bloqueos en su propio MySQL desechable (el stack del usuario nunca se tocó): alcance del diff acotado (11 ficheros, sin Web/migraciones/Dominio); payload v2 con `{es,en}` leído en vivo; paridad bilingüe verificada a través de la fuente MySQL real con un recorrido completo del árbol JSON (47 diferencias, todas en superficies de texto permitidas, ids/dates/zonas byte-idénticos, cambio de perfil con el mismo token sin re-login, 401/400/500 controlados); semilla doble byte-idéntica (SHA2 del payload y del hash sin cambios, 1 fila); suite 30/30 desde el workspace; y sonda extra: `PayloadVersion=99` → 503 controlado (restaurado en su scratch).
 
 Advisories registrados: (1) existía una fila v1 residual en `talentassistant_tests.SyntheticAttendanceDatasets` de ejecuciones anteriores — eliminada por el padre para cumplir S4 (base sin semilla, ahora 0 filas); (2) la selección de idioma de la fuente MySQL no tiene prueba en suite (cubierta por el smoke y el probe vivo); (3) el atajo `--no-build` de suite requiere `bin/` preexistentes. Se difieren las pruebas de regresión propuestas (forma cruda `{es,en}` y doble semilla) para no añadir dependencia de BD a más pruebas sin decisión explícita.
+
+### L6 — T2: documentación y smoke de navegador por idioma (2026-10-17)
+
+Texto exacto del usuario: “si” y “continua” (autoriza T2). El worker acotado aplicó los nueve artefactos documentales (FR-025, NFR-020, AC-023/AC-024, enmienda de AC-021, registro ADR-0009, nota en ADR-0008, enmiendas en SPEC-006, guía con re-sembrado y README); el padre corrigió además tres frases normativas que aún decían que los datos no se localizan (FR-024, §3 de SPEC-006 y la decisión propuesta de ADR-0008), dejando los registros de log históricos intactos.
+
+Evidencia del smoke de navegador contra el stack Compose reconstruido: con perfil `es`, las tarjetas muestran `Vacación`, `Aprobado`, `España · Madrid`, `Empleado sintético 001` y reglas/evidencias en español, sin un solo `Vacation`; al guardar `en` en el perfil, la misma consulta devuelve `Vacation`, `Approved`, `Spain · Madrid` y reglas inglesas sin re-login; ids idénticos en ambas variantes; restauración a `es`, logout al login en español y consola del navegador sin errores; artefactos de Playwright eliminados. Commits: `0e01e18994f967ab2e36413155fae2bb1bfb65b3` (documentación) y la presente evidencia.
+
+Risk: none (solo documentación pasiva; el smoke no modificó código).

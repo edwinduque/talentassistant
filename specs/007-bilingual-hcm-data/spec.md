@@ -1,7 +1,7 @@
 # SPEC-007 — Datos sintéticos del HCM bilingües
 
 - **Estado:** Propuesto para aprobación de planificación (2026-10-17).
-- **Implementación:** T1 implementada y verificada; T2 (documentación) en curso.
+- **Implementación:** T1 y T2 implementadas y verificadas; recorrido de navegador validado en español e inglés; sin comprobaciones pendientes.
 - **Requisitos relacionados (propuestos):** FR-025 y NFR-020. Relacionados existentes: FR-006, FR-019, FR-024; NFR-005, NFR-017.
 - **Criterios relacionados (propuestos):** AC-023 y AC-024 (amendan AC-021 de SPEC-006, ver §7).
 - **Decisión arquitectónica:** ADR-0009 propuesto.
@@ -96,7 +96,7 @@ SPEC-007 y ADR-0009 quedan propuestos a la espera de aprobación para planificac
 
 ## 11. Verificación de T2
 
-T2 documenta y enmienda los artefactos siguientes (recorrido de navegador en ES y EN pendiente de que lo ejecute y registre el padre):
+T2 documenta y enmienda los artefactos siguientes:
 
 - `docs/requirements/functional-requirements.md`: FR-025 con nota de aprobación (SPEC-007 y ADR-0009).
 - `docs/requirements/non-functional-requirements.md`: NFR-020 (Localización de datos).
@@ -106,3 +106,5 @@ T2 documenta y enmienda los artefactos siguientes (recorrido de navegador en ES 
 - `specs/006-user-profile-localization/spec.md`: «Fuera de alcance» y fila AC-021 enmendadas hacia SPEC-007/ADR-0009.
 - `docs/development/local-setup.md`: sección «Idioma y perfil» con el comportamiento por idioma y el paso de re-sembrado (`docker compose run --rm db-init`; Compose lo hace en `up --build`).
 - `README.md`: «Estado actual» con T1 implementada y verificada (suite 30/30).
+
+El recorrido de navegador end-to-end se ejecutó contra el stack Compose reconstruido y validó AC-023: con el perfil en español las tarjetas muestran `Vacación`, `Aprobado`, `España · Madrid`, `Empleado sintético 001` y reglas/evidencias en español, sin un solo `Vacation`; al guardar `en` en el perfil, la misma consulta devuelve `Vacation`, `Approved`, `Spain · Madrid` y las reglas inglesas sin re-login, con los identificadores idénticos entre variantes; la consola del navegador quedó sin errores y el perfil se restauró a español. Commits de T2: `0e01e18994f967ab2e36413155fae2bb1bfb65b3` (documentación y enmiendas) y el de esta evidencia.
