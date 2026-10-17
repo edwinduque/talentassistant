@@ -94,3 +94,11 @@ Implementado: `HcmTimeOffRequest` y `HcmTask` en Application con `EmployeeDataQu
 Evidencia: build 0/0; suite completa 42/42 (5 unit + 37 integración) con 6 pruebas de capacidad (preguntas 4–6 en español, filtro por id y sin filtro, nombre inexistente ? vacío, variante inglesa con referencias idénticas); corrección de aserciones del test (los estados de la fuente van con mayúscula inicial, coherente con Aprobado/Rechazado); smoke API en el contenedor: `/timeoff` y `/tasks` sin sesión ? 401; `?name=juan` ? Vacación/Aprobado/3 día laborable/final 2026-10-16; `?name=pedro` ? regreso 2026-10-20; `?name=mauricio` ? 3 tareas con Pendiente/En curso/Completado; variante `en` ? “Prepare the October payroll report”/“Pending”; perfil restaurado a `es`.
 
 Risk: item 2 (nuevos endpoints con autorización de sesión).
+
+### L7 — Verificación independiente de T2 (2026-10-17)
+
+El verificador validó los cinco claims sin bloqueos contra el stack en vivo y el workspace: alcance del diff acotado (7 ficheros, sin Domain/Web/csproj ni secretos); `/timeoff` y `/tasks` con RequireAuthorization y 401 en vivo sin token o con token falsa; fixtures literales sin aritmética ni calendarios y `/tasks` devuelve todos los estados sin filtrar; comportamiento exacto de las seis fronteras (id exacto, sin filtro ? 3+4, nombre múltiple ? todos, nombre desconocido ? vacío, mayúsculas, precedencia de employeeId) y variante EN con referencias idénticas; suite 42/42.
+
+Advisories: la búsqueda no pliega acentos (`?name=perez` ? 0; la pregunta literal del usuario no lleva tilde y el corpus de T3 debe usar el texto tal cual), los caminos 401 no tienen prueba automatizada (difieren como en L5) y `?name=` vacío significa sin filtro (por contrato). Perfil restaurado a `es` verificado; ningún secreto emitido; scratch eliminado.
+
+Risk: item 2 (nuevos endpoints con autorización de sesión) — verificado sin bloqueos.
