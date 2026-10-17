@@ -3,9 +3,11 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
 using TalentAssistant.Application.Attendance;
 using TalentAssistant.Application.Diagnostics;
+using TalentAssistant.Application.Workforce;
 using TalentAssistant.Infrastructure.Attendance;
 using TalentAssistant.Infrastructure.Authentication;
 using TalentAssistant.Infrastructure.Persistence;
+using TalentAssistant.Infrastructure.Workforce;
 
 namespace TalentAssistant.Infrastructure;
 
@@ -38,6 +40,8 @@ public static class DependencyInjection
         {
             services.AddSingleton<IHcmAttendanceSource, SyntheticHcmAttendanceSource>();
         }
+
+        services.AddSingleton<IHcmWorkforceSource, SyntheticWorkforceSource>();
 
         return services;
     }

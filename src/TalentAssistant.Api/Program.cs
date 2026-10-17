@@ -11,6 +11,7 @@ using TalentAssistant.Infrastructure;
 using TalentAssistant.Infrastructure.Authentication;
 using TalentAssistant.Infrastructure.Persistence;
 using TalentAssistant.Application.Diagnostics;
+using TalentAssistant.Application.Workforce;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -50,6 +51,8 @@ builder.Services.AddIdentityInfrastructure(
         seedUserName,
         builder.Configuration["Authentication:SeedPassword"]));
 builder.Services.AddScoped<GetAttendanceInsights>();
+builder.Services.AddScoped<SearchEmployees>();
+builder.Services.AddScoped<GetEmployeePresence>();
 
 var authenticationIssuer = builder.Configuration["Authentication:Issuer"] ?? "TalentAssistant";
 var authenticationAudience = builder.Configuration["Authentication:Audience"] ?? "TalentAssistant.Local";
@@ -315,6 +318,52 @@ app.MapGet("/attendance/insights", async (
             detail: "Attendance insights are temporarily unavailable.");
     }
 }).WithName("AttendanceInsights").RequireAuthorization();
+
+app.MapGet("/employees", async (
+    string? name,
+    string? officeId,
+    ClaimsPrincipal principal,
+    UserManager<ApplicationUser> userManager,
+    SearchEmployees searchEmployees,
+    CancellationToken cancellationToken) =>
+{
+    var user = await userManager.GetUserAsync(principal);
+    var language = user?.PreferredLanguage ?? ApplicationUser.DefaultPreferredLanguage;
+    var employees = await searchEmployees.ExecuteAsync(
+        new EmployeeSearchQuery(name, officeId, language),
+        cancellationToken);
+    return Results.Ok(employees);
+}).WithName("Employees").RequireAuthorization();
+
+app.MapGet("/presence", async (
+    string? date,
+    ClaimsPrincipal principal,
+    UserManager<ApplicationUser> userManager,
+    GetEmployeePresence getPresence,
+    CancellationToken cancellationToken) =>
+{
+    var parsedDate = DateOnly.FromDateTime(DateTime.Today);
+    if (!string.IsNullOrWhiteSpace(date)
+        && !DateOnly.TryParseExact(
+            date,
+            "yyyy-MM-dd",
+            CultureInfo.InvariantCulture,
+            DateTimeStyles.None,
+            out parsedDate))
+    {
+        return Results.Problem(
+            statusCode: StatusCodes.Status400BadRequest,
+            title: "Invalid date",
+            detail: "Provide date as yyyy-MM-dd.");
+    }
+
+    var user = await userManager.GetUserAsync(principal);
+    var language = user?.PreferredLanguage ?? ApplicationUser.DefaultPreferredLanguage;
+    var snapshot = await getPresence.ExecuteAsync(
+        new PresenceQuery(parsedDate, language),
+        cancellationToken);
+    return Results.Ok(snapshot);
+}).WithName("Presence").RequireAuthorization();
 
 app.Run();
 

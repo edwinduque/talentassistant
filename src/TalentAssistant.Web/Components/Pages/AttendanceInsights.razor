@@ -57,12 +57,6 @@
                         <p class="error-message" role="alert">@_toError</p>
                     }
                 </div>
-                <div class="filter-field">
-                    <label for="employee-id">@Local["EmployeeIdLabel"]</label>
-                    <InputText id="employee-id"
-                               class="filter-control"
-                               @bind-Value="_filters.EmployeeId" />
-                </div>
                 <div class="filter-action">
                     <button type="submit" disabled="@_isLoading">
                         @(_isLoading ? Local["LoadingButton"] : Local["SearchButton"])
@@ -281,8 +275,7 @@
         {
             var result = await BackendApi.GetAttendanceInsightsAsync(
                 from,
-                to,
-                _filters.EmployeeId);
+                to);
             if (result.IsSuccess)
             {
                 _insights = result.Insights;
@@ -327,7 +320,5 @@
         public DateTime? From { get; set; }
 
         public DateTime? To { get; set; }
-
-        public string? EmployeeId { get; set; }
     }
 }

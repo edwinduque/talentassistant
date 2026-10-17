@@ -26,6 +26,30 @@
         <p class="status-protocol">@Local["Protocol"]</p>
     </section>
 
+    <section class="status-card" aria-labelledby="presence-heading">
+        <div class="status-rail" aria-hidden="true"></div>
+        <div class="status-card-content">
+            <p class="eyebrow">@Local["PresenceEyebrow"]</p>
+            <h2 id="presence-heading">@Local["PresenceHeading"]</h2>
+            @if (presenceItems.Count > 0)
+            {
+                <ul class="presence-list">
+                    @foreach (var item in presenceItems)
+                    {
+                        <li>
+                            <span class="presence-name">@item.Employee.DisplayName</span>
+                            <span class="presence-state">@StateLabel(item.State)</span>
+                        </li>
+                    }
+                </ul>
+            }
+            else
+            {
+                <p role="status">@Local[presenceMessageKey]</p>
+            }
+        </div>
+    </section>
+
     <dl class="foundation-details">
         <div>
             <dt>@Local["RenderingLabel"]</dt>
@@ -44,11 +68,33 @@
 
 @code {
     private BackendHealthResult health = new(BackendHealthStatus.Checking);
+    private IReadOnlyList<PresenceEntryItem> presenceItems = [];
+    private string presenceMessageKey = "PresenceEmpty";
 
     protected override async Task OnInitializedAsync()
     {
         health = await BackendApi.GetHealthAsync();
+
+        var presence = await BackendApi.GetPresenceAsync(DateOnly.FromDateTime(DateTime.Today));
+        if (presence.Failure == WorkforceFailure.None)
+        {
+            presenceItems = presence.Items;
+        }
+        else
+        {
+            presenceMessageKey = "PresenceUnavailable";
+        }
     }
+
+    private string StateLabel(string state) =>
+        state switch
+        {
+            "working" => Local["StateWorking"],
+            "not-arrived" => Local["StateNotArrived"],
+            "vacation" => Local["StateVacation"],
+            "absent" => Local["StateAbsent"],
+            _ => state
+        };
 
     private static string HealthMessageKey(BackendHealthStatus status) =>
         status switch

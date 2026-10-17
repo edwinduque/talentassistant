@@ -69,4 +69,28 @@
   <data name="DataPolicyValue" xml:space="preserve">
     <value>Synthetic development data only</value>
   </data>
+  <data name="PresenceEyebrow" xml:space="preserve">
+    <value>Team status</value>
+  </data>
+  <data name="PresenceHeading" xml:space="preserve">
+    <value>Today's presence</value>
+  </data>
+  <data name="PresenceEmpty" xml:space="preserve">
+    <value>No presence data available for today.</value>
+  </data>
+  <data name="PresenceUnavailable" xml:space="preserve">
+    <value>Presence could not be loaded.</value>
+  </data>
+  <data name="StateWorking" xml:space="preserve">
+    <value>Working</value>
+  </data>
+  <data name="StateNotArrived" xml:space="preserve">
+    <value>Not arrived</value>
+  </data>
+  <data name="StateVacation" xml:space="preserve">
+    <value>On vacation</value>
+  </data>
+  <data name="StateAbsent" xml:space="preserve">
+    <value>Absent</value>
+  </data>
 </root>
