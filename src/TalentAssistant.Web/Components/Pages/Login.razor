@@ -19,6 +19,13 @@
             color: var(--ink);
         }
 
+        /* The global stylesheet has no box-sizing reset: scope border-box to the
+           login page so width:100% inputs include their padding and border. */
+        .login-page,
+        .login-page * {
+            box-sizing: border-box;
+        }
+
         /* Compact language pill, top right of the viewport. The native select is
            kept (styled with appearance:none) so mobile keeps the system picker. */
         .language-pill-wrap {
@@ -64,6 +71,13 @@
             font-size: 2rem;
             line-height: 1.15;
             font-weight: 750;
+        }
+
+        /* Blazor focuses the page heading after navigation; a non-interactive
+           heading must not draw a focus rectangle over the card. */
+        .login-heading:focus,
+        .login-heading:focus-visible {
+            outline: none;
         }
 
         .login-intro {
