@@ -220,3 +220,28 @@ dotnet ef migrations add <NombreMigracion> --project tests/TalentAssistant.Integ
 ```
 
 Para detener únicamente MySQL en el perfil host, usa `docker compose stop mysql`; para volver a iniciarlo, `docker compose start mysql`. El flujo completo de persistencia y reset del perfil Compose está en la sección anterior.
+
+## Consultas del asistente (API)
+
+Desde SPEC-008, la API expone cuatro endpoints de consulta —las herramientas que el futuro asistente llamará— que exigen sesión (sin token válido responden HTTP 401) y responden en el idioma del perfil del usuario autenticado:
+
+| Endpoint | Parámetros | Contenido |
+|---|---|---|
+| `GET /employees` | `name`, `office` | Directorio; búsqueda por nombre insensible a mayúsculas (sin plegado de acentos) y por oficina. |
+| `GET /presence` | `date` (`yyyy-MM-dd`, por defecto hoy) | Estado de presencia informado por la fuente para la fecha; fecha inválida → HTTP 400, otras fechas → lista vacía. |
+| `GET /timeoff` | `employeeId` o `name` | Solicitudes de TimeOff del empleado; sin filtro → toda la colección; varios nombres coincidentes → elementos de todos. |
+| `GET /tasks` | `employeeId` o `name` | Tareas del empleado; misma semántica de filtro que `/timeoff`. |
+
+Obtén un token con `POST /auth/login` (usuario y contraseña sembrados en tu `.env`) y úsalo como bearer:
+
+```bash
+# 1. Login: guarda el "token" del cuerpo de la respuesta
+curl -s -X POST http://127.0.0.1:5101/auth/login \
+  -H "Content-Type: application/json" \
+  -d '{"username":"demo@talentassistant.local","password":"<TU_PASSWORD>"}'
+
+# 2. Consulta con el token (sustituye <TOKEN> por el valor recibido)
+curl -s http://127.0.0.1:5101/presence -H "Authorization: Bearer <TOKEN>"
+```
+
+Sustituye `<TU_PASSWORD>` por la contraseña local de tu `.env`; nunca la versiones ni la compartas. Los valores de duración, estado y fechas los informa la fuente sintética: Talent Assistant no calcula nada.

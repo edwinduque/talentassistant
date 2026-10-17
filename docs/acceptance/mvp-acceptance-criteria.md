@@ -102,6 +102,22 @@ Con el usuario en español, la API devuelve reglas, evidencias, tipos y estados 
 
 La semilla es idempotente en la versión 2, un payload de versión desconocida sigue fallando de forma controlada, la suite permanece verde y `talentassistant_tests` no recibe la semilla.
 
+## AC-025 — Presencia por fecha (propuesto en SPEC-008)
+
+La consulta de presencia para una fecha devuelve cada empleado con el estado informado por la fuente; «trabajando», «no ha llegado» y «de vacaciones» responden las preguntas 1–3 con los fixtures. La presencia de hoy se ancla a la fecha local más dos días; para cualquier otra fecha la respuesta es vacía, nunca inventada.
+
+## AC-026 — TimeOff por empleado (propuesto en SPEC-008)
+
+La búsqueda por nombre localiza a Juan Pérez y Pedro Rojas; sus respuestas de TimeOff informan días y fecha de regreso tal como los declara la fuente, sin cálculos de Talent Assistant. El filtro por identificador o nombre devuelve la colección completa sin filtro y, ante varios nombres coincidentes, los elementos de todos, sin selección silenciosa.
+
+## AC-027 — Tareas por empleado (propuesto en SPEC-008)
+
+Las tareas de Mauricio Cardenas se consultan por nombre y la fuente determina qué significa «pendiente»; FR-004 queda implementado. Los estados de tarea se presentan tal como los declara la fuente.
+
+## AC-028 — Banco de preguntas y verificación (propuesto en SPEC-008)
+
+El banco de preguntas automatizado cubre las seis preguntas literales, la suite completa permanece verde, el home muestra «Presencia de hoy», la página de asistencia ya no pide id manual y todo el contenido nuevo existe en español e inglés. El banco no depende de IA ni de red externa y sirve de referencia para la evaluación futura del asistente.
+
 ## Condiciones generales
 
 Los criterios deberán verificarse con pruebas automatizadas cuando sea razonable y con pruebas de aceptación documentadas cuando la automatización no aporte suficiente valor.
@@ -137,5 +153,9 @@ Los identificadores de esta tabla pertenecen al catálogo general y no se reutil
 | AC-021 | FR-024, NFR-005, NFR-017, NFR-019 | La localización es solo de interfaz: datos y contratos intactos, migración aditiva y sin servicios externos ni datos reales. Enmienda SPEC-007: los textos de presentación se sirven por idioma. |
 | AC-023 | FR-025, NFR-020 | Contenido sintético por idioma del usuario autenticado con identificadores idénticos; SPEC-007. |
 | AC-024 | FR-025, NFR-006, NFR-017 | Semilla bilingüe idempotente en versión 2 y fallo controlado ante versión desconocida; SPEC-007. |
+| AC-025 | FR-026, FR-006 | Presencia por fecha con estados informados por la fuente; SPEC-008. |
+| AC-026 | FR-027, FR-008 | TimeOff por empleado con valores literales de la fuente, sin cálculos; SPEC-008. |
+| AC-027 | FR-004, FR-027 | Tareas por empleado; FR-004 queda activo; SPEC-008. |
+| AC-028 | FR-011, NFR-015 | Banco de las seis preguntas literales como pruebas automatizadas; SPEC-008. |
 
 Los AC-003 a AC-006 no se consideran satisfechos por la estructura arquitectónica creada en SPEC-001. Cada caso de asistencia necesita requisitos, pruebas y verificación propios; Tasks no forma parte de la primera vertical. NFR-011 no tiene todavía un umbral medible y deberá concretarse cuando se definan dataset y entorno. NFR-012 se verifica en cada especificación de interfaz; estos criterios no inventan un umbral cuantitativo de contraste.

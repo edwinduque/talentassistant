@@ -1,7 +1,7 @@
 # SPEC-008 — Capacidades de consulta del asistente y su corpus de preguntas
 
-- **Estado:** Propuesto para aprobación de planificación (2026-10-17).
-- **Implementación:** Ninguna; todavía no hay código asociado.
+- **Estado:** Aprobado; implementado y verificado (2026-10-17).
+- **Implementación:** T1 y T2 implementadas y verificadas; T3 (banco de escenarios y documentación) implementado; pendiente E2E final y verificación independiente.
 - **Requisitos relacionados (propuestos):** FR-026 y FR-027. Relacionados existentes: FR-002, FR-003, FR-004, FR-006, FR-010, FR-011, FR-025.
 - **Criterios relacionados (propuestos):** AC-025, AC-026, AC-027 y AC-028.
 - **Decisión arquitectónica:** ADR-0010 propuesto.
@@ -107,3 +107,25 @@ Supuestos explícitos para aprobación: la demostración usa nombres propios fic
 ## 10. Estado y aprobación
 
 SPEC-008 y ADR-0010 quedan propuestos a la espera de aprobación para planificación; la aprobación no autoriza cambios de código hasta autorizar tareas.
+
+## 11. Verificación de T3
+
+T3 documenta y reancla la narrativa de producto; sus artefactos:
+
+- `docs/requirements/functional-requirements.md`: FR-026 y FR-027 añadidos con su aprobación vía SPEC-008/ADR-0010 y FR-004 activo.
+- `docs/acceptance/mvp-acceptance-criteria.md`: AC-025..AC-028 con sus secciones y filas de trazabilidad (AC-025 → FR-026/FR-006; AC-026 → FR-027/FR-008; AC-027 → FR-004/FR-027; AC-028 → FR-011/NFR-015).
+- `docs/decisions/decision-register.md`: ADR-0010 registrado como aceptado e implementado con limitaciones documentadas.
+- `docs/product/vision.md`: sección 7 con el estado respecto a la visión; el norte conversacional permanece.
+- `README.md`: estado actual reanclado a SPEC-008 con el banco y el resultado de la suite.
+- `docs/development/local-setup.md`: sección «Consultas del asistente (API)» con los cuatro endpoints, obtención de token y ejemplo de curl.
+
+Banco de escenarios (S4): `tests/TalentAssistant.IntegrationTests/Workforce/AssistantScenarioBenchTests.cs` automatiza las seis preguntas literales del usuario (§4) como pruebas deterministas sobre los fixtures, sin IA ni red externa:
+
+1. «Dime cuales empleados ya estan trabajando.»
+2. «Dime que empleados no han llegado aun.»
+3. «Dime que empleados estan de vacaciones.»
+4. «Dime cuantos dias de vacaciones tiene Juan Perez.»
+5. «Dime cuando regresa Pedro Rojas.»
+6. «Dime que tareas tiene pendiente Mauricio Cardenas.»
+
+El recorrido de navegador E2E final y la verificación independiente quedan pendientes y los registra el orquestador en el log ODD; esta sección no los declara completados.

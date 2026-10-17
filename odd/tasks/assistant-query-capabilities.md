@@ -49,7 +49,7 @@ Risk: item 2 (nuevos endpoints con autorizaciÃ³n de sesiÃ³n). T1 y T2 requieren 
 |---|---|---|---|---|
 | T1 | S1, S3 | Inline | Implementada; suite 36/36, endpoints con 401 sin sesiÃ³n, presencia en el home y poda verificada; verificador independiente 5/5 sin bloqueos | `46fadc0a25ec5ccfee17f5a98d6b2d7b1c756f77` |
 | T2 | S2, S3 | Inline | Implementada; suite 42/42 y smoke de las preguntas 4â€“6 en ES/EN con 401 sin sesiÃ³n | Commit pendiente en `feature-branch-chain` |
-| T3 | S4, S5 | Inline | Planificada | Depende de T1/T2 |
+| T3 | S4, S5 | Inline | Implementada; banco de 6 preguntas (43/43 integraciÃ³n), documentaciÃ³n reanclada y E2E ES/EN en verde | Commit pendiente en `feature-branch-chain` |
 
 Forecast inicial: aproximadamente 1200â€“1800 lÃ­neas authored entre capacidades, fixtures, pruebas, interfaz y documentaciÃ³n; archivos generados excluidos. Estrategia `feature-branch-chain`; el umbral de ~400 lÃ­neas es heurÃ­stico, no un lÃ­mite de tamaÃ±o.
 
@@ -85,20 +85,20 @@ Advisories registrados: el ancla estï¿½tica `Today` congela la presencia de un p
 
 Risk: item 2 (nuevos endpoints con autorizaciï¿½n de sesiï¿½n) ï¿½ verificado sin bloqueos.
 
-### L6 — Implementación y verificación de T2 (2026-10-17)
+### L6 ï¿½ Implementaciï¿½n y verificaciï¿½n de T2 (2026-10-17)
 
-Texto exacto del usuario: “si” (autoriza T2).
+Texto exacto del usuario: ï¿½siï¿½ (autoriza T2).
 
-Implementado: `HcmTimeOffRequest` y `HcmTask` en Application con `EmployeeDataQuery` (id exacto o nombre insensible a mayúsculas; sin filtro ? toda la colección; varios nombres ? elementos de todos, nunca selección silenciosa); métodos `GetTimeOffAsync`/`GetTasksAsync` en el puerto workforce (mismo puerto por ADR-0010); fixtures bilingües propios con textos por clave: ausencias de Juan Pérez (Vacación/Aprobado, 3 días, fin 2026-10-16), Pedro Rojas (fin 2026-10-20), calamidad rechazada de Mauricio, y tareas con estados fuente `Pendiente/En curso/Completado` (Payroll, Onboarding, Archivo de Mauricio + Validar marcajes de Juan); endpoints `/timeoff` y `/tasks` con sesión y resolución de idioma desde el perfil; casos de uso registrados en DI.
+Implementado: `HcmTimeOffRequest` y `HcmTask` en Application con `EmployeeDataQuery` (id exacto o nombre insensible a mayï¿½sculas; sin filtro ? toda la colecciï¿½n; varios nombres ? elementos de todos, nunca selecciï¿½n silenciosa); mï¿½todos `GetTimeOffAsync`/`GetTasksAsync` en el puerto workforce (mismo puerto por ADR-0010); fixtures bilingï¿½es propios con textos por clave: ausencias de Juan Pï¿½rez (Vacaciï¿½n/Aprobado, 3 dï¿½as, fin 2026-10-16), Pedro Rojas (fin 2026-10-20), calamidad rechazada de Mauricio, y tareas con estados fuente `Pendiente/En curso/Completado` (Payroll, Onboarding, Archivo de Mauricio + Validar marcajes de Juan); endpoints `/timeoff` y `/tasks` con sesiï¿½n y resoluciï¿½n de idioma desde el perfil; casos de uso registrados en DI.
 
-Evidencia: build 0/0; suite completa 42/42 (5 unit + 37 integración) con 6 pruebas de capacidad (preguntas 4–6 en español, filtro por id y sin filtro, nombre inexistente ? vacío, variante inglesa con referencias idénticas); corrección de aserciones del test (los estados de la fuente van con mayúscula inicial, coherente con Aprobado/Rechazado); smoke API en el contenedor: `/timeoff` y `/tasks` sin sesión ? 401; `?name=juan` ? Vacación/Aprobado/3 día laborable/final 2026-10-16; `?name=pedro` ? regreso 2026-10-20; `?name=mauricio` ? 3 tareas con Pendiente/En curso/Completado; variante `en` ? “Prepare the October payroll report”/“Pending”; perfil restaurado a `es`.
+Evidencia: build 0/0; suite completa 42/42 (5 unit + 37 integraciï¿½n) con 6 pruebas de capacidad (preguntas 4ï¿½6 en espaï¿½ol, filtro por id y sin filtro, nombre inexistente ? vacï¿½o, variante inglesa con referencias idï¿½nticas); correcciï¿½n de aserciones del test (los estados de la fuente van con mayï¿½scula inicial, coherente con Aprobado/Rechazado); smoke API en el contenedor: `/timeoff` y `/tasks` sin sesiï¿½n ? 401; `?name=juan` ? Vacaciï¿½n/Aprobado/3 dï¿½a laborable/final 2026-10-16; `?name=pedro` ? regreso 2026-10-20; `?name=mauricio` ? 3 tareas con Pendiente/En curso/Completado; variante `en` ? ï¿½Prepare the October payroll reportï¿½/ï¿½Pendingï¿½; perfil restaurado a `es`.
 
-Risk: item 2 (nuevos endpoints con autorización de sesión).
+Risk: item 2 (nuevos endpoints con autorizaciï¿½n de sesiï¿½n).
 
-### L7 — Verificación independiente de T2 (2026-10-17)
+### L7 ï¿½ Verificaciï¿½n independiente de T2 (2026-10-17)
 
-El verificador validó los cinco claims sin bloqueos contra el stack en vivo y el workspace: alcance del diff acotado (7 ficheros, sin Domain/Web/csproj ni secretos); `/timeoff` y `/tasks` con RequireAuthorization y 401 en vivo sin token o con token falsa; fixtures literales sin aritmética ni calendarios y `/tasks` devuelve todos los estados sin filtrar; comportamiento exacto de las seis fronteras (id exacto, sin filtro ? 3+4, nombre múltiple ? todos, nombre desconocido ? vacío, mayúsculas, precedencia de employeeId) y variante EN con referencias idénticas; suite 42/42.
+El verificador validï¿½ los cinco claims sin bloqueos contra el stack en vivo y el workspace: alcance del diff acotado (7 ficheros, sin Domain/Web/csproj ni secretos); `/timeoff` y `/tasks` con RequireAuthorization y 401 en vivo sin token o con token falsa; fixtures literales sin aritmï¿½tica ni calendarios y `/tasks` devuelve todos los estados sin filtrar; comportamiento exacto de las seis fronteras (id exacto, sin filtro ? 3+4, nombre mï¿½ltiple ? todos, nombre desconocido ? vacï¿½o, mayï¿½sculas, precedencia de employeeId) y variante EN con referencias idï¿½nticas; suite 42/42.
 
-Advisories: la búsqueda no pliega acentos (`?name=perez` ? 0; la pregunta literal del usuario no lleva tilde y el corpus de T3 debe usar el texto tal cual), los caminos 401 no tienen prueba automatizada (difieren como en L5) y `?name=` vacío significa sin filtro (por contrato). Perfil restaurado a `es` verificado; ningún secreto emitido; scratch eliminado.
+Advisories: la bï¿½squeda no pliega acentos (`?name=perez` ? 0; la pregunta literal del usuario no lleva tilde y el corpus de T3 debe usar el texto tal cual), los caminos 401 no tienen prueba automatizada (difieren como en L5) y `?name=` vacï¿½o significa sin filtro (por contrato). Perfil restaurado a `es` verificado; ningï¿½n secreto emitido; scratch eliminado.
 
-Risk: item 2 (nuevos endpoints con autorización de sesión) — verificado sin bloqueos.
+Risk: item 2 (nuevos endpoints con autorizaciï¿½n de sesiï¿½n) ï¿½ verificado sin bloqueos.

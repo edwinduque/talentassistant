@@ -33,6 +33,8 @@ Estado inicial: Propuesto. La aprobación del alcance convierte los requisitos s
 | FR-023 | El usuario podrá gestionar su perfil local: nombre visible, idioma preferido y contraseña, con la contraseña actual exigida para el cambio. | Must |
 | FR-024 | La interfaz se mostrará por completo en el idioma seleccionado (español o inglés), incluido el login sin sesión; los problem details de la API no se localizan. El localizado de los datos del HCM pasó a FR-025 (SPEC-007). | Must |
 | FR-025 | El contenido sintético del HCM se servirá en el idioma preferido del usuario autenticado (español o inglés), manteniendo identificadores, fechas y valores compartidos. | Must |
+| FR-026 | El usuario podrá consultar el directorio de empleados por nombre u oficina y el estado de presencia de cada empleado para una fecha; esos estados los informará el HCM y Talent Assistant no los derivará. | Must |
+| FR-027 | El usuario podrá consultar las solicitudes de TimeOff y las tareas declaradas por el HCM para un empleado, por identificador o por nombre. | Must |
 
 FR-020 fue aprobado mediante SPEC-004 y está implementado y verificado (commits en `main`); el perfil local Compose sirve los fixtures desde MySQL.
 
@@ -41,6 +43,8 @@ FR-021 y FR-022 quedan aprobados para planificación mediante SPEC-005 y ADR-000
 FR-023 y FR-024 fueron aprobados mediante SPEC-006 y ADR-0008 y están implementados y verificados en T1/T2.
 
 FR-025 fue aprobado mediante SPEC-007 y ADR-0009 y está implementado y verificado en T1.
+
+FR-026 y FR-027 fueron aprobados mediante SPEC-008 y ADR-0010 y están implementados y verificados en T1/T2; FR-004 queda activo mediante esta especificación.
 
 ## Reglas de negocio iniciales
 

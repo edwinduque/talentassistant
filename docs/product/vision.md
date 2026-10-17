@@ -58,3 +58,9 @@ Para las fases de IA:
 - Tasa de ejecución correcta de tareas de varios pasos.
 
 Los objetivos numéricos deberán definirse antes de cada evaluación; no se considerarán cumplidos por impresión subjetiva.
+
+## 7. Estado respecto a la visión (2026-10-17)
+
+El norte no cambia: Talent Assistant debe convertirse en un asistente conversacional que responda preguntas en lenguaje natural sobre los datos del HCM. La fase de LLM y agentes sigue requiriendo su propia especificación aprobada y la decisión de proveedor; ninguna de las dos existe todavía.
+
+Hoy están entregados el vertical de revisión de evidencias y la plataforma local. SPEC-008 añade las capacidades de consulta que serán las herramientas del futuro asistente —directorio, presencia, TimeOff y tareas— y hoy responden por API las seis preguntas de referencia del usuario, con un banco automatizado de esas mismas preguntas que sirve de evaluación antes y después de incorporar IA.

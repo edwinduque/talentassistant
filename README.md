@@ -74,3 +74,5 @@ De [SPEC-005](specs/005-local-authentication/spec.md) (autenticación local), la
 De [SPEC-006](specs/006-user-profile-localization/spec.md) (perfil de usuario y localización de la interfaz), las tareas T1/T2 están implementadas y verificadas: integración 23/23 y recursos ES/EN con paridad comprobada; la salvedad de la suite completa (bloqueo ambiental de Application Control) queda documentada en el registro ODD. T3 aporta esta documentación.
 
 De [SPEC-007](specs/007-bilingual-hcm-data/spec.md) (datos sintéticos del HCM bilingües), T1 está implementada y verificada: el contenido se sirve en el idioma del usuario autenticado (identificadores idénticos en ambos idiomas) y la suite completa pasa 30/30.
+
+De [SPEC-008](specs/008-assistant-query-capabilities/spec.md) (capacidades de consulta del asistente: directorio, presencia, TimeOff y tareas), T1/T2 están implementadas y verificadas con su banco de las seis preguntas de referencia; la suite de integración pasa 43/43, con un único fallo unitario ambiental documentado en el registro ODD.
