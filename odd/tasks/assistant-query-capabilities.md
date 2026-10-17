@@ -102,3 +102,15 @@ El verificador valid� los cinco claims sin bloqueos contra el stack en vivo y 
 Advisories: la b�squeda no pliega acentos (`?name=perez` ? 0; la pregunta literal del usuario no lleva tilde y el corpus de T3 debe usar el texto tal cual), los caminos 401 no tienen prueba automatizada (difieren como en L5) y `?name=` vac�o significa sin filtro (por contrato). Perfil restaurado a `es` verificado; ning�n secreto emitido; scratch eliminado.
 
 Risk: item 2 (nuevos endpoints con autorizaci�n de sesi�n) � verificado sin bloqueos.
+
+### L8 — T3: banco de escenarios, documentación reanclada y E2E final (2026-10-17)
+
+Texto exacto del usuario: “si” (autoriza T3).
+
+El banco `AssistantScenarioBenchTests` congela las seis preguntas literales del usuario como pruebas (comentario de trazabilidad + consulta de herramienta + respuesta esperada sobre fixtures, sin IA ni red); el worker acotado reancló la documentación al norte conversacional: FR-026/FR-027 con FR-004 activo, AC-025..AC-028 con trazabilidad, ADR-0010 en el registro, sección «Estado respecto a la visión» (norte intacto; el chat espera especificación y proveedor aprobados), README, sección «Consultas del asistente (API)» en la guía y estado de la spec.
+
+Evidencia: suite integración 43/43 (los 6 escenarios incluidos). UnitTests 4/5 por el bloqueo ambiental conocido de Application Control (0x800711C7, clase ya probada como ambiental en L5; reintento idéntico) — el spot check del padre confirma 0 referencias de Domain/Application hacia Infrastructure/Web/Api/Identity, que es lo que ese test verifica. E2E de navegador: panel «Presencia de hoy» en español con los tres estados y nombres de demostración; cambio de perfil a inglés → «Today's presence» con Working/Not arrived/On vacation; restauración a español, logout y login en español; consola sin errores; artefactos de Playwright eliminados.
+
+Commits: `a9ee00d96d61497c2476f3bb8a0d019c0f4c89f9` (banco + documentación) y la presente evidencia.
+
+Risk: none (solo documentación y pruebas; sin cambio de comportamiento).
