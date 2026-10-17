@@ -119,7 +119,21 @@ app.MapPost("/session/login", async (
         AuthenticationMessageHandler.AccessTokenClaimType,
         login.AccessToken));
     identity.AddClaim(new Claim("expires", login.ExpiresAtUtc.ToString("O")));
-    await httpContext.SignInAsync(new ClaimsPrincipal(identity));
+
+    // "Keep me signed in": a persistent 30-day cookie when the user opts in,
+    // otherwise a browser-session cookie (the previous behaviour).
+    var rememberMe = string.Equals(
+        form["rememberMe"].ToString(),
+        "true",
+        StringComparison.OrdinalIgnoreCase);
+    await httpContext.SignInAsync(
+        new ClaimsPrincipal(identity),
+        new AuthenticationProperties
+        {
+            IsPersistent = rememberMe,
+            ExpiresUtc = rememberMe ? DateTimeOffset.UtcNow.AddDays(30) : null,
+            AllowRefresh = rememberMe
+        });
 
     // The session inherits the preferred language saved in the user profile.
     if (SessionCulture.IsSupported(login.PreferredLanguage))

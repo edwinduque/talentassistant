@@ -16,7 +16,8 @@ Cerrar el desajuste de idiomas actual (página de login y algunos textos en espa
 
 ### Incluido
 
-- Selector de idioma (español/inglés) en la página de login, efectivo de inmediato y persistente mediante cookie de cultura, incluso sin sesión.
+- Selector de idioma (español/inglés) en la página de login, efectivo de inmediato y persistente mediante cookie de cultura, incluso sin sesión. Aprobado como píldora compacta en la esquina superior derecha con autoenvío.
+- Rediseño de la página de login al estilo del mockup del usuario (tarjeta de bienvenida, inputs redondeados con fondo suave, mostrador de contraseña y botón de acento) y opción «Permanecer conectado» que extiende la cookie de sesión a 30 días; sin marcar, la cookie sigue siendo de sesión del navegador.
 - Página de perfil para usuarios autenticados: nombre visible, idioma preferido y cambio de contraseña (con la contraseña actual).
 - Localización de TODA la interfaz: login, layout (navegación, usuario, cierre de sesión), home, asistencia, páginas de error y reconexión. Dos idiomas: español (por defecto) e inglés.
 - Migración aditiva en las tablas de Identity para el nombre visible y el idioma preferido del usuario.
@@ -74,8 +75,9 @@ Cerrar el desajuste de idiomas actual (página de login y algunos textos en espa
 | AC-019 | La persona sin sesión puede cambiar el idioma del login entre español e inglés; la elección se aplica de inmediato y persiste tras recargar. | Prueba de navegador en ambos idiomas y sondeo de la cookie de cultura. |
 | AC-020 | El usuario autenticado gestiona su perfil: el nombre visible aparece en el layout, el idioma elegido localiza home, asistencia y textos de navegación/error, y el cambio de contraseña exige la actual y respeta la política. | Pruebas de API de perfil/contraseña y recorrido de navegador en ambos idiomas. |
 | AC-021 | La localización no altera datos ni contratos: el dataset sintético y los endpoints de asistencia responden igual en cualquier idioma, la migración es aditiva, la suite permanece verde y no se introducen servicios externos ni datos reales. | Suite completa, comparación de respuestas de la API y revisión de la migración. |
+| AC-022 | El login se presenta como el mockup aprobado: píldora de idioma autoenviante, tarjeta de bienvenida, inputs suaves, mostrador de contraseña y botón de acento. «Permanecer conectado» extiende la cookie a 30 días y sin él la cookie es de sesión; el enlace de recuperación no existe (fuera de alcance). | Comprobación de cabeceras Set-Cookie con y sin la opción, recorrido de navegador y suite. |
 
-AC-019..AC-021 son propuestos y no se declaran aceptados hasta aprobar SPEC-006 y ADR-0008.
+AC-019..AC-022 son propuestos y no se declaran aceptados hasta aprobar SPEC-006 y ADR-0008.
 
 ## 8. Diseño propuesto para planificar
 

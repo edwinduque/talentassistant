@@ -34,6 +34,20 @@
                 });
             }
         };
+
+        window.togglePasswordVisibility = (inputId) => {
+            const input = document.getElementById(inputId);
+            if (!input) {
+                return;
+            }
+            const show = input.type === 'password';
+            input.type = show ? 'text' : 'password';
+            const toggle = document.querySelector(`[data-password-toggle="${inputId}"]`);
+            if (toggle) {
+                toggle.setAttribute('aria-pressed', String(show));
+                toggle.setAttribute('aria-label', show ? toggle.dataset.hide : toggle.dataset.show);
+            }
+        };
     </script>
     <script src="@Assets["_framework/blazor.web.js"]"></script>
 </body>

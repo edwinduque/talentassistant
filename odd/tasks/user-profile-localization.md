@@ -43,6 +43,14 @@ Texto exacto del usuario: “Ayudame con un nuevo requerimiento” (gestionado c
 
 Aceptación: FR-023, FR-024 y NFR-019 añadidos con trazabilidad; AC-019..AC-021 en los criterios; guía con selector, perfil y cambio de contraseña; suite completa verde; recorrido de navegador verificado en español e inglés; verificador independiente sin bloqueos por el riesgo de seguridad.
 
+### S6 — Rediseño del login
+
+Alcance: la página de login adopta el mockup aprobado por el usuario: layout propio sin navegación, píldora de idioma ES/EN arriba a la derecha con autoenvío, tarjeta de bienvenida, inputs redondeados con fondo suave, mostrador de contraseña y botón de acento; “Permanecer conectado” persiste la sesión 30 días.
+
+Texto exacto del usuario: “el login esta muy tosco, el ddl del odioma se ve feo. quiero algo como esto”. Decisión de alcance: “Rediseño + recordarme, sin recuperación (recomendado)”.
+
+Aceptación: el login se ve como el mockup (píldora, Bienvenido, inputs suaves, botón Acceder); el cambio de idioma desde la píldora aplica sin botón adicional; el mostrador alterna el tipo de input con estado accesible; sin “Permanecer conectado” la cookie sigue siendo de sesión y con la opción marcada dura 30 días; el enlace de recuperación no aparece (fuera de alcance).
+
 Risk: item 2 (datos de usuario y cambio de credenciales). T1 y T2 requieren verificación independiente tras sus checks propios.
 
 ## Tasks
@@ -52,6 +60,7 @@ Risk: item 2 (datos de usuario y cambio de credenciales). T1 y T2 requieren veri
 | T1 | S2, S4 | Inline | Planificada | Usuario extendido + migración aditiva + endpoints de perfil/contraseña + login ampliado + pruebas |
 | T2 | S1, S3, S4 | Inline | Implementada; build 0/0, integración 23/23 y unit 5/5; recursos ES/EN con paridad verificada; E2E de navegador pendiente en T3 | Commit pendiente en `feature-branch-chain` |
 | T3 | S2, S5 | Inline | Implementada; documentación, catálogos, fix del clasificador y E2E en ambos idiomas; consola sin errores | `8202103dba6c2de83bbf01cc69247411125c896b` + fix `93d7036efa4a1a40fc02bd994f296764b6c8ecc8` |
+| T4 | S1, S6 | Inline | Implementada; rediseño del login al estilo del mockup, recordarme funcional y E2E en verde | Commit pendiente en `feature-branch-chain` |
 
 Forecast inicial: aproximadamente 700–1000 líneas authored entre implementación, recursos de cadenas, pruebas y documentación; archivos generados excluidos. Estrategia `feature-branch-chain`; el umbral de ~400 líneas es heurístico, no un límite de tamaño.
 
@@ -108,3 +117,15 @@ Evidencia del recorrido: anónimo en `/` redirige a `/login` en español por def
 Hallazgo y corrección del smoke: la API responde `"Incorrect password."` para la contraseña actual errónea y el clasificador de la Web buscaba otro texto, por lo que se clasificaba como fallo de política; corregido en `93d7036efa4a1a40fc02bd994f296764b6c8ecc8` y re-verificado en navegador. Advisory cosmético: durante la navegación dentro del circuito el `<PageTitle>` puede mostrar el título de la página anterior (comportamiento preexistente; los valores de los recursos son correctos y el título del login sí es correcto).
 
 Risk: item 2 (clasificación de errores de credenciales en la página de perfil).
+
+### L8 — Solicitud de rediseño del login (2026-10-17)
+
+Texto exacto del usuario: “el login esta muy tosco, el ddl del odioma se ve feo. quiero algo como esto” (con mockup: píldora de idioma arriba a la derecha, tarjeta “Bienvenido”, inputs redondeados con fondo suave y botón naranja “Acceder”, con enlace de recuperación y toggle “Permanecer conectado”).
+
+Texto exacto del usuario sobre el alcance: “Rediseño + recordarme, sin recuperación (recomendado)”. El enlace de recuperación de contraseña se OMITE por estar fuera de alcance en SPEC-006; “Permanecer conectado” queda funcional (cookie persistente de 30 días; sin marcar, cookie de sesión del navegador).
+
+Implementación T4: layout de login propio sin navegación (`LoginLayout`), píldora de idioma con select nativo estilizado y autoenvío al cambiar, tarjeta con título/subtítulo según mockup, inputs con fondo mezclado y esquinas redondeadas, botón de acento naranja, mostrador de contraseña (ojo con `aria-pressed`), checkbox “Permanecer conectado” y `SignInAsync` con `AuthenticationProperties` (IsPersistent + ExpiresUtc 30 días + AllowRefresh). Copia nueva en recursos ES/EN (`Bienvenido`/`Welcome`, “Usuario o correo electrónico”/“Username or email”, “Acceder”, “Permanecer conectado”, “Mostrar/Ocultar contraseña”).
+
+Evidencia: build 0/0 y suite 28/28; persistencia verificada en cabecera (sin toggle: sin `expires`; con toggle: `expires` a 30 días); navegador: píldora cambia a inglés de inmediato, ojo alterna `aria-pressed`, login con “keep me signed in” entra a la home, logout vuelve al login, consola sin errores. Se omitió el selector de idioma con tarjeta separada (ahora píldora) y la recuperación de contraseñas sigue documentada como fuera de alcance.
+
+Risk: item 2 (persistencia de la cookie de sesión en la página de login).
