@@ -46,7 +46,7 @@ Risk: item 2 (nuevo endpoint autenticado y manejo de clave de proveedor). T1 req
 | ID | Specs | Ruta | Estado | Evidencia / commit |
 |---|---|---|---|---|
 | T1 | S1, S2 | Inline | Implementada; build 0/0, suite 63/63 con16 pruebas del bucle/cliente sin red | Commit pendiente en `feature-branch-chain` |
-| T2 | S3, S4 | Inline | Planificada | Página de chat ES/EN + banco traducido + E2E en vivo con clave |
+| T2 | S3, S4 | Inline | Implementada; chat ES/EN, nav y script de6 preguntas; E2E en vivo pendiente de AI_API_KEY | Commit pendiente en `feature-branch-chain` |
 | T3 | S5 | Inline | Planificada | Depende de T1/T2 |
 
 Forecast inicial: aproximadamente 900–1300 líneas authored entre orquestador, cliente, interfaz, pruebas y documentación; archivos generados excluidos. Estrategia `feature-branch-chain`; el umbral de ~400 líneas es heurístico, no un límite de tamaño.

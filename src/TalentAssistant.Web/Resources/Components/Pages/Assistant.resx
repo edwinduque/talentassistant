@@ -1,0 +1,63 @@
+<?xml version="1.0" encoding="utf-8"?>
+<root>
+  <resheader name="resmimetype">
+    <value>text/microsoft-resx</value>
+  </resheader>
+  <resheader name="version">
+    <value>2.0</value>
+  </resheader>
+  <resheader name="reader">
+    <value>System.Resources.ResXResourceReader, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </resheader>
+  <resheader name="writer">
+    <value>System.Resources.ResXResourceWriter, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </resheader>
+  <data name="PageTitle" xml:space="preserve">
+    <value>Asistente | Talent Assistant</value>
+  </data>
+  <data name="Eyebrow" xml:space="preserve">
+    <value>Asistente conversacional</value>
+  </data>
+  <data name="Title" xml:space="preserve">
+    <value>Pregunta a tu asistente</value>
+  </data>
+  <data name="Subtitle" xml:space="preserve">
+    <value>Escribe tu pregunta en lenguaje natural sobre los datos del equipo. El asistente consulta las herramientas del backend con tu sesión y responde con las fuentes utilizadas.</value>
+  </data>
+  <data name="EmptyState" xml:space="preserve">
+    <value>Aún no hay preguntas. Por ejemplo: «Dime cuantos dias de vacaciones tiene Juan Perez.» o «Dime que tareas tiene pendiente Mauricio Cardenas.»</value>
+  </data>
+  <data name="QuestionLabel" xml:space="preserve">
+    <value>Escribe tu pregunta</value>
+  </data>
+  <data name="UserLabel" xml:space="preserve">
+    <value>Tú</value>
+  </data>
+  <data name="Send" xml:space="preserve">
+    <value>Enviar</value>
+  </data>
+  <data name="Sending" xml:space="preserve">
+    <value>Pensando…</value>
+  </data>
+  <data name="SourcesLabel" xml:space="preserve">
+    <value>Fuentes</value>
+  </data>
+  <data name="ErrorNotConfigured" xml:space="preserve">
+    <value>El asistente de IA no está configurado. No hay una clave de proveedor disponible en este entorno; la aplicación sigue funcionando sin IA.</value>
+  </data>
+  <data name="ErrorRateLimited" xml:space="preserve">
+    <value>El servicio está ocupado, inténtalo en unos minutos.</value>
+  </data>
+  <data name="ErrorService" xml:space="preserve">
+    <value>No se pudo contactar con el servicio de IA.</value>
+  </data>
+  <data name="ErrorInvalid" xml:space="preserve">
+    <value>No se pudo obtener una respuesta válida.</value>
+  </data>
+  <data name="ErrorRequest" xml:space="preserve">
+    <value>No se pudo enviar la pregunta.</value>
+  </data>
+  <data name="RoundsExhausted" xml:space="preserve">
+    <value>No pude responder dentro del límite de rondas.</value>
+  </data>
+</root>

@@ -27,6 +27,9 @@
   <data name="NavAttendance" xml:space="preserve">
     <value>Asistencia</value>
   </data>
+  <data name="NavAssistant" xml:space="preserve">
+    <value>Asistente</value>
+  </data>
   <data name="NavProfile" xml:space="preserve">
     <value>Perfil</value>
   </data>

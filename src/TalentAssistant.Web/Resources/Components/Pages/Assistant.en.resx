@@ -1,0 +1,63 @@
+<?xml version="1.0" encoding="utf-8"?>
+<root>
+  <resheader name="resmimetype">
+    <value>text/microsoft-resx</value>
+  </resheader>
+  <resheader name="version">
+    <value>2.0</value>
+  </resheader>
+  <resheader name="reader">
+    <value>System.Resources.ResXResourceReader, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </resheader>
+  <resheader name="writer">
+    <value>System.Resources.ResXResourceWriter, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </resheader>
+  <data name="PageTitle" xml:space="preserve">
+    <value>Assistant | Talent Assistant</value>
+  </data>
+  <data name="Eyebrow" xml:space="preserve">
+    <value>Conversational assistant</value>
+  </data>
+  <data name="Title" xml:space="preserve">
+    <value>Ask your assistant</value>
+  </data>
+  <data name="Subtitle" xml:space="preserve">
+    <value>Write your question in natural language about the team data. The assistant queries the backend tools with your session and answers with the sources it used.</value>
+  </data>
+  <data name="EmptyState" xml:space="preserve">
+    <value>No questions yet. For example: «Dime cuantos dias de vacaciones tiene Juan Perez.» or «Dime que tareas tiene pendiente Mauricio Cardenas.»</value>
+  </data>
+  <data name="QuestionLabel" xml:space="preserve">
+    <value>Type your question</value>
+  </data>
+  <data name="UserLabel" xml:space="preserve">
+    <value>You</value>
+  </data>
+  <data name="Send" xml:space="preserve">
+    <value>Send</value>
+  </data>
+  <data name="Sending" xml:space="preserve">
+    <value>Thinking…</value>
+  </data>
+  <data name="SourcesLabel" xml:space="preserve">
+    <value>Sources</value>
+  </data>
+  <data name="ErrorNotConfigured" xml:space="preserve">
+    <value>The AI assistant is not configured. There is no provider key available in this environment; the application keeps working without AI.</value>
+  </data>
+  <data name="ErrorRateLimited" xml:space="preserve">
+    <value>The service is busy, try again in a few minutes.</value>
+  </data>
+  <data name="ErrorService" xml:space="preserve">
+    <value>Could not reach the AI service.</value>
+  </data>
+  <data name="ErrorInvalid" xml:space="preserve">
+    <value>Could not obtain a valid response.</value>
+  </data>
+  <data name="ErrorRequest" xml:space="preserve">
+    <value>The question could not be sent.</value>
+  </data>
+  <data name="RoundsExhausted" xml:space="preserve">
+    <value>I could not answer within the round limit.</value>
+  </data>
+</root>

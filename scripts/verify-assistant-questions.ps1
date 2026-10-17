@@ -1,0 +1,163 @@
+# Live check for SPEC-009 AC-029: the six reference questions from
+# SPEC-008 section 4 must reach POST /chat and come back with a non-empty
+# answer that cites the expected tool. Requires the local API plus a real
+# AI_API_KEY in .env (parent task runs the live pass; without the key the
+# script exits with a clear "AI key/quota missing" message).
+# Credentials are read from .env and never printed.
+[CmdletBinding()]
+param(
+    [string]$ApiBaseUrl = "http://127.0.0.1:5101"
+)
+
+$ErrorActionPreference = "Stop"
+
+# The answers are localized; decode curl's UTF-8 output correctly in Windows
+# PowerShell as well as pwsh.
+[Console]::OutputEncoding = [System.Text.Encoding]::UTF8
+
+$repoRoot = (Resolve-Path (Join-Path $PSScriptRoot "..")).Path
+$envPath = Join-Path $repoRoot ".env"
+if (-not (Test-Path -LiteralPath $envPath)) {
+    throw ".env not found at $envPath. Create it from .env.example with AUTH_SEED_USER and AUTH_SEED_PASSWORD set."
+}
+
+$seedUser = $null
+$seedPassword = $null
+foreach ($line in Get-Content -LiteralPath $envPath) {
+    if ($line -match '^\s*([A-Za-z_][A-Za-z0-9_]*)=(.*)$') {
+        switch ($Matches[1]) {
+            'AUTH_SEED_USER' { $seedUser = $Matches[2].Trim() }
+            'AUTH_SEED_PASSWORD' { $seedPassword = $Matches[2].Trim() }
+        }
+    }
+}
+
+# Never print or log the credential values; only their presence matters here.
+if ([string]::IsNullOrWhiteSpace($seedUser) -or [string]::IsNullOrWhiteSpace($seedPassword)) {
+    throw "AUTH_SEED_USER and AUTH_SEED_PASSWORD must be set in .env (their values are not printed)."
+}
+
+$null = Get-Command curl.exe -ErrorAction Stop
+
+$tempRoot = Join-Path $env:LOCALAPPDATA "Temp\opencode"
+if (-not (Test-Path -LiteralPath $tempRoot)) {
+    $tempRoot = [System.IO.Path]::GetTempPath()
+}
+$runId = [Guid]::NewGuid().ToString("N")
+$bodyPath = Join-Path $tempRoot "talentassistant-assistant-questions-$runId.json"
+$utf8NoBom = New-Object System.Text.UTF8Encoding($false)
+
+function Split-Response {
+    param([string]$Raw)
+    $match = [regex]::Match($Raw, "HTTP_STATUS=(\d{3})\s*$")
+    if (-not $match.Success) {
+        return @{ Status = 0; Body = "" }
+    }
+    return @{ Status = [int]$match.Groups[1].Value; Body = $Raw.Substring(0, $match.Index).TrimEnd() }
+}
+
+$questions = @(
+    @{ Text = "Dime cuales empleados ya estan trabajando."; Tool = "presence" },
+    @{ Text = "Dime que empleados no han llegado aun."; Tool = "presence" },
+    @{ Text = "Dime que empleados estan de vacaciones."; Tool = "presence" },
+    @{ Text = "Dime cuantos dias de vacaciones tiene Juan Perez."; Tool = "timeoff" },
+    @{ Text = "Dime cuando regresa Pedro Rojas."; Tool = "timeoff" },
+    @{ Text = "Dime que tareas tiene pendiente Mauricio Cardenas."; Tool = "tasks" }
+)
+
+$failures = 0
+$aiUnavailable = $false
+
+try {
+    $loginBody = @{ userName = $seedUser; password = $seedPassword } | ConvertTo-Json -Compress
+    [System.IO.File]::WriteAllText($bodyPath, $loginBody, $utf8NoBom)
+    $loginRaw = [string]::Join([Environment]::NewLine, [string[]]@(
+        & curl.exe --noproxy "*" --silent --show-error --max-time 10 `
+            --header "Content-Type: application/json" `
+            "--data-binary" "@$bodyPath" `
+            --write-out "`nHTTP_STATUS=%{http_code}" "$ApiBaseUrl/auth/login" 2>$null
+    ))
+    $login = Split-Response $loginRaw
+    if ($login.Status -ne 200) {
+        throw "Login failed with HTTP $($login.Status). Check AUTH_SEED_USER/AUTH_SEED_PASSWORD in .env (values are not printed)."
+    }
+
+    $token = ($login.Body | ConvertFrom-Json).accessToken
+    if ([string]::IsNullOrWhiteSpace($token)) {
+        throw "Login succeeded but no access token was returned; response body withheld."
+    }
+
+    foreach ($item in $questions) {
+        $chatBody = @{ message = $item.Text; history = @() } | ConvertTo-Json -Compress
+        [System.IO.File]::WriteAllText($bodyPath, $chatBody, $utf8NoBom)
+        $chatRaw = [string]::Join([Environment]::NewLine, [string[]]@(
+            & curl.exe --noproxy "*" --silent --show-error --max-time 120 `
+                --header "Content-Type: application/json" `
+                --header "Authorization: Bearer $token" `
+                "--data-binary" "@$bodyPath" `
+                --write-out "`nHTTP_STATUS=%{http_code}" "$ApiBaseUrl/chat" 2>$null
+        ))
+        $chat = Split-Response $chatRaw
+
+        Write-Output ""
+        Write-Output "Q: $($item.Text)"
+
+        if ($chat.Status -eq 503 -or $chat.Status -eq 429) {
+            $reason = ""
+            try { $reason = ($chat.Body | ConvertFrom-Json).reason } catch { }
+            Write-Output "The chat endpoint answered HTTP $($chat.Status) with reason '$reason'."
+            Write-Output "The AI provider key/quota is missing: set AI_API_KEY in .env (or check the Groq quota) and re-run this script."
+            $aiUnavailable = $true
+            break
+        }
+
+        if ($chat.Status -ne 200) {
+            Write-Output "FAIL: expected HTTP 200, got HTTP $($chat.Status)."
+            $failures++
+            continue
+        }
+
+        $payload = $null
+        try { $payload = $chat.Body | ConvertFrom-Json } catch { }
+        if ($null -eq $payload) {
+            Write-Output "FAIL: the response body is not valid JSON."
+            $failures++
+            continue
+        }
+
+        $tools = @($payload.toolsUsed)
+        $answer = [string]$payload.answer
+        Write-Output ("Tools: " + $(if ($tools.Count -gt 0) { [string]::Join(", ", $tools) } else { "(none)" }))
+        Write-Output "Answer: $answer"
+
+        if ([string]::IsNullOrWhiteSpace($answer)) {
+            Write-Output "FAIL: the answer is empty."
+            $failures++
+        }
+        if ($tools.Count -eq 0) {
+            Write-Output "FAIL: toolsUsed is empty."
+            $failures++
+        }
+        elseif ($tools -notcontains $item.Tool) {
+            Write-Output "FAIL: toolsUsed does not contain the expected tool '$($item.Tool)'."
+            $failures++
+        }
+    }
+}
+finally {
+    Remove-Item -LiteralPath $bodyPath -Force -ErrorAction SilentlyContinue
+}
+
+if ($aiUnavailable) {
+    exit 3
+}
+
+if ($failures -gt 0) {
+    Write-Output ""
+    Write-Output "FAIL: $failures assertion(s) failed across the reference questions."
+    exit 1
+}
+
+Write-Output ""
+Write-Output "PASS: all six reference questions returned a non-empty answer citing the expected tool."
+exit 0

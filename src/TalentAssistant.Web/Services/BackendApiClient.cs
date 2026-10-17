@@ -238,7 +238,123 @@ public sealed class BackendApiClient(
         }
     }
 
+    /// <summary>
+    /// Sends one question plus the client-held history to <c>POST chat</c>
+    /// (SPEC-009 S3). The bearer token rides on the same authenticated
+    /// HttpClient as every other backend call.
+    /// </summary>
+    public async Task<AssistantChatResult> AskAssistantAsync(
+        string message,
+        IReadOnlyList<AssistantChatTurn> history,
+        CancellationToken cancellationToken = default)
+    {
+        try
+        {
+            using var response = await httpClient.PostAsJsonAsync(
+                "chat",
+                new ChatRequest(message, history),
+                cancellationToken);
+
+            if (response.StatusCode != HttpStatusCode.OK)
+            {
+                var failure = await MapChatFailureAsync(response, cancellationToken);
+                logger.LogWarning(
+                    "The chat endpoint returned HTTP {StatusCode} ({Failure}).",
+                    (int)response.StatusCode,
+                    failure);
+                return new AssistantChatResult(failure, string.Empty, [], [], false);
+            }
+
+            var payload = await response.Content.ReadFromJsonAsync<ChatResponse>(
+                cancellationToken: cancellationToken);
+            if (payload is null)
+            {
+                logger.LogWarning("The chat endpoint returned an empty response.");
+                return new AssistantChatResult(
+                    AssistantFailure.InvalidResponse,
+                    string.Empty,
+                    [],
+                    [],
+                    false);
+            }
+
+            return new AssistantChatResult(
+                AssistantFailure.None,
+                payload.Answer ?? string.Empty,
+                payload.ToolsUsed ?? [],
+                payload.Sources ?? [],
+                payload.Completed);
+        }
+        catch (HttpRequestException exception)
+        {
+            logger.LogWarning(exception, "Could not reach the chat endpoint.");
+            return new AssistantChatResult(AssistantFailure.Unreachable, string.Empty, [], [], false);
+        }
+        catch (TaskCanceledException exception) when (!cancellationToken.IsCancellationRequested)
+        {
+            logger.LogWarning(exception, "The chat request timed out.");
+            return new AssistantChatResult(AssistantFailure.Timeout, string.Empty, [], [], false);
+        }
+        catch (System.Text.Json.JsonException exception)
+        {
+            logger.LogWarning(exception, "The chat response was not valid JSON.");
+            return new AssistantChatResult(AssistantFailure.InvalidResponse, string.Empty, [], [], false);
+        }
+    }
+
+    /// <summary>
+    /// The API reports provider failures as 503/429 with a machine-readable
+    /// {"reason": "..."} body; the Web layer owns the localized copy
+    /// (SPEC-009 S1). A 400 is always a bad request; any other status without
+    /// a known reason degrades to <see cref="AssistantFailure.Other"/>.
+    /// </summary>
+    private async Task<AssistantFailure> MapChatFailureAsync(
+        HttpResponseMessage response,
+        CancellationToken cancellationToken)
+    {
+        if (response.StatusCode == HttpStatusCode.BadRequest)
+        {
+            return AssistantFailure.BadRequest;
+        }
+
+        string? reason = null;
+        try
+        {
+            var problem = await response.Content.ReadFromJsonAsync<ChatErrorPayload>(
+                cancellationToken: cancellationToken);
+            reason = problem?.Reason;
+        }
+        catch (System.Text.Json.JsonException)
+        {
+            // The body is not the expected {reason} shape; fall back to the status code.
+        }
+
+        return reason switch
+        {
+            "NotConfigured" => AssistantFailure.NotConfigured,
+            "RateLimited" => AssistantFailure.RateLimited,
+            "Timeout" => AssistantFailure.Timeout,
+            "Unreachable" => AssistantFailure.Unreachable,
+            "InvalidResponse" => AssistantFailure.InvalidResponse,
+            _ when response.StatusCode == HttpStatusCode.TooManyRequests =>
+                AssistantFailure.RateLimited,
+            _ => AssistantFailure.Other,
+        };
+    }
+
     private sealed record BackendHealthPayload(string Status);
+
+    private sealed record ChatRequest(
+        string Message,
+        IReadOnlyList<AssistantChatTurn> History);
+
+    private sealed record ChatResponse(
+        string Answer,
+        List<string> ToolsUsed,
+        List<string> Sources,
+        bool Completed);
+
+    private sealed record ChatErrorPayload(string? Reason);
 }
 
 /// <summary>Directory row as served by the API (culture-neutral data).</summary>
@@ -266,3 +382,34 @@ public enum WorkforceFailure
 }
 
 public sealed record WorkforceResult<T>(WorkforceFailure Failure, IReadOnlyList<T> Items);
+
+/// <summary>One conversation turn exchanged with <c>POST chat</c> (culture-neutral roles: user/assistant).</summary>
+public sealed record AssistantChatTurn(string Role, string Content);
+
+/// <summary>
+/// Closed failure set for the chat endpoint. Values mirror the API's
+/// machine-readable reasons plus transport failures; user-facing copy lives
+/// in the Assistant resource, keyed by this enum (SPEC-009 S3).
+/// </summary>
+public enum AssistantFailure
+{
+    None,
+    BadRequest,
+    NotConfigured,
+    RateLimited,
+    Timeout,
+    Unreachable,
+    InvalidResponse,
+    Other,
+}
+
+/// <summary>Chat answer with the ordered tool trace (<c>ChatResult</c> from the API).</summary>
+public sealed record AssistantChatResult(
+    AssistantFailure Failure,
+    string Answer,
+    IReadOnlyList<string> ToolsUsed,
+    IReadOnlyList<string> Sources,
+    bool Completed)
+{
+    public bool IsSuccess => Failure == AssistantFailure.None;
+}

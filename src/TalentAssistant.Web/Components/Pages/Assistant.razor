@@ -1,0 +1,282 @@
+@page "/assistant"
+@inject BackendApiClient BackendApi
+@inject IStringLocalizer<Assistant> Local
+
+<PageTitle>@Local["PageTitle"]</PageTitle>
+
+<div class="assistant-page">
+    <style>
+        /* The global stylesheet has no box-sizing reset: scope border-box so
+           the textarea width includes its padding and border (same rule as
+           the login page). */
+        .assistant-page,
+        .assistant-page * {
+            box-sizing: border-box;
+        }
+
+        .assistant-heading {
+            max-width: 42rem;
+            margin-bottom: 2rem;
+        }
+
+        .assistant-heading h1 {
+            margin: 0;
+            font-family: Georgia, "Times New Roman", serif;
+            font-size: clamp(2rem, 5vw, 3rem);
+            font-weight: 500;
+            letter-spacing: -0.03em;
+            line-height: 1.05;
+        }
+
+        .assistant-intro {
+            margin: 1rem 0 0;
+            color: var(--muted);
+            font-size: 1.05rem;
+        }
+
+        .assistant-thread {
+            display: flex;
+            flex-direction: column;
+            gap: 1rem;
+            margin-bottom: 1.5rem;
+        }
+
+        .assistant-empty {
+            margin: 0;
+            padding: 1.5rem;
+            border: 1px dashed var(--border);
+            color: var(--muted);
+        }
+
+        .assistant-message {
+            display: flex;
+            flex-direction: column;
+            gap: 0.4rem;
+            max-width: 46rem;
+            padding: 1rem 1.25rem;
+            border: 1px solid var(--border);
+            border-radius: 0.75rem;
+            background: var(--surface);
+        }
+
+        .assistant-message--user {
+            align-self: flex-end;
+            background: color-mix(in srgb, var(--accent) 8%, var(--surface));
+        }
+
+        .assistant-message-text {
+            margin: 0;
+            white-space: pre-wrap;
+        }
+
+        .assistant-message-tools {
+            margin: 0;
+            color: var(--muted);
+            font-size: 0.85rem;
+        }
+
+        .assistant-message-tools code {
+            font-size: 0.8rem;
+        }
+
+        .assistant-alert {
+            max-width: 46rem;
+            margin: 0;
+            padding: 0.85rem 1.25rem;
+            border: 1px solid color-mix(in srgb, var(--danger) 40%, var(--border));
+            border-radius: 0.75rem;
+            color: var(--danger);
+            font-weight: 600;
+        }
+
+        .assistant-composer {
+            display: flex;
+            gap: 0.75rem;
+            align-items: flex-end;
+        }
+
+        .assistant-input {
+            flex: 1;
+            min-height: 3rem;
+            max-height: 10rem;
+            padding: 0.7rem 1rem;
+            border: 1px solid var(--border);
+            border-radius: 0.75rem;
+            background: color-mix(in srgb, var(--ink) 6%, var(--surface));
+            color: var(--ink);
+            font: inherit;
+            resize: vertical;
+        }
+
+        .assistant-input::placeholder {
+            color: var(--muted);
+        }
+
+        .assistant-input:focus-visible {
+            outline: 3px solid var(--focus);
+            outline-offset: 1px;
+        }
+
+        .assistant-send {
+            min-height: 3rem;
+            padding: 0.5rem 1.4rem;
+            border: 0;
+            border-radius: 0.75rem;
+            background: var(--accent);
+            color: #ffffff;
+            font: inherit;
+            font-weight: 700;
+            cursor: pointer;
+        }
+
+        .assistant-send:disabled {
+            cursor: wait;
+            opacity: 0.7;
+        }
+
+        .assistant-send:focus-visible {
+            outline: 3px solid var(--focus);
+            outline-offset: 2px;
+        }
+
+        .assistant-thinking {
+            margin: 0.75rem 0 0;
+            color: var(--muted);
+        }
+    </style>
+
+    <header class="assistant-heading">
+        <p class="eyebrow">@Local["Eyebrow"]</p>
+        <h1>@Local["Title"]</h1>
+        <p class="assistant-intro">@Local["Subtitle"]</p>
+    </header>
+
+    <section class="assistant-thread" aria-live="polite">
+        @if (_messages.Count == 0)
+        {
+            <p class="assistant-empty">@Local["EmptyState"]</p>
+        }
+        else
+        {
+            @foreach (var item in _messages)
+            {
+                @if (item.IsAlert)
+                {
+                    <p class="assistant-alert" role="alert">@item.Text</p>
+                }
+                else if (item.Role == "user")
+                {
+                    <article class="assistant-message assistant-message--user" aria-label="@Local["UserLabel"]">
+                        <p class="assistant-message-text">@item.Text</p>
+                    </article>
+                }
+                else
+                {
+                    <article class="assistant-message">
+                        <p class="assistant-message-text">@item.Text</p>
+                        @if (item.ToolsUsed.Count > 0)
+                        {
+                            <p class="assistant-message-tools">
+                                <strong>@Local["SourcesLabel"]:</strong>
+                                @string.Join(", ", item.ToolsUsed)
+                            </p>
+                        }
+                    </article>
+                }
+            }
+        }
+    </section>
+
+    @if (_isSending)
+    {
+        <p class="assistant-thinking" role="status">@Local["Sending"]</p>
+    }
+
+    <form class="assistant-composer" @onsubmit="SendAsync" @onsubmit:preventDefault>
+        <label class="sr-only" for="assistant-question">@Local["QuestionLabel"]</label>
+        <textarea id="assistant-question"
+                  class="assistant-input"
+                  rows="3"
+                  placeholder="@Local["QuestionLabel"]"
+                  enterkeyhint="send"
+                  disabled="@_isSending"
+                  @bind="_draft"
+                  @bind:event="oninput"></textarea>
+        <button type="submit" class="assistant-send" disabled="@_isSending">
+            @(_isSending ? Local["Sending"] : Local["Send"])
+        </button>
+    </form>
+</div>
+
+@code {
+    // The history is client-held by design: the server caps it too, and a
+    // fresh page load starts a new conversation (SPEC-009 §8, S3).
+    private const int MaxHistoryTurns = 20;
+
+    private sealed record ChatItem(
+        string Role,
+        string Text,
+        IReadOnlyList<string> ToolsUsed,
+        bool IsAlert);
+
+    private readonly List<ChatItem> _messages = [];
+    private string _draft = string.Empty;
+    private bool _isSending;
+
+    private async Task SendAsync()
+    {
+        var question = _draft.Trim();
+        if (_isSending || question.Length == 0)
+        {
+            return;
+        }
+
+        _isSending = true;
+        _messages.Add(new ChatItem("user", question, [], false));
+        _draft = string.Empty;
+
+        // Oldest turns first; cap before asking so one long conversation
+        // cannot inflate the provider payload from the browser side. The
+        // just-appended user turn travels as `message`, not as history.
+        var history = _messages
+            .Where(item => !item.IsAlert)
+            .SkipLast(1)
+            .TakeLast(MaxHistoryTurns)
+            .Select(item => new AssistantChatTurn(item.Role, item.Text))
+            .ToArray();
+
+        try
+        {
+            var result = await BackendApi.AskAssistantAsync(question, history);
+
+            if (!result.IsSuccess)
+            {
+                _messages.Add(new ChatItem("alert", Local[FailureMessageKey(result.Failure)].Value, [], true));
+                return;
+            }
+
+            _messages.Add(new ChatItem("assistant", result.Answer, result.ToolsUsed, false));
+
+            if (!result.Completed)
+            {
+                _messages.Add(new ChatItem("alert", Local["RoundsExhausted"].Value, [], true));
+            }
+        }
+        finally
+        {
+            _isSending = false;
+        }
+    }
+
+    private static string FailureMessageKey(AssistantFailure failure) =>
+        failure switch
+        {
+            AssistantFailure.BadRequest => "ErrorRequest",
+            AssistantFailure.NotConfigured => "ErrorNotConfigured",
+            AssistantFailure.RateLimited => "ErrorRateLimited",
+            AssistantFailure.Timeout => "ErrorService",
+            AssistantFailure.Unreachable => "ErrorService",
+            AssistantFailure.InvalidResponse => "ErrorInvalid",
+            _ => "ErrorInvalid",
+        };
+}
