@@ -251,9 +251,9 @@ public sealed class AuthApiClient(
 
                 // The API surfaces the Identity error descriptions in the problem
                 // detail. Identity's default message for a wrong current password is
-                // "The password is incorrect."; every other 400 is a policy rejection.
+                // "Incorrect password."; every other 400 is a policy rejection.
                 return problem?.Detail?.Contains(
-                        "The password is incorrect",
+                        "Incorrect password",
                         StringComparison.OrdinalIgnoreCase) == true
                     ? ChangePasswordOutcome.WrongCurrentPassword
                     : ChangePasswordOutcome.Rejected;
