@@ -1,7 +1,7 @@
 # SPEC-006 — Perfil de usuario y localización de la interfaz
 
 - **Estado:** Propuesto para aprobación de planificación (2026-10-17).
-- **Implementación:** T1 y T2 implementadas y verificadas; T3 (documentación) en curso.
+- **Implementación:** T1, T2 y T3 implementadas; recorrido de navegador verificado en ambos idiomas; pendiente verificación final del feature.
 - **Requisitos relacionados (propuestos):** FR-023, FR-024 y NFR-019. Relacionados existentes: FR-007, FR-009, FR-010, FR-021, FR-022; NFR-004, NFR-006, NFR-012, NFR-018.
 - **Criterios relacionados (propuestos):** AC-019, AC-020, AC-021.
 - **Decisión arquitectónica:** ADR-0008 propuesto.
@@ -115,4 +115,6 @@ T3 documenta la implementación de T1/T2 en estos artefactos del repositorio:
 - `docs/requirements/non-functional-requirements.md`: NFR-019.
 - `docs/acceptance/mvp-acceptance-criteria.md`: AC-019..AC-021 y sus filas de trazabilidad.
 
-El recorrido de navegador en ambos idiomas (smoke E2E) lo realiza y registra el padre fuera de esta tarea; no se declara en este documento.
+El recorrido de navegador end-to-end se ejecutó contra el stack Compose reconstruido y validó AC-019 y AC-020 en ambos idiomas: anónimo en `/` redirige a `/login` en español por defecto; el selector conmuta a inglés de inmediato y la elección persiste tras navegar; el login hereda el idioma del perfil guardado; `/profile` se muestra en ambos idiomas y guardar nombre/idioma se refleja de inmediato en el layout; Attendance insights en inglés muestra los 5 hallazgos con etiquetas localizadas y los datos del HCM sin traducir; el cambio de contraseña con la actual incorrecta muestra el mensaje localizado correcto, y el cambio real y su restauración pasan; el logout regresa al login en español con la preferencia anónima preservada; la consola del navegador quedó sin errores. La comparación de respuestas de la API confirma AC-021: los cinco fixtures y el dataset son idénticos en cualquier idioma y la migración sigue siendo aditiva.
+
+Commits de T3: `8202103dba6c2de83bbf01cc69247411125c896b` (documentación y catálogos) y `93d7036efa4a1a40fc02bd994f296764b6c8ecc8` (corrección del clasificador de contraseña actual, hallazgo del smoke: la API devuelve "Incorrect password." y la Web buscaba otro texto, clasificándolo como fallo de política). Advisory cosmetico: durante la navegación dentro del circuito el elemento `<PageTitle>` puede conservar el título de la página anterior (comportamiento preexistente; los recursos de título son correctos).

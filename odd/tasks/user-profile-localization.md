@@ -51,7 +51,7 @@ Risk: item 2 (datos de usuario y cambio de credenciales). T1 y T2 requieren veri
 |---|---|---|---|---|
 | T1 | S2, S4 | Inline | Planificada | Usuario extendido + migración aditiva + endpoints de perfil/contraseña + login ampliado + pruebas |
 | T2 | S1, S3, S4 | Inline | Implementada; build 0/0, integración 23/23 y unit 5/5; recursos ES/EN con paridad verificada; E2E de navegador pendiente en T3 | Commit pendiente en `feature-branch-chain` |
-| T3 | S2, S5 | Inline | Planificada | Depende de T1/T2 |
+| T3 | S2, S5 | Inline | Implementada; documentación, catálogos, fix del clasificador y E2E en ambos idiomas; consola sin errores | `8202103dba6c2de83bbf01cc69247411125c896b` + fix `93d7036efa4a1a40fc02bd994f296764b6c8ecc8` |
 
 Forecast inicial: aproximadamente 700–1000 líneas authored entre implementación, recursos de cadenas, pruebas y documentación; archivos generados excluidos. Estrategia `feature-branch-chain`; el umbral de ~400 líneas es heurístico, no un límite de tamaño.
 
@@ -98,3 +98,13 @@ Desviaciones aceptadas del writer (todas justificadas): los recursos viven en ru
 Evidencia: build 0 warnings/0 errores; suite integración 23/23 y unitarias 5/5 (el bloqueo ambiental no se reprodujo en esta ejecución); paridad de claves entre recursos es/en y sonda real de `IStringLocalizer<T>` resolviendo todas las claves en ambos idiomas. El navegador end-to-end queda para T3.
 
 Risk: item 2 (transporte de credenciales y datos de usuario en Web).
+
+### L7 — T3: documentación y smoke de navegador en ambos idiomas (2026-10-17)
+
+Texto exacto del usuario: “si” (autoriza T3). El worker acotado documentó guía, README, registro de decisiones, FR-023/FR-024, NFR-019 y AC-019..AC-021 (commit `8202103dba6c2de83bbf01cc69247411125c896b`); el padre reconstruyó el stack Compose con el código nuevo y ejecutó el recorrido completo con Playwright.
+
+Evidencia del recorrido: anónimo en `/` redirige a `/login` en español por defecto; el selector cambia la página a inglés de inmediato y la elección persiste tras navegar; el login aplica el idioma del perfil guardado; `/profile` se muestra en ambos idiomas y guardar nombre/idioma refleja ambos al instante en el layout; Attendance insights en inglés con los 5 hallazgos y etiquetas localizadas; cambio de contraseña con actual incorrecta muestra el mensaje localizado correcto, cambio real y restauración OK; volver a español + restaurar nombre OK; logout regresa al login en español con la preferencia preservada; consola del navegador sin errores; artefactos de Playwright eliminados.
+
+Hallazgo y corrección del smoke: la API responde `"Incorrect password."` para la contraseña actual errónea y el clasificador de la Web buscaba otro texto, por lo que se clasificaba como fallo de política; corregido en `93d7036efa4a1a40fc02bd994f296764b6c8ecc8` y re-verificado en navegador. Advisory cosmético: durante la navegación dentro del circuito el `<PageTitle>` puede mostrar el título de la página anterior (comportamiento preexistente; los valores de los recursos son correctos y el título del login sí es correcto).
+
+Risk: item 2 (clasificación de errores de credenciales en la página de perfil).
