@@ -1,10 +1,10 @@
 # SPEC-009 — Asistente conversacional con herramientas del backend
 
-- **Estado:** Aprobada para planificación (2026-10-17) e implementada en curso; enmienda de resolución de nombres (2026-10-18) pendiente de aprobación.
-- **Implementación:** T1 (orquestador y cliente de proveedor) y T2 (interfaz de chat) en `feat/conversational-assistant`; T3 pendiente.
-- **Requisitos relacionados (propuestos):** FR-029, FR-030 y NFR-021. Relacionados existentes: FR-012, FR-013, FR-016, FR-020..FR-028; NFR-004, NFR-006, NFR-013, NFR-014.
+- **Estado:** Aprobada e implementada (2026-10-17); enmienda de resolución de nombres aprobada e implementada (2026-10-18).
+- **Implementación:** T1 (orquestador y cliente de proveedor) y T2 (interfaz de chat) en `feat/conversational-assistant`; T3 (documentación) implementada.
+- **Requisitos relacionados (propuestos):** FR-029, FR-030 y NFR-021. Relacionados existentes: FR-012, FR-013, FR-016, FR-020..FR-027; NFR-004, NFR-006, NFR-013, NFR-014.
 - **Criterios relacionados (propuestos):** AC-029, AC-030, AC-031 y AC-032 (enmienda 2026-10-18).
-- **Decisión arquitectónica:** ADR-0011 propuesto (proveedor Groq vía API compatible OpenAI).
+- **Decisión arquitectónica:** ADR-0011 aceptado (proveedor Groq vía API compatible OpenAI).
 - **Decisión de producto registrada:** el usuario eligió “Groq (API en la nube)” el 2026-10-17, tras la corrección de que el modelo no consulta los datos directamente sino que pide herramientas.
 - **Versión:** 0.1.
 
@@ -96,4 +96,11 @@ Supuestos explícitos para aprobación: respuesta no streaming; el usuario asume
 
 ## 10. Estado y aprobación
 
-SPEC-009 y ADR-0011 quedan propuestos a la espera de aprobación para planificación; la aprobación no autoriza cambios de código hasta autorizar tareas.
+SPEC-009 y ADR-0011 fueron aprobados para planificación el 2026-10-17; la enmienda de resolución de nombres y desambigüación (SPEC-008 y las secciones 3, 4 y 7 de esta especificación) fue aprobada el 2026-10-18. La especificación está implementada en la rama `feat/conversational-assistant` con la siguiente evidencia observada para AC-029..AC-032:
+
+- Pasada en vivo de las siete preguntas con la clave presente: `powershell -NoProfile -File scripts\verify-assistant-questions.ps1 -PaceSeconds 9` con salida `0`.
+- Recorrido de navegador E2E en español e inglés, incluido el turno de elección de la pregunta ambigua.
+- Verificación independiente: cinco claims MET, sin bloqueos.
+- Suite completa 70/70 (5 unit + 65 integración) y build 0 errores/0 avisos.
+
+Commits: `8861456`, `ef9750e`, `ab6d2bc`, `902e25a`, `4de7672`, `d1ce2e4`, `fb71938`.

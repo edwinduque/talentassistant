@@ -131,3 +131,5 @@ Banco de escenarios (S4): `tests/TalentAssistant.IntegrationTests/Workforce/Assi
 El recorrido de navegador E2E final y la verificación independiente quedan pendientes y los registra el orquestador en el log ODD; esta sección no los declara completados.
 
 El recorrido de navegador final validó el panel de presencia en español e inglés (estados localizados y nombres propios compartidos), la restauración del perfil a español y el logout al login en español, con la consola sin errores. El banco de los seis escenarios quedó registrado en 	ests/TalentAssistant.IntegrationTests/Workforce/AssistantScenarioBenchTests.cs (suite de integración 43/43). Commits de T3: 9ee00d96d61497c2476f3bb8a0d019c0f4c89f9 (banco y documentación) y el de esta evidencia.
+
+Enmienda 2026-10-18 (AC-026): verificada por `UnaccentedNameFoldsToTheAccentedDisplayName`, `SharedFirstNameReturnsBothJuansWithoutChoosing`, `OfficeIdMatchingStaysExactAndUnfolded` y `AccentFoldingFlowsThroughTimeOffAndTasksByIdResolution`, más la pasada en vivo de las siete preguntas del asistente (`scripts/verify-assistant-questions.ps1 -PaceSeconds 9`, salida `0`).

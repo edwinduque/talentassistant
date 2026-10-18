@@ -22,6 +22,7 @@
 | NFR-018 | Seguridad de credenciales | Las contraseñas se almacenarán solo como hash; las claves de firma y las credenciales de siembra se suministrarán exclusivamente por configuración externa; los fallos de autenticación devolverán respuestas genéricas y la API y la interfaz no registrarán secretos ni tokens. |
 | NFR-019 | Localización | Las cadenas visibles vivirán en recursos de localización por componente con español como recurso neutral e inglés como satélite; el cambio de idioma se aplicará mediante cookie de cultura; no se detectará el idioma del navegador. |
 | NFR-020 | Localización de datos | Los textos de presentación del dataset sintético existirán en español e inglés sobre un único payload versionado; los identificadores y valores temporales serán idénticos entre variantes; una versión de payload desconocida fallará de forma controlada. |
+| NFR-021 | Proveedor externo de IA | Las claves del proveedor de IA vivirán solo en configuración externa al repositorio; las llamadas al proveedor tendrán tiempo de espera y la degradación ante fallos será controlada, sin que el resto de la aplicación dependa del proveedor. |
 
 ## Objetivos que quedan por definir
 

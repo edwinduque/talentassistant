@@ -108,7 +108,7 @@ La consulta de presencia para una fecha devuelve cada empleado con el estado inf
 
 ## AC-026 — TimeOff por empleado (propuesto en SPEC-008)
 
-La búsqueda por nombre localiza a Juan Pérez y Pedro Rojas; sus respuestas de TimeOff informan días y fecha de regreso tal como los declara la fuente, sin cálculos de Talent Assistant. El filtro por identificador o nombre devuelve la colección completa sin filtro y, ante varios nombres coincidentes, los elementos de todos, sin selección silenciosa.
+La búsqueda por nombre localiza a Juan Pérez y Pedro Rojas **y es insensible a acentos («Juan Perez» sin acento localiza a Juan Pérez); una búsqueda corta compartida («Juan») devuelve a los dos Juans sin elegir en silencio**; sus respuestas de TimeOff informan días y fecha de regreso tal como los declara la fuente, sin cálculos de Talent Assistant. El filtro por identificador o nombre devuelve la colección completa sin filtro y, ante varios nombres coincidentes, los elementos de todos, sin selección silenciosa. *(Enmienda SPEC-008, 2026-10-18.)*
 
 ## AC-027 — Tareas por empleado (propuesto en SPEC-008)
 
@@ -117,6 +117,22 @@ Las tareas de Mauricio Cardenas se consultan por nombre y la fuente determina qu
 ## AC-028 — Banco de preguntas y verificación (propuesto en SPEC-008)
 
 El banco de preguntas automatizado cubre las seis preguntas literales, la suite completa permanece verde, el home muestra «Presencia de hoy», la página de asistencia ya no pide id manual y todo el contenido nuevo existe en español e inglés. El banco no depende de IA ni de red externa y sirve de referencia para la evaluación futura del asistente.
+
+## AC-029 — Banco de preguntas del chat (propuesto en SPEC-009)
+
+Las seis preguntas de SPEC-008, formuladas en el chat, producen respuestas que contienen los valores esperados de los fixtures y citan la herramienta usada.
+
+## AC-030 — Catálogo fijo, sesión y sin escrituras (propuesto en SPEC-009)
+
+El modelo solo invoca el catálogo fijo, las invocaciones usan la sesión e idioma del usuario, no hay escrituras y una pregunta sin datos recibe una respuesta de «sin información» del propio asistente.
+
+## AC-031 — Degradación y verificación (propuesto en SPEC-009)
+
+Sin clave o sin red la aplicación degrada con mensajes localizados controlados; secretos solo en `.env`; límites de tiempo/rondas activos; suite completa en verde y recorrido de navegador del chat en ES y EN.
+
+## AC-032 — Desambigüación de nombres en el chat (propuesto en SPEC-009)
+
+Una pregunta por una persona con nombre compartido («Juan») recibe una respuesta del asistente que lista los candidatos y pregunta cuál antes de responder; tras la elección responde con el dato del fixture, y un nombre sin acento («Juan Perez») resuelve al empleado correcto. *(Enmienda 2026-10-18.)*
 
 ## Condiciones generales
 
@@ -154,8 +170,12 @@ Los identificadores de esta tabla pertenecen al catálogo general y no se reutil
 | AC-023 | FR-025, NFR-020 | Contenido sintético por idioma del usuario autenticado con identificadores idénticos; SPEC-007. |
 | AC-024 | FR-025, NFR-006, NFR-017 | Semilla bilingüe idempotente en versión 2 y fallo controlado ante versión desconocida; SPEC-007. |
 | AC-025 | FR-026, FR-006 | Presencia por fecha con estados informados por la fuente; SPEC-008. |
-| AC-026 | FR-027, FR-008 | TimeOff por empleado con valores literales de la fuente, sin cálculos; SPEC-008. |
+| AC-026 | FR-027, FR-008 | TimeOff por empleado con valores literales de la fuente, sin cálculos; SPEC-008. Enmienda SPEC-008 (2026-10-18): búsqueda insensible a acentos y doble «Juan» sin selección silenciosa. |
 | AC-027 | FR-004, FR-027 | Tareas por empleado; FR-004 queda activo; SPEC-008. |
 | AC-028 | FR-011, NFR-015 | Banco de las seis preguntas literales como pruebas automatizadas; SPEC-008. |
+| AC-029 | FR-029 | Banco de las seis preguntas en el chat con valores del fixture y herramienta citada; SPEC-009. |
+| AC-030 | FR-029, FR-030 | Catálogo fijo con sesión e idioma del usuario y sin escrituras; SPEC-009. |
+| AC-031 | FR-030, NFR-021 | Degradación controlada, secretos solo en `.env`, límites activos y E2E del chat en ES y EN; SPEC-009. |
+| AC-032 | FR-027, FR-029 | Desambigüación de nombres en el chat; SPEC-009. Enmienda 2026-10-18. |
 
 Los AC-003 a AC-006 no se consideran satisfechos por la estructura arquitectónica creada en SPEC-001. Cada caso de asistencia necesita requisitos, pruebas y verificación propios; Tasks no forma parte de la primera vertical. NFR-011 no tiene todavía un umbral medible y deberá concretarse cuando se definan dataset y entorno. NFR-012 se verifica en cada especificación de interfaz; estos criterios no inventan un umbral cuantitativo de contraste.

@@ -223,11 +223,11 @@ Para detener únicamente MySQL en el perfil host, usa `docker compose stop mysql
 
 ## Consultas del asistente (API)
 
-Desde SPEC-008, la API expone cuatro endpoints de consulta —las herramientas que el futuro asistente llamará— que exigen sesión (sin token válido responden HTTP 401) y responden en el idioma del perfil del usuario autenticado:
+Desde SPEC-008, la API expone cuatro endpoints de consulta —las herramientas que el asistente conversacional de SPEC-009 llamará— que exigen sesión (sin token válido responden HTTP 401) y responden en el idioma del perfil del usuario autenticado:
 
 | Endpoint | Parámetros | Contenido |
 |---|---|---|
-| `GET /employees` | `name`, `office` | Directorio; búsqueda por nombre insensible a mayúsculas (sin plegado de acentos) y por oficina. |
+| `GET /employees` | `name`, `office` | Directorio; búsqueda por nombre insensible a mayúsculas y acentos (enmienda SPEC-008: «Juan Perez» localiza a «Juan Pérez») y por oficina; los identificadores de oficina se comparan exactamente. |
 | `GET /presence` | `date` (`yyyy-MM-dd`, por defecto hoy) | Estado de presencia informado por la fuente para la fecha; fecha inválida → HTTP 400, otras fechas → lista vacía. |
 | `GET /timeoff` | `employeeId` o `name` | Solicitudes de TimeOff del empleado; sin filtro → toda la colección; varios nombres coincidentes → elementos de todos. |
 | `GET /tasks` | `employeeId` o `name` | Tareas del empleado; misma semántica de filtro que `/timeoff`. |
@@ -245,3 +245,48 @@ curl -s http://127.0.0.1:5101/presence -H "Authorization: Bearer <TOKEN>"
 ```
 
 Sustituye `<TU_PASSWORD>` por la contraseña local de tu `.env`; nunca la versiones ni la compartas. Los valores de duración, estado y fechas los informa la fuente sintética: Talent Assistant no calcula nada.
+
+## Asistente conversacional
+
+Desde SPEC-009, la Web incluye la página `/assistant` (ES/EN, con sesión) y la API el endpoint `POST /chat`: el usuario escribe en lenguaje natural, el modelo pide herramientas de un catálogo fijo de cinco (`search_employees`, `presence`, `timeoff`, `tasks`, `attendance_insights`) y la API las ejecuta en proceso con la sesión e idioma del usuario, devolviendo `answer` junto a `toolsUsed` y `sources`. En preguntas de una persona, `search_employees` se llama siempre primero: con varios candidatos el asistente los lista (nombre y oficina) y pregunta cuál antes de responder; con uno solo continúa con la herramienta de datos. La búsqueda de personas es insensible a mayúsculas y acentos, y el asistente no escribe datos.
+
+### Clave y modelo del proveedor
+
+Groq es el proveedor por defecto, integrado mediante su API compatible con OpenAI. Completa en tu `.env` local (nunca versionado):
+
+| Variable | Valor esperado |
+|---|---|
+| `AI_API_KEY` | Clave de Groq. Vacía por defecto: sin ella la API no llama al proveedor. Solo en `.env`; nunca en el repositorio ni en la salida de comandos. |
+| `AI_MODEL` | `openai/gpt-oss-120b` (valor por defecto en `.env.example`), el modelo confirmado con la API de Groq el 2026-10-18 con soporte de herramientas. |
+
+La API usa `AI__BaseUrl=https://api.groq.com/openai/v1` (fijada en la sección `AI` de `appsettings.json`) junto a los límites `AI__TimeoutSeconds`, `AI__MaxTokens` y `AI__MaxToolRounds`. Tras editar `.env`, reinicia el contenedor de la API (`docker compose restart api`).
+
+### Degradación sin proveedor
+
+- Sin `AI_API_KEY`, `POST /chat` responde HTTP 503 `{"reason":"NotConfigured"}` antes de realizar ninguna llamada saliente; el resto de la aplicación funciona igual, sin IA.
+- Los fallos del proveedor se traducen a razones legibles por máquina y se muestran con mensajes localizados en la interfaz: límite de tasa (`RateLimited`) responde HTTP 429 y el resto de fallos HTTP 503.
+- Los argumentos opcionales de las herramientas pueden viajar como `null` (el proveedor valida los argumentos contra el JSON Schema); el ejecutor los normaliza a ausentes.
+
+### Pasada en vivo de las siete preguntas
+
+Con la API local en marcha y `AI_API_KEY` configurada, el script reparte las siete preguntas de referencia —las seis de SPEC-008 más la ambigua «Dime cuantos dias de vacaciones tiene Juan.»— contra `POST /chat` y comprueba que cada respuesta contiene el hecho del fixture y cita la herramienta esperada:
+
+```powershell
+powershell -NoProfile -File scripts\verify-assistant-questions.ps1 -PaceSeconds 9
+```
+
+| Opción | Efecto |
+|---|---|
+| `-PaceSeconds <n>` | Espera n segundos entre preguntas. El nivel gratuito de Groq limita las ráfagas: sin ritmo, una pasada completa alcanza HTTP 429 en un punto previsible; con ritmo cabe dentro de la ventana de tasa. |
+| `-Only <n>` | Ejecuta solo una pregunta (1..7). |
+| `-ApiBaseUrl <url>` | URL de la API; por defecto `http://127.0.0.1:5101`. |
+
+Códigos de salida: `0` las siete preguntas verdes; `1` fallo de aserción (respuesta sin el hecho esperado o sin la herramienta citada); `3` proveedor no disponible o sin configurar (HTTP 429/503 con la razón indicada en la salida). El script lee el usuario y la contraseña de `.env` y nunca imprime credenciales.
+
+### Problemas frecuentes
+
+| Síntoma | Causa y arreglo |
+|---|---|
+| HTTP 401 `invalid_api_key` | La línea de `.env` no es una asignación limpia y única `AI_API_KEY=<tu clave>` (por ejemplo, quedó pegada a otra asignación sin salto de línea). Corrígela, valida con `docker compose config --quiet` y reinicia la API. |
+| HTTP 404 `model_not_found` | El modelo no está disponible en tu plan de Groq; comprueba el panel del proveedor y ajusta `AI_MODEL`. |
+| HTTP 400 `tool_use_failed` | El proveedor rechazó argumentos o el esquema de una herramienta; inspecciona `docker logs talentassistant-local-api-1` para ver el estado y el cuerpo upstream. |

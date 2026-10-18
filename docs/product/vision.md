@@ -59,8 +59,10 @@ Para las fases de IA:
 
 Los objetivos numéricos deberán definirse antes de cada evaluación; no se considerarán cumplidos por impresión subjetiva.
 
-## 7. Estado respecto a la visión (2026-10-17)
+## 7. Estado respecto a la visión (2026-10-18)
 
-El norte no cambia: Talent Assistant debe convertirse en un asistente conversacional que responda preguntas en lenguaje natural sobre los datos del HCM. La fase de LLM y agentes sigue requiriendo su propia especificación aprobada y la decisión de proveedor; ninguna de las dos existe todavía.
+El norte no cambia: Talent Assistant debe convertirse en un asistente conversacional que responda preguntas en lenguaje natural sobre los datos del HCM.
 
-Hoy están entregados el vertical de revisión de evidencias y la plataforma local. SPEC-008 añade las capacidades de consulta que serán las herramientas del futuro asistente —directorio, presencia, TimeOff y tareas— y hoy responden por API las seis preguntas de referencia del usuario, con un banco automatizado de esas mismas preguntas que sirve de evaluación antes y después de incorporar IA.
+La fase de LLM arrancó con SPEC-009 (aprobada e implementada en local en la rama `feat/conversational-assistant`, decisión registrada en ADR-0011): la página `/assistant` (ES/EN, con sesión) envía la pregunta y el historial a `POST /chat`, y la API responde mediante un catálogo fijo de cinco herramientas ejecutadas con la sesión e idioma del usuario, con Groq como proveedor por API compatible OpenAI. Las siete preguntas de referencia —las seis de SPEC-008 más la ambigua «Juan», que obliga a listar candidatos y preguntar cuál antes de responder— quedan verificadas en vivo y con banco determinista; sin clave de proveedor la aplicación degrada con mensajes controlados y sigue funcionando sin IA. Quedan pendientes de fases posteriores el streaming de respuestas, RAG sobre documentos (FR-014), agentes con roles (FR-017) y las decisiones de política de datos y de límites de tasa que exige un despliegue productivo con proveedor externo.
+
+Hoy están entregados el vertical de revisión de evidencias y la plataforma local. SPEC-008 añadió las capacidades de consulta que el asistente usa como herramientas —directorio, presencia, TimeOff y tareas— y hoy responden por API las seis preguntas de referencia del usuario, con un banco automatizado de esas mismas preguntas que sirve de evaluación antes y después de incorporar IA.

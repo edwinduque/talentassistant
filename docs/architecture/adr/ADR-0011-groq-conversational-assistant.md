@@ -1,8 +1,8 @@
 # ADR-0011 — Asistente conversacional con proveedor Groq (API compatible OpenAI)
 
-- **Estado:** Propuesto (2026-10-17).
+- **Estado:** Aceptado (2026-10-17).
 - **Fecha:** 2026-10-17.
-- **Aprobación de arquitectura:** pendiente de aprobación del usuario junto con SPEC-009.
+- **Aprobación de arquitectura:** aprobado por el usuario junto con SPEC-009 (2026-10-17).
 - **Especificación relacionada:** SPEC-009 — Asistente conversacional con herramientas del backend.
 
 ## Contexto
@@ -50,3 +50,10 @@ El usuario propuso usar un modelo gratuito (Groq, Hugging Face o un modelo local
 ## Verificación de la decisión
 
 La decisión se considerará implementada cuando AC-029..AC-031 tengan evidencia observada: banco de las seis preguntas respondidas por el chat, catálogo cerrado y sin escrituras, degradación sin clave, secretos solo en `.env`, E2E en ES y EN con la clave presente y suite completa en verde. La aprobación de ADR-0011 autoriza planificar; la implementación se ejecuta por tareas.
+
+## Actualizaciones (2026-10-18)
+
+- El modelo se resolvió a `openai/gpt-oss-120b`, confirmado contra la API de Groq con soporte de herramientas; los modelos Llama no estaban disponibles en el plan del usuario (HTTP 404 `model_not_found`).
+- El gateway del proveedor valida los argumentos de herramienta contra el JSON Schema; los cinco esquemas del catálogo aceptan `["string","null"]` y el ejecutor normaliza `null` a argumento ausente.
+- Enmienda de resolución de nombres: la búsqueda de personas dobla acentos («Juan Perez» localiza a «Juan Pérez») y las preguntas de persona exigen `search_employees` primero; con varios candidatos el asistente los lista y pregunta cuál antes de responder, nunca elige en silencio (AC-032).
+- Evidencia de implementación: pasada en vivo de las siete preguntas con salida 0 (`scripts/verify-assistant-questions.ps1 -PaceSeconds 9`), recorrido de navegador ES/EN con turno de elección, verificación independiente con los cinco claims MET, suite completa 70/70 y build 0 errores/0 avisos; commits `4de7672`, `d1ce2e4` y `fb71938`.

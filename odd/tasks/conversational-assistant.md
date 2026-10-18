@@ -53,10 +53,10 @@ Risk: item 2 (nuevo endpoint autenticado y manejo de clave de proveedor). T1 req
 
 | ID | Specs | Ruta | Estado | Evidencia / commit |
 |---|---|---|---|---|
-| T1 | S1, S2 | Inline | Implementada; build 0/0, suite 63/63 con16 pruebas del bucle/cliente sin red | Commit pendiente en `feature-branch-chain` |
-| T2 | S3, S4 | Inline | Implementada; pasada en vivo observada5/6 (Q4 bloqueada por acentos → S6/T4) y UI ES/EN + degradación verificadas en navegador | Commits `ab6d2bc`, `902e25a`; evidencia final tras T4 |
-| T3 | S5 | Inline | Planificada | Depende de T1/T2/T4 |
-| T4 | S6 (enmienda SPEC-008 + SPEC-009) | Inline | Planificada | Matcher sin acentos, fixture Juan Herrera, regla de desambigüación y séptima pregunta en vivo; Risk item 3 (helper compartido con la asistencia) |
+| T1 | S1, S2 | Delegada (context backstop) | Implementada y verificada: verificador5/5, build0/0,15 pruebas del bucle/cliente sin red | `8861456` + `ef9750e` |
+| T2 | S3, S4 | Delegada (context backstop) + correcciones del padre | Implementada;7/7 en vivo (`LIVE_EXIT=0`) y E2E navegador ES/EN con consola a0 | `ab6d2bc`, `902e25a` |
+| T3 | S5 | Delegada (context backstop) | Implementada; guía/README/FR-029·030/NFR-021/AC-029..032/ADR-0011/visión; suite70/70 | Commit de cierre de esta entrada |
+| T4 | S6 (enmienda SPEC-008 + SPEC-009) | Delegada (context backstop) + correcciones del padre | Implementada; RED→GREEN, verificador5/5, séptima pregunta con turno de elección en vivo | `4de7672`, `d1ce2e4`, `fb71938` |
 
 Forecast inicial: aproximadamente 900–1300 líneas authored entre orquestador, cliente, interfaz, pruebas y documentación; archivos generados excluidos. Estrategia `feature-branch-chain`; el umbral de ~400 líneas es heurístico, no un límite de tamaño.
 
@@ -115,3 +115,13 @@ E2E de navegador: sesión con turno de elección en español («Dime cuantos dia
 El verificador validó los cinco claims sin bloqueos sobre `ef9750e..d1ce2e4`: alcance exacto de20 rutas con0 PackageReference y0 secretos; riesgo item3 observado en vivo — el matcher doblado solo en los dos predicados de nombre, comportamiento previo preservado (`name=cardenas/rojas/...` y `name=zzz`=0, oficina exacta sin plegado: `office-demo-tókyo`=0), conducta nueva verificada (`name=Perez`=Juan Pérez; `/timeoff?name=Juan Perez` y `/tasks?name=Juan Perez` resuelven el empleado); invariante de fixtures (Pedro=`vacation` hoy, Juans=`working`, payload español correcto); sin llamadas a `/chat` ni Groq; prompt/fixture/script correctos y script ASCII0; suite68/68, build0/0, compose config en verde; workspace idéntico antes/después y scratch eliminado.
 
 Advisory honestado: la página de asistencia no llamaba a `GetEmployeesAsync` ni en el baseline (filtra por fechas) — la superficie compartida real es el endpoint `/employees?name=` + la resolución interna de timeoff/tasks, que fue la sondeada; el riesgo item3 se materializa ahí y quedó verificado. Sus dos sondas se incorporaron como tests de regresión en `SyntheticWorkforceSourceTests` (`OfficeIdMatchingStaysExactAndUnfolded`, `AccentFoldingFlowsThroughTimeOffAndTasksByIdResolution`).
+
+### L9 — Cierre de T3 y de la característica (2026-10-18)
+
+Texto exacto del usuario: “Autorizar T3 (recomendado)”. T3 delegado al writer (context backstop del padre; T1/T2/T4 también se delegaron por el mismo motivo — las filas de la tabla quedan corregidas para que la ruta sea observable).
+
+Evidencia de cierre:10 ficheros de documentación (guía “Asistente conversacional” en local-setup con claves/modelo/ritmo/códigos de salida/purgas, README, FR-029·FR-030, NFR-021, AC-029..AC-032 textuales con trazabilidad y AC-026 enmendado, ADR-0011 a Aceptado con “Actualizaciones (2026-10-18)”, registro de decisiones con la fila ADR-0011, visión §7 actualizada, estado de SPEC-009 §10 con los7 commits y evidencia de la enmienda en SPEC-008 §11). Corregido el rango del spec “FR-020..FR-028” (el catálogo salta de FR-027 a FR-029). Verificación final del padre: `gsk_` sin apariciones, build0/0 y suite70/70 (5 unit +65 integración), `git diff --check` limpio.
+
+Estado: rama `feat/conversational-assistant` con8 commits sobre `main` (`8861456`, `ef9750e`, `ab6d2bc`, `902e25a`, `4de7672`, `d1ce2e4`, `fb71938`, cierre de T3), árbol limpio, sin push (pendiente de autorización explícita). Estrategia de entrega `feature-branch-chain` cumplida localmente; revisión nativa desactivada (disabled/unmanaged). Forecast inicial900–1300 líneas frente al total real de la rama (`main...HEAD`) — el exceso se explica por las4 enmiendas autorizadas (desambigüación/acentos) y por la dureza del ciclo en vivo (esquemas null, fixtures coherentes, ritmo del script), no por ampliación de alcance no pedida.
+
+Risk de la característica: item3 (matcher compartido con el endpoint de búsqueda — verificado con tests de regresión en `fb71938`). Próximo paso pendiente: publicar la rama si el usuario lo autoriza.
