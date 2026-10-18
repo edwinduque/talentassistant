@@ -48,6 +48,36 @@ public sealed class ChatOrchestratorTests
     }
 
     [Fact]
+    public async Task NullPresenceDateIsNormalizedToTodayInsteadOfAFailedTool()
+    {
+        // Observed against the live provider: the model expresses "defaults to
+        // today" as {"date":null}. The schema must accept null (see catalog
+        // test) and the executor must treat it as absent, so the follow-up
+        // tool message carries today's real snapshot instead of a tool error.
+        var model = new ScriptedLanguageModel();
+        model.Enqueue(new AssistantCompletion(
+            Content: null,
+            ToolCalls:
+            [
+                new AssistantToolCall("call-1", "presence", """{"date":null}""")
+            ]));
+        model.Enqueue(new AssistantCompletion("Hoy hay empleados presentes.", []));
+        var orchestrator = CreateOrchestrator(model);
+
+        var result = await orchestrator.ExecuteAsync(
+            new ChatQuery("¿Quién está presente hoy?", History: [], Language: "es"));
+
+        Assert.True(result.Completed);
+        Assert.Equal(["presence"], result.ToolsUsed);
+
+        var toolMessage = Assert.Single(
+            model.Requests[1].Messages,
+            message => message.Role == "tool");
+        Assert.DoesNotContain("error", toolMessage.Content, StringComparison.OrdinalIgnoreCase);
+        Assert.Contains("Juan Pérez", toolMessage.Content);
+    }
+
+    [Fact]
     public async Task ToolResultsUseTheRequestedLanguage()
     {
         var model = new ScriptedLanguageModel();
@@ -132,6 +162,34 @@ public sealed class ChatOrchestratorTests
         Assert.False(result.Completed);
         Assert.Equal(string.Empty, result.Answer);
         Assert.Equal(options.MaxToolRounds, model.Requests.Count);
+    }
+
+    [Fact]
+    public async Task SystemPromptInstructsAskingWhichEmployeeWhenTheNameMatchesSeveral()
+    {
+        // SPEC-009 §3/§8 as amended 2026-10-18 (AC-032): the system prompt must
+        // carry the disambiguation rule so the model lists the candidates and
+        // asks which person it means before answering.
+        var model = new ScriptedLanguageModel();
+        model.Enqueue(new AssistantCompletion("¿Cuál de los dos quieres decir?", []));
+        var orchestrator = CreateOrchestrator(model);
+
+        var result = await orchestrator.ExecuteAsync(
+            new ChatQuery(
+                "Dime cuantos dias de vacaciones tiene Juan.",
+                History: [],
+                Language: "es"));
+
+        Assert.True(result.Completed);
+        var system = model.Requests[0].Messages[0];
+        Assert.Equal("system", system.Role);
+        Assert.Contains("ask which one", system.Content);
+
+        // The candidate lookup must be mandatory and FIRST for person
+        // questions: only search_employees makes the ambiguity visible to the
+        // model (timeoff resolves ids internally and hides it), live-observed
+        // when a direct timeoff call answered "Juan" without asking (2026-10-18).
+        Assert.Contains("first call search_employees", system.Content);
     }
 
     [Fact]

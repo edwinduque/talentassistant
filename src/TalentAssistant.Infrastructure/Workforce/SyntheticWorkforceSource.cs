@@ -1,3 +1,5 @@
+using System.Globalization;
+using System.Text;
 using TalentAssistant.Application.Attendance;
 using TalentAssistant.Application.Workforce;
 using TalentAssistant.Infrastructure.Attendance;
@@ -7,12 +9,13 @@ namespace TalentAssistant.Infrastructure.Workforce;
 /// <summary>
 /// Synthetic implementation of the workforce port (SPEC-008). The five
 /// employees that already have incidents are derived from the shared attendance
-/// catalog so their display names stay identical in both languages; three demo
-/// employees make the user's questions literal. Presence states are supplied
-/// data of this synthetic HCM: never derived here from punches or calendars.
-/// The snapshot covers local today and the next two days (fixtures anchored to
-/// the machine's local date, as SPEC-008 assumes); other dates return an empty
-/// snapshot, not an invented state.
+/// catalog so their display names stay identical in both languages; four demo
+/// employees make the user's questions literal, with a second "Juan" (Juan
+/// Herrera) forcing name disambiguation (SPEC-008 amendment 2026-10-18).
+/// Presence states are supplied data of this synthetic HCM: never derived here
+/// from punches or calendars. The snapshot covers local today and the next two
+/// days (fixtures anchored to the machine's local date, as SPEC-008 assumes);
+/// other dates return an empty snapshot, not an invented state.
 /// </summary>
 public sealed class SyntheticWorkforceSource : IHcmWorkforceSource
 {
@@ -24,12 +27,15 @@ public sealed class SyntheticWorkforceSource : IHcmWorkforceSource
     private sealed record DemoEmployee(string Id, string DisplayName, string OfficeId);
 
     // Proper nouns are data and stay identical across languages (SPEC-007 §6).
+    // Juan Herrera exists only to share the first name "Juan" with Juan Pérez
+    // and force the assistant's disambiguation rule (SPEC-008 amendment).
     private static readonly IReadOnlyList<DemoEmployee> DemoEmployees =
         Array.AsReadOnly<DemoEmployee>(
         [
             new("employee-demo-juan", "Juan Pérez", "office-demo-madrid"),
             new("employee-demo-pedro", "Pedro Rojas", "office-demo-tokyo"),
-            new("employee-demo-mauricio", "Mauricio Cardenas", "office-demo-madrid")
+            new("employee-demo-mauricio", "Mauricio Cardenas", "office-demo-madrid"),
+            new("employee-demo-herrera", "Juan Herrera", "office-demo-tokyo")
         ]);
 
     // Presentation texts for the workforce capabilities (SPEC-008 §6).
@@ -93,7 +99,8 @@ public sealed class SyntheticWorkforceSource : IHcmWorkforceSource
         {
             [Today] = States(
                 ("employee-demo-juan", WorkingState),
-                ("employee-demo-pedro", WorkingState),
+                ("employee-demo-herrera", WorkingState),
+                ("employee-demo-pedro", VacationState),
                 ("employee-demo-madrid", WorkingState),
                 ("employee-demo-tokyo-002", WorkingState),
                 ("employee-demo-mauricio", NotArrivedState),
@@ -105,7 +112,7 @@ public sealed class SyntheticWorkforceSource : IHcmWorkforceSource
                 ("employee-demo-mauricio", WorkingState),
                 ("employee-demo-madrid", WorkingState),
                 ("employee-demo-tokyo", WorkingState),
-                ("employee-demo-pedro", NotArrivedState),
+                ("employee-demo-pedro", VacationState),
                 ("employee-demo-tokyo-002", VacationState),
                 ("employee-demo-madrid-002", AbsentState),
                 ("employee-demo-madrid-004", AbsentState)),
@@ -147,8 +154,10 @@ public sealed class SyntheticWorkforceSource : IHcmWorkforceSource
 
         if (!string.IsNullOrWhiteSpace(query.Name))
         {
+            var normalizedName = NormalizeForNameMatching(query.Name);
             employees = employees.Where(employee =>
-                employee.DisplayName.Contains(query.Name, StringComparison.OrdinalIgnoreCase));
+                NormalizeForNameMatching(employee.DisplayName)
+                    .Contains(normalizedName, StringComparison.OrdinalIgnoreCase));
         }
 
         if (!string.IsNullOrWhiteSpace(query.OfficeId))
@@ -324,15 +333,39 @@ public sealed class SyntheticWorkforceSource : IHcmWorkforceSource
 
         if (!string.IsNullOrWhiteSpace(query.Name))
         {
+            var normalizedName = NormalizeForNameMatching(query.Name);
             return DirectoryFor(language)
                 .Where(employee =>
-                    employee.DisplayName.Contains(query.Name, StringComparison.OrdinalIgnoreCase))
+                    NormalizeForNameMatching(employee.DisplayName)
+                        .Contains(normalizedName, StringComparison.OrdinalIgnoreCase))
                 .Select(employee => employee.Id)
                 .ToHashSet(StringComparer.OrdinalIgnoreCase);
         }
 
         // No filter: the whole collection (no silent selection).
         return null;
+    }
+
+    /// <summary>
+    /// Accent-insensitive name folding (SPEC-008 S1 as amended 2026-10-18:
+    /// «Juan Perez» must locate «Juan Pérez», and ñ folds to n). The value is
+    /// decomposed to Form D and stripped of non-spacing marks; the caller
+    /// compares both normalized sides with OrdinalIgnoreCase. Used only by the
+    /// two name-matching sites — office ids keep exact matching.
+    /// </summary>
+    private static string NormalizeForNameMatching(string value)
+    {
+        var decomposed = value.Normalize(NormalizationForm.FormD);
+        var builder = new StringBuilder(decomposed.Length);
+        foreach (var character in decomposed)
+        {
+            if (CharUnicodeInfo.GetUnicodeCategory(character) != UnicodeCategory.NonSpacingMark)
+            {
+                builder.Append(character);
+            }
+        }
+
+        return builder.ToString();
     }
 
     public Task<IReadOnlyList<HcmTimeOffRequest>> GetTimeOffAsync(

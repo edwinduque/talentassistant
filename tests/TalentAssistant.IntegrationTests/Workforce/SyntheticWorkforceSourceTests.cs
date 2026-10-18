@@ -13,13 +13,44 @@ public sealed class SyntheticWorkforceSourceTests
         var lower = await Source.SearchEmployeesAsync(new EmployeeSearchQuery(Name: "juan"));
         var upper = await Source.SearchEmployeesAsync(new EmployeeSearchQuery(Name: "JUAN"));
 
-        var employee = Assert.Single(lower);
-        Assert.Equal("employee-demo-juan", employee.Id);
-        Assert.Equal("Juan Pérez", employee.DisplayName);
-        Assert.Equal(employee.Id, Assert.Single(upper).Id);
+        // Amended SPEC-008 S1 (AC-026): the shared first name matches both
+        // Juans (Pérez and Herrera) without silent selection.
+        Assert.Equal(
+            new[] { "employee-demo-herrera", "employee-demo-juan" },
+            lower.Select(employee => employee.Id).Order());
+        Assert.Equal(
+            lower.Select(employee => employee.Id).Order(),
+            upper.Select(employee => employee.Id).Order());
 
         var partial = await Source.SearchEmployeesAsync(new EmployeeSearchQuery(Name: "rojas"));
         Assert.Equal("Pedro Rojas", Assert.Single(partial).DisplayName);
+    }
+
+    [Fact]
+    public async Task UnaccentedNameFoldsToTheAccentedDisplayName()
+    {
+        // SPEC-008 S1 as amended 2026-10-18 (AC-026): «Juan Perez» without the
+        // accent must locate «Juan Pérez» because both sides of the name match
+        // are normalized before comparing.
+        var matches = await Source.SearchEmployeesAsync(
+            new EmployeeSearchQuery(Name: "Juan Perez"));
+
+        var employee = Assert.Single(matches);
+        Assert.Equal("Juan Pérez", employee.DisplayName);
+    }
+
+    [Fact]
+    public async Task SharedFirstNameReturnsBothJuansWithoutChoosing()
+    {
+        // SPEC-008 S1 as amended 2026-10-18 (AC-026): a shared short name
+        // returns every match so the assistant can disambiguate instead of
+        // picking silently.
+        var matches = await Source.SearchEmployeesAsync(new EmployeeSearchQuery(Name: "Juan"));
+
+        Assert.Equal(2, matches.Count);
+        var names = matches.Select(employee => employee.DisplayName).ToArray();
+        Assert.Contains("Juan Pérez", names);
+        Assert.Contains("Juan Herrera", names);
     }
 
     [Fact]
@@ -78,7 +109,12 @@ public sealed class SyntheticWorkforceSourceTests
             .Select(entry => entry.Employee.DisplayName)
             .ToArray();
         Assert.Contains("Juan Pérez", working);
-        Assert.Contains("Pedro Rojas", working);
+        Assert.Contains("Juan Herrera", working);
+
+        // Pedro Rojas is on an approved leave covering today (15->20 Oct): his
+        // presence row must agree with his timeoff request (fixture-consistency
+        // fix, 2026-10-18), so he is not working right now.
+        Assert.DoesNotContain("Pedro Rojas", working);
 
         var onVacation = snapshot.Entries
             .Where(entry => entry.State == SyntheticWorkforceSource.VacationState)

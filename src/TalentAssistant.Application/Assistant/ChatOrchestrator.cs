@@ -51,23 +51,23 @@ public sealed class ChatOrchestrator(
             new(
                 "search_employees",
                 "Search the employee directory by display name and/or office id.",
-                """{"type":"object","properties":{"name":{"type":"string"},"office":{"type":"string"}},"required":[]}"""),
+                """{"type":"object","properties":{"name":{"type":["string","null"]},"office":{"type":["string","null"]}},"required":[]}"""),
             new(
                 "presence",
                 "Get the presence snapshot for a local date (yyyy-MM-dd, defaults to today).",
-                """{"type":"object","properties":{"date":{"type":"string","description":"Local date as yyyy-MM-dd"}},"required":[]}"""),
+                """{"type":"object","properties":{"date":{"type":["string","null"],"description":"Local date as yyyy-MM-dd"}},"required":[]}"""),
             new(
                 "timeoff",
                 "Get the time off requests of an employee by employee id and/or name.",
-                """{"type":"object","properties":{"employee_id":{"type":"string"},"name":{"type":"string"}},"required":[]}"""),
+                """{"type":"object","properties":{"employee_id":{"type":["string","null"]},"name":{"type":["string","null"]}},"required":[]}"""),
             new(
                 "tasks",
                 "Get the tasks of an employee by employee id and/or name.",
-                """{"type":"object","properties":{"employee_id":{"type":"string"},"name":{"type":"string"}},"required":[]}"""),
+                """{"type":"object","properties":{"employee_id":{"type":["string","null"]},"name":{"type":["string","null"]}},"required":[]}"""),
             new(
                 "attendance_insights",
                 "Get attendance insights for a date range (from inclusive, to exclusive, both yyyy-MM-dd).",
-                """{"type":"object","properties":{"from":{"type":"string","description":"Inclusive start date as yyyy-MM-dd"},"to":{"type":"string","description":"Exclusive end date as yyyy-MM-dd"}},"required":["from","to"]}""")
+                """{"type":"object","properties":{"from":{"type":["string","null"],"description":"Inclusive start date as yyyy-MM-dd"},"to":{"type":["string","null"],"description":"Exclusive end date as yyyy-MM-dd"}},"required":["from","to"]}""")
         ]);
 
     // Names for the requested language in system-prompt instructions (SPEC-009 S1).
@@ -172,7 +172,12 @@ public sealed class ChatOrchestrator(
             $"You are Talent Assistant, an internal HR assistant. Always answer in {languageName}.",
             "Answer ONLY with data returned by the tools; never invent employees, dates or facts.",
             "If the tools do not return the data needed, say explicitly that the information is not available.",
-            "Call a tool and wait for its result before answering.");
+            "Call a tool and wait for its result before answering.",
+            "For questions about a specific person, first call search_employees with the name from the question;"
+            + " if it matches several employees, list the matching candidates (display name and office) and ask"
+            + " which one you mean before answering; never pick one silently.",
+            "For leave or return-date questions use timeoff; use presence only for who is present, absent"
+            + " or on leave right now.");
     }
 
     private async Task<string> ExecuteToolAsync(
