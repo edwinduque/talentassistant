@@ -149,4 +149,58 @@ public sealed class SyntheticWorkforceSourceTests
         Assert.Contains(english.Entries,
             entry => entry.Employee.DisplayName.StartsWith("Synthetic employee"));
     }
+
+    [Fact]
+    public async Task OfficeIdMatchingStaysExactAndUnfolded()
+    {
+        // SPEC-009 T4 scope: only the two name-matching predicates fold
+        // accents; office ids keep exact matching (verified live: a folded
+        // office id must match nothing).
+        var tokyo = await Source.SearchEmployeesAsync(
+            new EmployeeSearchQuery(OfficeId: "office-demo-tokyo"));
+
+        var names = tokyo.Select(employee => employee.DisplayName).ToArray();
+        Assert.Contains("Pedro Rojas", names);
+        Assert.Contains("Juan Herrera", names);
+        Assert.DoesNotContain("Juan Pérez", names);
+
+        var folded = await Source.SearchEmployeesAsync(
+            new EmployeeSearchQuery(OfficeId: "office-demo-tókyo"));
+        Assert.Empty(folded);
+    }
+
+    [Fact]
+    public async Task AccentFoldingFlowsThroughTimeOffAndTasksByIdResolution()
+    {
+        // The same helper backs ResolveEmployeeIds, so the unaccented name
+        // must resolve the employee for timeoff/tasks too (old behavior
+        // returned zero matches).
+        var timeOff = await Source.GetTimeOffAsync(
+            new EmployeeDataQuery(Name: "Juan Perez"));
+
+        var request = Assert.Single(timeOff);
+        Assert.Equal("employee-demo-juan", request.EmployeeId);
+        Assert.Equal("timeoff-juan-2026-10", request.Reference);
+        Assert.Equal(new DateOnly(2026, 10, 13), request.StartsOn);
+        Assert.Equal(new DateOnly(2026, 10, 16), request.EndsBefore);
+        Assert.Equal("3", request.Duration);
+
+        var tasks = await Source.GetTasksAsync(
+            new EmployeeDataQuery(Name: "Juan Perez"));
+        Assert.Equal("task-juan-timesheet", Assert.Single(tasks).Reference);
+
+        // Ambiguous "Juan" unions both matched ids without silent selection;
+        // Juan Herrera contributes no timeoff and no tasks (exactly one
+        // extra demo employee).
+        var both = await Source.GetTimeOffAsync(
+            new EmployeeDataQuery(Name: "Juan"));
+        Assert.Equal(
+            new[] { "timeoff-juan-2026-10" },
+            both.Select(item => item.Reference).Order());
+
+        Assert.Empty(await Source.GetTimeOffAsync(
+            new EmployeeDataQuery(Name: "Juan Herrera")));
+        Assert.Empty(await Source.GetTasksAsync(
+            new EmployeeDataQuery(Name: "Juan Herrera")));
+    }
 }
