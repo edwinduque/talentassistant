@@ -39,6 +39,14 @@ Alcance: guía (clave/modelo en `.env`, flujo, coste y límites del tier gratuit
 
 Aceptación: trazabilidad completa; guía reproducible sin secretos; suite verde; recorrido de navegador; verificador independiente sin bloqueos.
 
+### S6 — Resolución de nombres y desambigüación (enmienda 2026-10-18)
+
+Alcance: matcher del source insensible a acentos (SPEC-008 S1 enmendado: «Juan Perez» localiza a «Juan Pérez»), fixture «Juan Herrera» como segundo «Juan» (SPEC-008 catálogo enmendado), regla de desambigüación en el system prompt del asistente (SPEC-009 §3/§8 enmendados: varios candidatos → listar y preguntar cuál, nunca elegir en silencio), y ampliación de la pasada en vivo con la séptima pregunta ambigua.
+
+Texto exacto del usuario: “El modelo deberia tener la capacidad de que si le escribo Juan busque los juanes y si hay mas de uno antes que nada te pregunte cual Juan”.
+
+Aceptación: AC-026 (acentos + doble «Juan») y AC-032 (el asistente pregunta entre candidatos y responde tras la elección) con evidencia de banco determinista y pasada en vivo.
+
 Risk: item 2 (nuevo endpoint autenticado y manejo de clave de proveedor). T1 requiere verificación independiente tras sus checks propios.
 
 ## Tasks
@@ -46,8 +54,9 @@ Risk: item 2 (nuevo endpoint autenticado y manejo de clave de proveedor). T1 req
 | ID | Specs | Ruta | Estado | Evidencia / commit |
 |---|---|---|---|---|
 | T1 | S1, S2 | Inline | Implementada; build 0/0, suite 63/63 con16 pruebas del bucle/cliente sin red | Commit pendiente en `feature-branch-chain` |
-| T2 | S3, S4 | Inline | Implementada; chat ES/EN, nav y script de6 preguntas; E2E en vivo pendiente de AI_API_KEY | Commit pendiente en `feature-branch-chain` |
-| T3 | S5 | Inline | Planificada | Depende de T1/T2 |
+| T2 | S3, S4 | Inline | Implementada; pasada en vivo observada5/6 (Q4 bloqueada por acentos → S6/T4) y UI ES/EN + degradación verificadas en navegador | Commits `ab6d2bc`, `902e25a`; evidencia final tras T4 |
+| T3 | S5 | Inline | Planificada | Depende de T1/T2/T4 |
+| T4 | S6 (enmienda SPEC-008 + SPEC-009) | Inline | Planificada | Matcher sin acentos, fixture Juan Herrera, regla de desambigüación y séptima pregunta en vivo; Risk item 3 (helper compartido con la asistencia) |
 
 Forecast inicial: aproximadamente 900–1300 líneas authored entre orquestador, cliente, interfaz, pruebas y documentación; archivos generados excluidos. Estrategia `feature-branch-chain`; el umbral de ~400 líneas es heurístico, no un límite de tamaño.
 
@@ -82,3 +91,21 @@ El verificador validó los cinco claims sin bloqueos: alcance del diff exacto (1
 Advisories: (1) `AI__Provider` en appsettings es informativo hoy — el conmutador real es BaseUrl/ApiKey según ADR-0011; (2) GET /chat devuelve 405, el gate real es POST (relevante para el E2E de T2); (3) se propone un test HTTP del endpoint (TestServer) que queda diferido como los tests 401 anteriores.
 
 Risk: item 2 (endpoint autenticado y clave de proveedor) — verificado sin bloqueos.
+
+### L6 — T2: pasada en vivo, defecto de esquemas nulos y enmienda de nombres (2026-10-18)
+
+Texto exacto del usuario (aprobó T2): “Autorizar T2 con lo anterior (recomendado)”. Texto exacto del usuario sobre el bloqueo de Q4: “El modelo deberia tener la capacidad de que si le escribo Juan busque los juanes y si hay mas de uno antes que nada te pregunte cual Juan”.
+
+Evidencia de T2: página `/assistant` con enlace de navegación, estado vacío, historial y mensajes de fallo localizados (verificados en navegador ES con consola a0); degradación 503 NotConfigured localizada observada antes de la clave; script `scripts/verify-assistant-questions.ps1` con login desde .env, aserciones de hechos del fixture (Q1..Q6) y salida ASCII-proof; modelo `openai/gpt-oss-120b` confirmado con la API de Groq (los Llama no disponibles en el plan del usuario); build0/0 y suite65/65 con los dos tests nuevos.
+
+Defecto encontrado y corregido en vivo: Groq valida los argumentos de tool contra nuestro JSON Schema y rechazaba con HTTP400 tool_use_failed cuando el modelo expresaba el valor por defecto como null (`presence {"date":null}`); fix: los cinco esquemas aceptan ["string","null"] (el ejecutor ya normalizaba null→ausente), con test RED→GREEN (`EveryParameterAcceptsNullBecauseTheProviderValidatesArgumentsAgainstTheSchema`) y pin de comportamiento (`NullPresenceDateIsNormalizedToTodayInsteadOfAFailedTool`). La verificación de red fue necesaria: hubo un404 por modelo inaccesible y un401 por una línea AI_API_KEY corrupta en .env (mi apéndice de AI_MODEL sin salto de línea previo la pegó a la clave; reparada y validada con sha y /models200).
+
+Bloqueo de Q4: la pregunta literal “Juan Perez” sin acento no supera el matcher contains/OrdinalIgnoreCase (SPEC-008 lo especificaba así) → vacío → “No hay información disponible” (falla la aserción de hechos /\b3\b/). Decisión del usuario (más ambiciosa que la enmienda técnica propuesta): buscar devuelve todos los coincidentes y, si hay varios para una persona concreta, el asistente pregunta cuál antes de responder. Se redactó la enmienda: SPEC-008 (fixtures +Juan Herrera, matcher sin acentos, AC-026 ampliado) y SPEC-009 (principio y diseño de desambigüación, flujo §4, AC-032, encabezados aprobados/AC-032), más S6 y T4 en este plan. Pendiente de aprobación de la enmienda.
+
+### L7 — Evidencia de T2/T4: siete preguntas verdes y turno de elección (2026-10-18)
+
+Pasada en vivo completa (`scripts/verify-assistant-questions.ps1 -PaceSeconds 9`) con `LIVE_EXIT=0`: las seis preguntas de referencia más la séptima ambigua responden con los hechos del fixture. Q4 («Juan Perez» sin acento) → search_employees + timeoff → «3 días laborables (del 13 al15 de octubre2026)». Q5 coherente (search_employees + timeoff → «20 de octubre de2026»). Q7 → `search_employees` primero, lista «Juan Pérez – Oficina: Madrid» y «Juan Herrera – Oficina: Tokio» y pregunta «¿A cuál de ellos te refieres?» (AC-032 en vivo).
+
+Dos defectos observados y corregidos durante la pasada, además del400 por esquemas nulos registrado en L6: (1) presencia de Pedro Rojas decía «trabajando» hoy mientras su timeoff aprobado (15→20 oct) lo cubre — Q5 cambió de respuesta entre pasadas; filas de presencia de hoy y mañana corregidas a `VacationState` y banco/tests reconciliados (Q1 y SyntheticWorkforceSourceTests ahora exigen que NO figura como trabajando). (2) Q7 no preguntaba: el modelo iba directo a `timeoff(name="Juan")` y la resolución interna de ids ocultaba la ambigüedad — el prompt ahora exige `search_employees` PRIMERO en preguntas de persona (pin de test `first call search_employees`) y guía timeoff/presence según el tipo de pregunta.
+
+E2E de navegador: sesión con turno de elección en español («Dime cuantos dias de vacaciones tiene Juan.» → candidatos + «¿A cuál?» → «El de Pérez, por favor.» → «3 días laborables (del13 al15 de octubre2026)» con Fuentes: timeoff); perfil a inglés y pregunta en inglés → «Juan Pérez has **3 vacation days** approved.» con etiqueta Sources; perfil restaurado a español y logout; consola con0 errores en todo el recorrido. Suite final: build0/0 y68/68 (5 unit +63 integración). La ventana de tasa de Groq exige ritmo (`-PaceSeconds`) o reintentos: el429 se maneja con código3 y mensaje específico.

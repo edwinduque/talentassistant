@@ -22,7 +22,7 @@ Reanclar el proyecto en su norte —un asistente para responsables de RR. HH. qu
   - Solicitudes de TimeOff por empleado (referencia, tipo, estado, fechas, duración y unidad).
   - Tareas por empleado (referencia, título, estado, fecha límite si existe) — activa FR-004.
 - Endpoints de la API para estas capacidades, protegidos por sesión (el futuro chatbot los llamará como herramientas autorizadas por el backend).
-- Fixtures sintéticos bilingües para las nuevas capacidades, con nombres reconocibles de demostración (Juan Pérez, Pedro Rojas, Mauricio Cardenas) junto a los empleados existentes.
+- Fixtures sintéticos bilingües para las nuevas capacidades, con nombres reconocibles de demostración (Juan Pérez, Pedro Rojas, Mauricio Cardenas, y Juan Herrera como segundo «Juan» para exigir desambigüación) junto a los empleados existentes. *(Enmienda 2026-10-18.)*
 - Mejora visible en la interfaz: panel de «Presencia de hoy» en el home y retiro del campo manual de «ID de empleado» en la página de asistencia (sustituido por la búsqueda por nombre disponible en las nuevas capacidades).
 - Corpus de evaluación pre-IA: las preguntas literales del usuario convertidas en escenarios automatizados (herramienta esperada y respuesta esperada contra los fixtures).
 - Actualización de la documentación de producto: visión, README y estado actual reanclados al norte conversacional.
@@ -40,7 +40,7 @@ Reanclar el proyecto en su norte —un asistente para responsables de RR. HH. qu
 - Las capacidades se exponen como operaciones tipadas detrás de `IHcmWorkforceSource` (nombre propuesto), sin romper el puerto existente de asistencia; Application no depende de Infrastructure ni de la interfaz (NFR-001/NFR-002).
 - Los endpoints nuevos exigen sesión (política de autorización vigente); serán las herramientas que el asistente invocará, con autorización siempre en el backend.
 - Los datos siguen siendo sintéticos, bilingües (es/en, según el usuario) y deterministas; `talentassistant_tests` no recibe la semilla.
-- Búsqueda por nombre: coincidencia insensible a mayúsculas que contiene el texto, adecuada mientras el dataset sea pequeño (mismo criterio ya asumido para el filtro por JSON); múltiples coincidencias devuelven la lista, no eligen en silencio.
+- Búsqueda por nombre: coincidencia insensible a mayúsculas **y acentos** (ambos lados se normalizan antes de comparar, para que «Juan Perez» localice a «Juan Pérez»; enmienda 2026-10-18) que contiene el texto, adecuada mientras el dataset sea pequeño (mismo criterio ya asumido para el filtro por JSON); múltiples coincidencias devuelven la lista, no eligen en silencio.
 
 ## 4. Preguntas del usuario como escenarios
 
@@ -81,7 +81,7 @@ Cada escenario se automatiza en pruebas contra los fixtures, con la misma forma 
 | ID | Criterio verificable propuesto | Evidencia futura |
 |---|---|---|
 | AC-025 | La consulta de presencia para una fecha devuelve cada empleado con el estado informado por la fuente; «trabajando», «no ha llegado» y «de vacaciones» responden las preguntas 1–3 con los fixtures. | Pruebas de escenario 1–3 contra la API. |
-| AC-026 | La búsqueda por nombre localiza a Juan Pérez y Pedro Rojas; sus respuestas de TimeOff informan días y fecha de regreso tal como los declara la fuente, sin cálculos de Talent Assistant. | Pruebas de escenario 4–5 y verificación de que no hay lógica de cálculo. |
+| AC-026 | La búsqueda por nombre localiza a Juan Pérez y Pedro Rojas **y es insensible a acentos («Juan Perez» sin acento localiza a Juan Pérez); una búsqueda corta compartida («Juan») devuelve a los dos Juans sin elegir en silencio**; sus respuestas de TimeOff informan días y fecha de regreso tal como los declara la fuente, sin cálculos de Talent Assistant. *(Enmienda 2026-10-18.)* | Pruebas de escenario 4–5, prueba de acentos y de doble «Juan», y verificación de que no hay lógica de cálculo. |
 | AC-027 | Las tareas de Mauricio Cardenas se consultan por nombre y la fuente determina qué significa «pendiente»; FR-004 queda implementado. | Pruebas de escenario 6 y trazabilidad FR-004. |
 | AC-028 | El banco de preguntas automatizado cubre las seis preguntas literales, la suite completa permanece verde, el home muestra «Presencia de hoy», la página de asistencia ya no pide id manual y todo el contenido nuevo existe en español e inglés. | Suite completa, recorrido de navegador y revisión de la poda. |
 
@@ -90,7 +90,7 @@ Cada escenario se automatiza en pruebas contra los fixtures, con la misma forma 
 1. Nuevo puerto `IHcmWorkforceSource` en Application; el puerto de asistencia existente no cambia.
 2. Fuente workforce implementada sobre fixtures ampliados; los estados llegan como valores de la fuente.
 3. Endpoints de la API: `/employees`, `/presence`, `/timeoff`, `/tasks`, con sesión obligatoria y errores controlados coherentes con los existentes.
-4. Los fixtures añaden empleados de demostración (Juan Pérez, Pedro Rojas, Mauricio Cardenas) más presencia de hoy, solicitudes de TimeOff y tareas, en los dos idiomas.
+4. Los fixtures añaden empleados de demostración (Juan Pérez, Pedro Rojas, Mauricio Cardenas y Juan Herrera —segundo «Juan» para desambigüación—) más presencia de hoy, solicitudes de TimeOff y tareas, en los dos idiomas.
 5. Web: panel de presencia en el home y retiro del campo de id en asistencia.
 6. Banco de escenarios automatizados con las seis preguntas; visión/README/estado actual reanclados.
 

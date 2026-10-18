@@ -1,9 +1,9 @@
 # SPEC-009 — Asistente conversacional con herramientas del backend
 
-- **Estado:** Propuesto para aprobación de planificación (2026-10-17).
-- **Implementación:** Ninguna; todavía no hay código asociado.
+- **Estado:** Aprobada para planificación (2026-10-17) e implementada en curso; enmienda de resolución de nombres (2026-10-18) pendiente de aprobación.
+- **Implementación:** T1 (orquestador y cliente de proveedor) y T2 (interfaz de chat) en `feat/conversational-assistant`; T3 pendiente.
 - **Requisitos relacionados (propuestos):** FR-029, FR-030 y NFR-021. Relacionados existentes: FR-012, FR-013, FR-016, FR-020..FR-028; NFR-004, NFR-006, NFR-013, NFR-014.
-- **Criterios relacionados (propuestos):** AC-029, AC-030, AC-031.
+- **Criterios relacionados (propuestos):** AC-029, AC-030, AC-031 y AC-032 (enmienda 2026-10-18).
 - **Decisión arquitectónica:** ADR-0011 propuesto (proveedor Groq vía API compatible OpenAI).
 - **Decisión de producto registrada:** el usuario eligió “Groq (API en la nube)” el 2026-10-17, tras la corrección de que el modelo no consulta los datos directamente sino que pide herramientas.
 - **Versión:** 0.1.
@@ -34,6 +34,7 @@ Añadir una página de chat donde el responsable de RR. HH. pregunte en lenguaje
 ## 3. Requisitos y límites arquitectónicos
 
 - La IA no accede a los datos: todas las respuestas pasan por los casos de uso existentes de Application, con la sesión e idioma del usuario autenticado (coherente con ADR-0003, FR-013 y NFR-014).
+- Resolución de nombres y desambigüación: la búsqueda de personas es insensible a acentos (SPEC-008 enmendada) y, cuando una pregunta de una persona concreta coincide con varios empleados, el asistente lista los candidatos y pregunta cuál antes de responder; nunca elige en silencio. *(Enmienda 2026-10-18.)*
 - El catálogo de herramientas es fijo y cerrado en el backend; el modelo no lo amplía ni decide permisos.
 - Clave del proveedor y configuración solo en `.env`/User Secrets; nunca en el repositorio ni en imágenes (NFR-004).
 - La respuesta debe distinguir los datos devueltos por las herramientas de cualquier texto del modelo: si las herramientas no traen el dato, el asistente lo dice (sin inventar).
@@ -43,7 +44,7 @@ Añadir una página de chat donde el responsable de RR. HH. pregunte en lenguaje
 
 1. El usuario abre `/assistant`, autenticado, y escribe «Dime cuantos dias de vacaciones tiene Juan Perez».
 2. La API envía la pregunta y el historial al proveedor con el catálogo de herramientas.
-3. El modelo responde con una llamada a `get_timeoff(name="Juan")`; la API la ejecuta con su sesión e idioma.
+3. Para una pregunta de persona, el modelo llama primero a `search_employees(name="Juan")`: con un único candidato continúa con `timeoff`, y con varios (p. ej. Juan Pérez y Juan Herrera) devuelve una pregunta con los candidatos antes de consultar datos. *(Enmienda 2026-10-18.)*
 4. El modelo redacta la respuesta a partir de los datos reales; la traza de herramientas viaja con la respuesta.
 5. Si el proveedor falla o agota el tiempo, la interfaz muestra un mensaje localizado controlado; la aplicación sigue funcionando sin IA.
 6. Las seis preguntas de SPEC-008 producen respuestas que contienen los valores de los fixtures (criterio de aceptación automatizado donde sea posible).
@@ -71,15 +72,17 @@ Añadir una página de chat donde el responsable de RR. HH. pregunte en lenguaje
 | AC-029 | Las seis preguntas de SPEC-008, formuladas en el chat, producen respuestas que contienen los valores esperados de los fixtures y citan la herramienta usada. | Pruebas del bucle con transporte falso y pasada en vivo documentada con la clave presente. |
 | AC-030 | El modelo solo invoca el catálogo fijo, las invocaciones usan la sesión e idioma del usuario, no hay escrituras y una pregunta sin datos recibe una respuesta de «sin información» del propio asistente. | Pruebas unitarias del orquestador y revisión del catálogo. |
 | AC-031 | Sin clave o sin red la aplicación degrada con mensajes localizados controlados; secretos solo en `.env`; límites de tiempo/rondas activos; suite completa en verde y recorrido de navegador del chat en ES y EN. | Pruebas de degradación, inspección y E2E de navegador. |
+| AC-032 | Una pregunta por una persona con nombre compartido («Juan») recibe una respuesta del asistente que lista los candidatos y pregunta cuál antes de responder; tras la elección responde con el dato del fixture, y un nombre sin acento («Juan Perez») resuelve al empleado correcto. *(Enmienda 2026-10-18.)* | Pasada en vivo con la pregunta ambigua y su turno de elección, más pruebas deterministas del matcher sin acentos. |
 
 ## 8. Diseño propuesto para planificar
 
 1. `POST /chat` con historial limitado del cliente; orquestador en API con catálogo fijo de herramientas y máximo de rondas; cada herramienta delega en su caso de uso.
 2. Cliente HTTP compatible OpenAI (`Authorization: Bearer` + `tools`); configuración `AI__Provider`, `AI__BaseUrl`, `AI__ApiKey`, `AI__Model`, `AI__TimeoutSeconds`, `AI__MaxTokens`, `AI__MaxToolRounds`.
-3. Groq como configuración por defecto: `BaseUrl=https://api.groq.com/openai/v1` y `AI__Model` a confirmar al implementar con la lista vigente de modelos con soporte de herramientas (la verificación de la documentación no estuvo disponible en este turno).
+3. Groq como configuración por defecto: `BaseUrl=https://api.groq.com/openai/v1` y `AI__Model=openai/gpt-oss-120b` (id con soporte de herramientas confirmado con la API de Groq el 2026-10-18; los modelos Llama no estaban disponibles para la clave de prueba, se documenta como alternativa `openai/gpt-oss-20b`).
 4. Respuesta del chat: `{ answer, toolsUsed[], sources[] }`; la interfaz muestra la respuesta y las herramientas empleadas.
 5. Web envía historial (máximo N mensajes) y reutiliza el cliente autenticado existente.
 6. Degradación: sin `AI__ApiKey` el endpoint responde 503 con mensaje localizado; errores 429/timeout se traducen a mensajes controlados sin reintentos ciegos.
+7. Resolución de nombres (enmienda 2026-10-18): matcher del source insensible a acentos, regla de desambigüación en el system prompt (varios candidatos → preguntar, no elegir), fixture «Juan Herrera» como segundo «Juan», y el banco de SPEC-009 añade la pregunta ambigua «Dime cuantos dias de vacaciones tiene Juan.» con la séptima pregunta de la pasada en vivo.
 
 Supuestos explícitos para aprobación: respuesta no streaming; el usuario asume el coste/límites del nivel gratuito de Groq (verificarlos el día de elegir el modelo); los datos salen hacia el proveedor (hoy solo sintéticos — con HCM real esta salida requiere decisión de política); el historial vive en el cliente y se pierde al recargar.
 
