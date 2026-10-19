@@ -10,3 +10,5 @@
 .env.*
 !.env.example
 **/secrets.json
+# Local AI runtime state
+.atl/
