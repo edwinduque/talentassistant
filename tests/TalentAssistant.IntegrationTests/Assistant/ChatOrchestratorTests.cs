@@ -193,6 +193,30 @@ public sealed class ChatOrchestratorTests
     }
 
     [Fact]
+    public async Task SystemPromptBindsTheAssistantToTheHrmScopeAndAntiHallucinationRules()
+    {
+        // SPEC-010 S1: scope bound as the operative guardrail. The live
+        // adversarial proofs run in T2 (scripts/verify-assistant-guardrails.ps1);
+        // these pins fail first if the instruction is dropped or reworded away
+        // from the agreed contract (AC-033/AC-034).
+        var model = new ScriptedLanguageModel();
+        model.Enqueue(new AssistantCompletion("ok", []));
+        var orchestrator = CreateOrchestrator(model);
+
+        var result = await orchestrator.ExecuteAsync(
+            new ChatQuery("Hola", History: [], Language: "es"));
+
+        Assert.True(result.Completed);
+        var system = model.Requests[0].Messages[0];
+        Assert.Equal("system", system.Role);
+        Assert.Contains("HR/HCM", system.Content);
+        Assert.Contains("outside HR/HCM", system.Content);
+        Assert.Contains("decline politely", system.Content);
+        Assert.Contains("never invent employees, dates or facts", system.Content);
+        Assert.Contains("information is not available", system.Content);
+    }
+
+    [Fact]
     public async Task HistoryIsTrimmedToMaxHistoryMessagesKeepingTheMostRecent()
     {
         var options = new AssistantOrchestratorOptions(MaxHistoryMessages: 3);
