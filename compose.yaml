@@ -64,6 +64,29 @@ services:
       db-init:
         condition: service_completed_successfully
 
+  hcm-postgres:
+    # PostgreSQL local de pruebas para el contrato de vistas del conector HCM
+    # (SPEC-011). Solo desarrollo/pruebas: la semilla es sintética; publicada
+    # solo en loopback. La base real del HCM nunca se toca desde aquí.
+    image: postgres:17-alpine
+    environment:
+      POSTGRES_DB: ${HCM_POSTGRES_DB:-talentassistant_hcm}
+      POSTGRES_USER: ${HCM_POSTGRES_USER:-talentassistant_hcm_admin}
+      POSTGRES_PASSWORD: ${HCM_POSTGRES_PASSWORD:-talentassistant_hcm_local}
+      HCM_POSTGRES_APP_PASSWORD: ${HCM_POSTGRES_APP_PASSWORD:-talentassistant_hcm_app_local}
+    ports:
+      - "127.0.0.1:5433:5432"
+    volumes:
+      - hcm_postgres_data:/var/lib/postgresql/data
+      - ./db/hcm-contract/local:/docker-entrypoint-initdb.d:ro
+      - ./db/hcm-contract:/contract:ro
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${HCM_POSTGRES_USER:-talentassistant_hcm_admin} -d ${HCM_POSTGRES_DB:-talentassistant_hcm}"]
+      interval: 5s
+      timeout: 3s
+      retries: 30
+      start_period: 10s
+
   web:
     image: talentassistant-web:local
     build:
@@ -82,3 +105,5 @@ services:
 volumes:
   mysql_data:
     name: talentassistant_mysql_data
+  hcm_postgres_data:
+    name: talentassistant_hcm_postgres_data
