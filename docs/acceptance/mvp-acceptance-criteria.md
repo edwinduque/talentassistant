@@ -134,6 +134,20 @@ Sin clave o sin red la aplicación degrada con mensajes localizados controlados;
 
 Una pregunta por una persona con nombre compartido («Juan») recibe una respuesta del asistente que lista los candidatos y pregunta cuál antes de responder; tras la elección responde con el dato del fixture, y un nombre sin acento («Juan Perez») resuelve al empleado correcto. *(Enmienda 2026-10-18.)*
 
+## AC-033 — Rechazo de peticiones ajenas (propuesto en SPEC-010)
+
+Las preguntas 1, 2 y 5 del banco producen respuestas sin artefactos de código ni contenido pedido, con marcador de rechazo/redirección a RR. HH./HCM en el idioma del usuario, `toolsUsed` vacío y la conversación continúa operativa.
+
+## AC-034 — Datos no disponibles sin fabricar (propuesto en SPEC-010)
+
+Las preguntas 3 y 4 no llevan a ningún dato fabricado: sin cifras de salario y sin el empleado inventado, con la declaración explícita de información no disponible.
+
+## AC-035 — Regresión de las siete preguntas (propuesto en SPEC-010)
+
+Tras el cambio, las siete preguntas de referencia siguen respondiendo con los datos correctos y la suite completa permanece en verde.
+
+AC-033..AC-035 fueron propuestos por SPEC-010; T1/T2 aportan evidencia y T3 completa la documentación.
+
 ## Condiciones generales
 
 Los criterios deberán verificarse con pruebas automatizadas cuando sea razonable y con pruebas de aceptación documentadas cuando la automatización no aporte suficiente valor.
@@ -177,5 +191,8 @@ Los identificadores de esta tabla pertenecen al catálogo general y no se reutil
 | AC-030 | FR-029, FR-030 | Catálogo fijo con sesión e idioma del usuario y sin escrituras; SPEC-009. |
 | AC-031 | FR-030, NFR-021 | Degradación controlada, secretos solo en `.env`, límites activos y E2E del chat en ES y EN; SPEC-009. |
 | AC-032 | FR-027, FR-029 | Desambigüación de nombres en el chat; SPEC-009. Enmienda 2026-10-18. |
+| AC-033 | FR-031, FR-029 | Rechazo localizado de peticiones ajenas con `toolsUsed` vacío y conversación continúa operativa; SPEC-010. |
+| AC-034 | FR-031, FR-029 | Datos no disponibles declarados explícitamente, sin cifras de salario ni empleados inventados; SPEC-010. |
+| AC-035 | FR-029 | Las siete preguntas de referencia siguen verdes y la suite completa permanece en verde tras el cambio; SPEC-010. |
 
 Los AC-003 a AC-006 no se consideran satisfechos por la estructura arquitectónica creada en SPEC-001. Cada caso de asistencia necesita requisitos, pruebas y verificación propios; Tasks no forma parte de la primera vertical. NFR-011 no tiene todavía un umbral medible y deberá concretarse cuando se definan dataset y entorno. NFR-012 se verifica en cada especificación de interfaz; estos criterios no inventan un umbral cuantitativo de contraste.

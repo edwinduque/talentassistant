@@ -1,7 +1,7 @@
 # SPEC-010 — Guardrails de ámbito y anti-alucinación del asistente
 
-- **Estado:** Propuesto para aprobación de planificación (2026-10-18).
-- **Implementación:** Ninguna; todavía no hay código asociado.
+- **Estado:** Aprobada para planificación (2026-10-18); ver §10.
+- **Implementación:** En la rama `feat/response-guardrails` (T1/T2); cierre documental en T3.
 - **Requisitos relacionados (propuestos):** FR-031. Relacionados existentes: FR-029, FR-030; NFR-013, NFR-014, NFR-021.
 - **Criterios relacionados (propuestos):** AC-033, AC-034, AC-035.
 - **Decisión arquitectónica:** Ninguna nueva; se refuerzan ADR-0003 (límite del servicio de IA) y ADR-0011 (proveedor y catálogo) sin tocar su contrato.
@@ -90,4 +90,6 @@ Supuestos explícitos para aprobación: el cumplimiento del rechazo depende del 
 
 ## 10. Estado y aprobación
 
-SPEC-010 queda propuesta a la espera de aprobación para planificación; la aprobación no autoriza cambios de código hasta autorizar tareas.
+SPEC-010 fue aprobada para planificación el 2026-10-18 y está implementada en la rama `feat/response-guardrails` (commits `d6733e4`, `499603b` y `0676471`; el cierre documental de T3 queda como commit pendiente).
+
+Evidencia de verificación (2026-10-19, pasadas en vivo con `-PaceSeconds 9`): AC-033 y AC-034 — `scripts/verify-assistant-guardrails.ps1` con 5/5 PASS y código de salida 0, con rechazo localizado en español e inglés y la conversación continúa operativa tras el rechazo, `toolsUsed` vacío fuera de ámbito, sin artefactos de código, sin cifras de salario y sin empleados inventados; AC-035 — `scripts/verify-assistant-questions.ps1` con 7/7 PASS y código de salida 0, más recorrido de navegador E2E con consola sin errores. Suite completa: integración 72/72; unit tests 4/5 en la corrida de cierre por el fallo ambiental conocido (`FileLoadException` 0x800711C7, carga bloqueada por App Control, intermitente; otras corridas del mismo día fueron 5/5). Build 0/0.

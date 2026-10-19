@@ -39,7 +39,7 @@ Risk: none (el cambio es de instrucción del prompt con regresión fijada por AC
 |---|---|---|---|---|
 | T1 | S1 | Inline | Implementada; RED→GREEN del pin de ámbito, build0/0, suite77/77 | Commit en esta entrada |
 | T2 | S2, S3 | Inline | Implementada; guardrails5/5 y regresión7/7 en vivo (`LIVE_EXIT=0`) + turnos de rechazo ES/EN en navegador con consola a0 | Commit en esta entrada |
-| T3 | S4 | Pendiente de ruta | Planificada | Depende de T1/T2 |
+| T3 | S4 | `docs/development/local-setup.md`, catálogos FR/AC, registro, visión y esta spec | Implementada | Commit pendiente |
 
 Forecast inicial: aproximadamente 300–600 líneas authored (prompt, pruebas, script, documentación); archivos generados excluidos. Estrategia `feature-branch-chain`.
 
@@ -72,3 +72,11 @@ Dos correcciones durante la evidencia (patrones, no producto): la familia de no-
 E2E de navegador: turno de rechazo ES (python → rechazo con dominio, sin código visible) → **la conversación continúa** (siguiente pregunta respondida con datos reales y Fuentes: presence); perfil a inglés → rechazo en inglés («I’m sorry, but I can only help with HR/HCM-related questions…»); perfil restaurado a español y logout; consola con0 errores. Suite: integración72/72; unitarias4/5 con el fallo ambiental conocido y reproducido en retry (`FileLoadException` 0x800711C7, App Control bloquea `TalentAssistant.Domain.dll` del bin de UnitTests — carga bloqueada, no violación de dependencias). Build0/0.
 
 Risk: none (mismo argumento de T1: instrucción de prompt con regresión fijada por AC-035 y suite completa).
+
+### L5 — Cierre de T3 y de la característica (2026-10-19)
+
+Texto exacto del usuario: “Autorizar T3 (recomendado)”. T3 delegado al writer (context backstop del padre; T1/T2 en línea por tamaño — rutas registradas en la tabla).
+
+Evidencia de cierre:7 ficheros documentales (FR-031, AC-033..AC-035 textuales con trazabilidad cotejadas byte a byte contra el spec, guía «Qué responde y qué rechaza» con uso del script y lección de la cláusula de registros, celda ADR-0011 ampliada sin ADR nuevo, visión §7, §10 con la evidencia viva y cabeceras del spec coherentes). Verificación: build0/0; suite integración72/72 y unitarias4/5 con el fallo ambiental conocido 0x800711C7 (intermitente; otras corridas hoy5/5); regex de forma de clave `gsk_[A-Za-z0-9]{8,}` =0 hits (la mención literal en prosa de un log histórico de otra feature no es un secreto).
+
+Estado final: rama `feat/response-guardrails` con4 commits sobre `main` (`d6733e4` spec, `499603b` T1, `0676471` T2, cierre de T3), árbol limpio, sin push. Pendiente también `main` local un commit por delante de `origin` (`cb4991f`, tests HTTP). Risk de cierre: none (T1/T2) — regresión fijada por AC-035 en vivo y suite completa.
