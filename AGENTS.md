@@ -66,3 +66,7 @@ El MVP utilizará exclusivamente datos sintéticos y no requerirá acceso a sist
 - Los identificadores técnicos y los nombres de archivos existentes no deben traducirse ni renombrarse sin una razón justificada.
 - Los prompts de trabajo para los agentes deben redactarse en español, salvo que una herramienta requiera explícitamente otro idioma.
 - Antes de crear o modificar documentación, comprobar el idioma de los documentos relacionados y mantener la coherencia.
+
+## Skills del proyecto
+
+- `security-review` — `skills/security-review/SKILL.md`. Se activa con peticiones de revisión de seguridad, "revisión de seguridad", threat model, OWASP o ASVS, antes de aprobar una especificación, tras implementar una vertical o en auditorías de hito. Cargar el `SKILL.md` (y sus `references/` y `assets/` cuando se use) antes de trabajar en esas revisiones; el skill es de solo lectura, produce un informe con estados de verificación explícitos y no modifica código. El índice de skills local (`.atl/`, no versionado) solo escanea directorios de usuario, así que este registro es la fuente de descubrimiento dentro del proyecto.
