@@ -93,9 +93,13 @@ Que la aplicación pueda consumir **datos reales del HCM desde su PostgreSQL** �
 
 ## 10. Decisión pendiente (aprobación explícita requerida)
 
-**Estado: decisión pendiente; bloquea solo las pruebas en vivo con personas reales.**
+**Estado: decidido el 2026-10-19 (ver Resolución).**
 
 **Egreso de datos reales al proveedor de IA.** Con `Hcm__Source=Postgres` y el asistente respondiendo, las preguntas del usuario y los resultados de las herramientas (nombres, ausencias, tareas de personas reales) viajan a Groq. ADR-0011 lo dejó como compromiso a reabrir. Opciones: (a) aceptar el egreso a Groq con este HCM, (b) modo de modelo local (Ollama) para el modo «datos reales» — el cliente ya es compatible OpenAI, es solo configuración, o (c) minimizar/redactar campos antes de enviar. Esta decisión **no bloquea** la implementación del conector (que se prueba con datos sintéticos) pero **sí bloquea** cualquier prueba en vivo del asistente con personas reales.
+
+### Resolución (2026-10-19)
+
+Se acepta **Groq como proveedor en la fase inicial (prueba de concepto)**. La decisión de egreso se reabre antes de cualquier fase productiva con personas reales, conforme al compromiso registrado en ADR-0011; la abstracción de proveedor ya soporta un modelo local (Ollama) por sola configuración si la política cambia.
 
 ## 11. Estado y aprobación
 
