@@ -473,3 +473,7 @@ internal sealed record ChangePasswordRequest(string CurrentPassword, string NewP
 internal sealed record ChangePasswordResponse(string Status);
 internal sealed record ChatRequest(string Message, IReadOnlyList<ChatTurn>? History);
 internal sealed record ChatTurn(string Role, string Content);
+
+// Top-level-statements entry point marker: exposes the generated Program class
+// to WebApplicationFactory<Program> in the integration test project.
+public partial class Program;
