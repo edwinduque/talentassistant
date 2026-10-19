@@ -4,6 +4,9 @@ namespace TalentAssistant.Web.Services;
 /// Failure kind reported by <c>GET attendance/insights</c>. User-facing copy lives
 /// in the <c>AttendanceInsights</c> page resource, keyed by this value, so the
 /// contract stays culture-neutral (SPEC-006 S3).
+/// <see cref="SourceUnavailable"/> is the degraded Postgres mode reason of
+/// SPEC-011 S3: the HCM source cannot be reached and no synthetic data may
+/// replace it.
 /// </summary>
 public enum AttendanceInsightsFailure
 {
@@ -12,6 +15,7 @@ public enum AttendanceInsightsFailure
     Unreachable,
     Timeout,
     InvalidPayload,
+    SourceUnavailable,
 }
 
 public sealed record AttendanceInsightsResult(

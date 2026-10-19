@@ -2,6 +2,7 @@ using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
+using Npgsql;
 using TalentAssistant.Application.Assistant;
 using TalentAssistant.Application.Attendance;
 using TalentAssistant.Application.Diagnostics;
@@ -9,6 +10,7 @@ using TalentAssistant.Application.Workforce;
 using TalentAssistant.Infrastructure.Assistant;
 using TalentAssistant.Infrastructure.Attendance;
 using TalentAssistant.Infrastructure.Authentication;
+using TalentAssistant.Infrastructure.HcmPostgres;
 using TalentAssistant.Infrastructure.Persistence;
 using TalentAssistant.Infrastructure.Workforce;
 
@@ -19,7 +21,9 @@ public static class DependencyInjection
     public static IServiceCollection AddInfrastructure(
         this IServiceCollection services,
         string connectionString,
-        bool useMySqlAttendanceSource = false)
+        bool useMySqlAttendanceSource = false,
+        string? hcmPostgresConnectionString = null,
+        int hcmPostgresCommandTimeoutSeconds = 15)
     {
         ArgumentNullException.ThrowIfNull(services);
 
@@ -35,16 +39,31 @@ public static class DependencyInjection
         services.AddScoped<IDatabaseAvailabilityCheck, MySqlDatabaseAvailabilityCheck>();
         services.AddScoped<InitializeLocalSyntheticAttendanceData>();
 
-        if (useMySqlAttendanceSource)
+        if (hcmPostgresConnectionString is not null)
         {
-            services.AddScoped<IHcmAttendanceSource, MySqlHcmAttendanceSource>();
+            // One switch governs BOTH ports (SPEC-011 S3): in Postgres mode the
+            // synthetic and MySQL adapters are never registered, so a mixed
+            // source is impossible. The data source connects lazily; the
+            // startup validation of Program has already rejected an empty value.
+            services.AddSingleton(new HcmPostgresAdapterOptions(hcmPostgresCommandTimeoutSeconds));
+            services.AddSingleton<NpgsqlDataSource>(
+                _ => NpgsqlDataSource.Create(hcmPostgresConnectionString));
+            services.AddSingleton<IHcmWorkforceSource, PostgresWorkforceSource>();
+            services.AddSingleton<IHcmAttendanceSource, PostgresAttendanceSource>();
         }
         else
         {
-            services.AddSingleton<IHcmAttendanceSource, SyntheticHcmAttendanceSource>();
-        }
+            if (useMySqlAttendanceSource)
+            {
+                services.AddScoped<IHcmAttendanceSource, MySqlHcmAttendanceSource>();
+            }
+            else
+            {
+                services.AddSingleton<IHcmAttendanceSource, SyntheticHcmAttendanceSource>();
+            }
 
-        services.AddSingleton<IHcmWorkforceSource, SyntheticWorkforceSource>();
+            services.AddSingleton<IHcmWorkforceSource, SyntheticWorkforceSource>();
+        }
 
         return services;
     }

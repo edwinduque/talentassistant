@@ -52,9 +52,15 @@ public sealed class BackendApiClient(
                     "The attendance insights endpoint returned HTTP {StatusCode}.",
                     (int)response.StatusCode);
 
-                var failure = response.StatusCode == HttpStatusCode.BadRequest
-                    ? AttendanceInsightsFailure.BadRequest
-                    : AttendanceInsightsFailure.Unreachable;
+                var failure = AttendanceInsightsFailure.Unreachable;
+                if (response.StatusCode == HttpStatusCode.BadRequest)
+                {
+                    failure = AttendanceInsightsFailure.BadRequest;
+                }
+                else if (await IsSourceUnavailableAsync(response, cancellationToken))
+                {
+                    failure = AttendanceInsightsFailure.SourceUnavailable;
+                }
 
                 return new AttendanceInsightsResult(failure, []);
             }
@@ -148,9 +154,10 @@ public sealed class BackendApiClient(
                 logger.LogWarning(
                     "The employees endpoint returned HTTP {StatusCode}.",
                     (int)response.StatusCode);
-                return new WorkforceResult<EmployeeDirectoryItem>(
-                    WorkforceFailure.ApiErrorResponse,
-                    []);
+                var failure = await IsSourceUnavailableAsync(response, cancellationToken)
+                    ? WorkforceFailure.SourceUnavailable
+                    : WorkforceFailure.ApiErrorResponse;
+                return new WorkforceResult<EmployeeDirectoryItem>(failure, []);
             }
 
             var payload = await response.Content.ReadFromJsonAsync<List<EmployeeDirectoryItem>>(
@@ -202,9 +209,19 @@ public sealed class BackendApiClient(
                     "The presence endpoint returned HTTP {StatusCode}.",
                     (int)response.StatusCode);
 
-                var failure = response.StatusCode == HttpStatusCode.BadRequest
-                    ? WorkforceFailure.BadRequest
-                    : WorkforceFailure.ApiErrorResponse;
+                WorkforceFailure failure;
+                if (response.StatusCode == HttpStatusCode.BadRequest)
+                {
+                    failure = WorkforceFailure.BadRequest;
+                }
+                else if (await IsSourceUnavailableAsync(response, cancellationToken))
+                {
+                    failure = WorkforceFailure.SourceUnavailable;
+                }
+                else
+                {
+                    failure = WorkforceFailure.ApiErrorResponse;
+                }
 
                 return new WorkforceResult<PresenceEntryItem>(failure, []);
             }
@@ -342,6 +359,37 @@ public sealed class BackendApiClient(
         };
     }
 
+    /// <summary>
+    /// The data endpoints report an unavailable HCM source as HTTP 503 with
+    /// the single machine-readable reason "SourceUnavailable"; the Web layer
+    /// owns the localized copy, mirroring the chat reason contract (SPEC-009
+    /// S1, SPEC-011 S3). Any other body keeps its previous status mapping.
+    /// </summary>
+    private static async Task<bool> IsSourceUnavailableAsync(
+        HttpResponseMessage response,
+        CancellationToken cancellationToken)
+    {
+        if (response.StatusCode != HttpStatusCode.ServiceUnavailable)
+        {
+            return false;
+        }
+
+        try
+        {
+            var payload = await response.Content.ReadFromJsonAsync<ChatErrorPayload>(
+                cancellationToken: cancellationToken);
+            return string.Equals(
+                payload?.Reason,
+                "SourceUnavailable",
+                StringComparison.Ordinal);
+        }
+        catch (System.Text.Json.JsonException)
+        {
+            // Not the expected {reason} body: keep the previous mapping.
+            return false;
+        }
+    }
+
     private sealed record BackendHealthPayload(string Status);
 
     private sealed record ChatRequest(
@@ -379,6 +427,13 @@ public enum WorkforceFailure
     Timeout,
     InvalidPayload,
     ApiErrorResponse,
+
+    /// <summary>
+    /// The HCM source itself cannot be reached (SPEC-011 S3): the API answers
+    /// 503 with reason "SourceUnavailable" and never substitutes synthetic
+    /// data. User-facing copy lives in the page resources.
+    /// </summary>
+    SourceUnavailable,
 }
 
 public sealed record WorkforceResult<T>(WorkforceFailure Failure, IReadOnlyList<T> Items);

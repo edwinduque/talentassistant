@@ -82,7 +82,11 @@
         }
         else
         {
-            presenceMessageKey = "PresenceUnavailable";
+            // SPEC-011 S3: an unavailable HCM source gets its own honest copy
+            // instead of the generic "could not load" message.
+            presenceMessageKey = presence.Failure == WorkforceFailure.SourceUnavailable
+                ? "PresenceSourceUnavailable"
+                : "PresenceUnavailable";
         }
     }
 

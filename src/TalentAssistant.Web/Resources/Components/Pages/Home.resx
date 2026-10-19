@@ -81,6 +81,9 @@
   <data name="PresenceUnavailable" xml:space="preserve">
     <value>No se pudo cargar la presencia.</value>
   </data>
+  <data name="PresenceSourceUnavailable" xml:space="preserve">
+    <value>La fuente de datos de personal no está disponible.</value>
+  </data>
   <data name="StateWorking" xml:space="preserve">
     <value>Trabajando</value>
   </data>

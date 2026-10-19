@@ -1,8 +1,7 @@
-using System.Globalization;
-using System.Text;
 using TalentAssistant.Application.Attendance;
 using TalentAssistant.Application.Workforce;
 using TalentAssistant.Infrastructure.Attendance;
+using TalentAssistant.Infrastructure.Common;
 
 namespace TalentAssistant.Infrastructure.Workforce;
 
@@ -154,10 +153,8 @@ public sealed class SyntheticWorkforceSource : IHcmWorkforceSource
 
         if (!string.IsNullOrWhiteSpace(query.Name))
         {
-            var normalizedName = NormalizeForNameMatching(query.Name);
             employees = employees.Where(employee =>
-                NormalizeForNameMatching(employee.DisplayName)
-                    .Contains(normalizedName, StringComparison.OrdinalIgnoreCase));
+                NameMatching.Matches(employee.DisplayName, query.Name));
         }
 
         if (!string.IsNullOrWhiteSpace(query.OfficeId))
@@ -333,39 +330,14 @@ public sealed class SyntheticWorkforceSource : IHcmWorkforceSource
 
         if (!string.IsNullOrWhiteSpace(query.Name))
         {
-            var normalizedName = NormalizeForNameMatching(query.Name);
             return DirectoryFor(language)
-                .Where(employee =>
-                    NormalizeForNameMatching(employee.DisplayName)
-                        .Contains(normalizedName, StringComparison.OrdinalIgnoreCase))
+                .Where(employee => NameMatching.Matches(employee.DisplayName, query.Name))
                 .Select(employee => employee.Id)
                 .ToHashSet(StringComparer.OrdinalIgnoreCase);
         }
 
         // No filter: the whole collection (no silent selection).
         return null;
-    }
-
-    /// <summary>
-    /// Accent-insensitive name folding (SPEC-008 S1 as amended 2026-10-18:
-    /// «Juan Perez» must locate «Juan Pérez», and ñ folds to n). The value is
-    /// decomposed to Form D and stripped of non-spacing marks; the caller
-    /// compares both normalized sides with OrdinalIgnoreCase. Used only by the
-    /// two name-matching sites — office ids keep exact matching.
-    /// </summary>
-    private static string NormalizeForNameMatching(string value)
-    {
-        var decomposed = value.Normalize(NormalizationForm.FormD);
-        var builder = new StringBuilder(decomposed.Length);
-        foreach (var character in decomposed)
-        {
-            if (CharUnicodeInfo.GetUnicodeCategory(character) != UnicodeCategory.NonSpacingMark)
-            {
-                builder.Append(character);
-            }
-        }
-
-        return builder.ToString();
     }
 
     public Task<IReadOnlyList<HcmTimeOffRequest>> GetTimeOffAsync(

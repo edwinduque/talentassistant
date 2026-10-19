@@ -96,6 +96,9 @@
   <data name="ErrorInvalidPayload" xml:space="preserve">
     <value>The API response could not be read.</value>
   </data>
+  <data name="ErrorSourceUnavailable" xml:space="preserve">
+    <value>The HCM data source is currently unavailable.</value>
+  </data>
   <data name="FindingEyebrow" xml:space="preserve">
     <value>HCM finding · {0}</value>
   </data>

@@ -81,6 +81,9 @@
   <data name="PresenceUnavailable" xml:space="preserve">
     <value>Presence could not be loaded.</value>
   </data>
+  <data name="PresenceSourceUnavailable" xml:space="preserve">
+    <value>The workforce data source is unavailable.</value>
+  </data>
   <data name="StateWorking" xml:space="preserve">
     <value>Working</value>
   </data>

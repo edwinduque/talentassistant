@@ -7,15 +7,15 @@
 
 -- Directorio (9 empleados de demostración).
 INSERT INTO hcm.employees (id, display_name, office_ids) VALUES
-    ('employee-demo-juan',      'Juan Pérez',             '{"office-madrid"}'),
-    ('employee-demo-pedro',     'Pedro Rojas',            '{"office-tokyo"}'),
-    ('employee-demo-mauricio',  'Mauricio Cardenas',      '{"office-madrid"}'),
-    ('employee-demo-herrera',   'Juan Herrera',           '{"office-tokyo"}'),
-    ('employee-demo-madrid',    'Empleado sintético 001', '{"office-madrid"}'),
-    ('employee-demo-tokyo-002', 'Empleado sintético 005', '{"office-tokyo"}'),
-    ('employee-demo-madrid-004','Empleado sintético 004', '{"office-madrid"}'),
-    ('employee-demo-tokyo',     'Empleado sintético 002', '{"office-tokyo"}'),
-    ('employee-demo-madrid-002','Empleado sintético 003', '{"office-madrid"}')
+    ('employee-demo-juan',      'Juan Pérez',             '{"office-demo-madrid"}'),
+    ('employee-demo-pedro',     'Pedro Rojas',            '{"office-demo-tokyo"}'),
+    ('employee-demo-mauricio',  'Mauricio Cardenas',      '{"office-demo-madrid"}'),
+    ('employee-demo-herrera',   'Juan Herrera',           '{"office-demo-tokyo"}'),
+    ('employee-demo-madrid',    'Empleado sintético 001', '{"office-demo-madrid"}'),
+    ('employee-demo-tokyo-002', 'Empleado sintético 005', '{"office-demo-tokyo"}'),
+    ('employee-demo-madrid-004','Empleado sintético 004', '{"office-demo-madrid"}'),
+    ('employee-demo-tokyo',     'Empleado sintético 002', '{"office-demo-tokyo"}'),
+    ('employee-demo-madrid-002','Empleado sintético 003', '{"office-demo-madrid"}')
 ON CONFLICT (id) DO NOTHING;
 
 -- Presencia de hoy (relativa a la fecha actual), estados idénticos a la
@@ -89,7 +89,7 @@ INSERT INTO hcm.attendance_incidents (
     related_status_es, related_status_en, related_duration,
     related_duration_unit_es, related_duration_unit_en)
 VALUES (
-    'incident-2026-10-13-juan-late', 'employee-demo-juan', 'office-madrid',
+    'incident-2026-10-13-juan-late', 'employee-demo-juan', 'office-demo-madrid',
      'España', 'Spain', 'Europe/Madrid',
      TIMESTAMPTZ '2026-10-13 06:52:00+00', DATE '2026-10-13',
      TIME '09:00', TIME '17:00',

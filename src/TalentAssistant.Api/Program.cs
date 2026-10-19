@@ -12,6 +12,7 @@ using TalentAssistant.Infrastructure;
 using TalentAssistant.Infrastructure.Authentication;
 using TalentAssistant.Infrastructure.Persistence;
 using TalentAssistant.Application.Diagnostics;
+using TalentAssistant.Application.Hcm;
 using TalentAssistant.Application.Workforce;
 
 var builder = WebApplication.CreateBuilder(args);
@@ -35,6 +36,22 @@ if (!useMySqlAttendanceSource
         "Attendance:Source must be configured as Memory or MySql.");
 }
 
+// Single HCM source switch (SPEC-011 S3): one value governs both ports at once
+// and an invalid combination fails fast here, at startup, instead of silently
+// serving synthetic data. The pure rules live in HcmPostgresOptions so unit
+// tests reach them. The flat HcmPostgres:* keys (environment variables
+// HcmPostgres__*) take precedence over the Hcm:Postgres:* appsettings defaults.
+var hcmSource = builder.Configuration["Hcm:Source"] ?? HcmPostgresOptions.SyntheticSource;
+var hcmPostgresConnectionString = FirstConfiguredValue(
+    builder.Configuration["HcmPostgres:ConnectionString"],
+    builder.Configuration["Hcm:Postgres:ConnectionString"]);
+var hcmPostgresCommandTimeoutSeconds =
+    builder.Configuration.GetValue<int?>("HcmPostgres:CommandTimeoutSeconds")
+    ?? builder.Configuration.GetValue<int?>("Hcm:Postgres:CommandTimeoutSeconds")
+    ?? 15;
+HcmPostgresOptions.Validate(hcmSource, hcmPostgresConnectionString);
+var usePostgresHcmSource = HcmPostgresOptions.IsPostgres(hcmSource);
+
 var initializeLocalData = args.Contains("--initialize-local-data", StringComparer.Ordinal);
 
 var seedUserName = builder.Configuration["Authentication:SeedUserName"]
@@ -43,7 +60,11 @@ var lockoutMaxFailedAccessAttempts =
     builder.Configuration.GetValue<int?>("Authentication:LockoutMaxFailedAccessAttempts") ?? 5;
 var lockoutMinutes = builder.Configuration.GetValue<int?>("Authentication:LockoutMinutes") ?? 5;
 
-builder.Services.AddInfrastructure(connectionString, useMySqlAttendanceSource);
+builder.Services.AddInfrastructure(
+    connectionString,
+    useMySqlAttendanceSource,
+    usePostgresHcmSource ? hcmPostgresConnectionString : null,
+    hcmPostgresCommandTimeoutSeconds);
 builder.Services.AddIdentityInfrastructure(
     connectionString,
     new AuthenticationStoreOptions(
@@ -322,6 +343,15 @@ app.MapGet("/attendance/insights", async (
             title: "Attendance source unavailable",
             detail: "Attendance insights are temporarily unavailable.");
     }
+    catch (HcmSourceUnavailableException)
+    {
+        // Machine-readable reason only; the Web layer localizes the copy
+        // (SPEC-011 S3 degradation: honest "source unavailable", never
+        // synthetic data).
+        return Results.Json(
+            new { reason = "SourceUnavailable" },
+            statusCode: StatusCodes.Status503ServiceUnavailable);
+    }
 }).WithName("AttendanceInsights").RequireAuthorization();
 
 app.MapGet("/employees", async (
@@ -334,10 +364,22 @@ app.MapGet("/employees", async (
 {
     var user = await userManager.GetUserAsync(principal);
     var language = user?.PreferredLanguage ?? ApplicationUser.DefaultPreferredLanguage;
-    var employees = await searchEmployees.ExecuteAsync(
-        new EmployeeSearchQuery(name, officeId, language),
-        cancellationToken);
-    return Results.Ok(employees);
+    try
+    {
+        var employees = await searchEmployees.ExecuteAsync(
+            new EmployeeSearchQuery(name, officeId, language),
+            cancellationToken);
+        return Results.Ok(employees);
+    }
+    catch (HcmSourceUnavailableException)
+    {
+        // Machine-readable reason only; the Web layer localizes the copy
+        // (SPEC-011 S3 degradation: honest "source unavailable", never
+        // synthetic data).
+        return Results.Json(
+            new { reason = "SourceUnavailable" },
+            statusCode: StatusCodes.Status503ServiceUnavailable);
+    }
 }).WithName("Employees").RequireAuthorization();
 
 app.MapGet("/presence", async (
@@ -364,10 +406,22 @@ app.MapGet("/presence", async (
 
     var user = await userManager.GetUserAsync(principal);
     var language = user?.PreferredLanguage ?? ApplicationUser.DefaultPreferredLanguage;
-    var snapshot = await getPresence.ExecuteAsync(
-        new PresenceQuery(parsedDate, language),
-        cancellationToken);
-    return Results.Ok(snapshot);
+    try
+    {
+        var snapshot = await getPresence.ExecuteAsync(
+            new PresenceQuery(parsedDate, language),
+            cancellationToken);
+        return Results.Ok(snapshot);
+    }
+    catch (HcmSourceUnavailableException)
+    {
+        // Machine-readable reason only; the Web layer localizes the copy
+        // (SPEC-011 S3 degradation: honest "source unavailable", never
+        // synthetic data).
+        return Results.Json(
+            new { reason = "SourceUnavailable" },
+            statusCode: StatusCodes.Status503ServiceUnavailable);
+    }
 }).WithName("Presence").RequireAuthorization();
 
 app.MapGet("/timeoff", async (
@@ -380,10 +434,22 @@ app.MapGet("/timeoff", async (
 {
     var user = await userManager.GetUserAsync(principal);
     var language = user?.PreferredLanguage ?? ApplicationUser.DefaultPreferredLanguage;
-    var requests = await getTimeOff.ExecuteAsync(
-        new EmployeeDataQuery(employeeId, name, language),
-        cancellationToken);
-    return Results.Ok(requests);
+    try
+    {
+        var requests = await getTimeOff.ExecuteAsync(
+            new EmployeeDataQuery(employeeId, name, language),
+            cancellationToken);
+        return Results.Ok(requests);
+    }
+    catch (HcmSourceUnavailableException)
+    {
+        // Machine-readable reason only; the Web layer localizes the copy
+        // (SPEC-011 S3 degradation: honest "source unavailable", never
+        // synthetic data).
+        return Results.Json(
+            new { reason = "SourceUnavailable" },
+            statusCode: StatusCodes.Status503ServiceUnavailable);
+    }
 }).WithName("TimeOffByEmployee").RequireAuthorization();
 
 app.MapGet("/tasks", async (
@@ -396,10 +462,22 @@ app.MapGet("/tasks", async (
 {
     var user = await userManager.GetUserAsync(principal);
     var language = user?.PreferredLanguage ?? ApplicationUser.DefaultPreferredLanguage;
-    var tasks = await getTasks.ExecuteAsync(
-        new EmployeeDataQuery(employeeId, name, language),
-        cancellationToken);
-    return Results.Ok(tasks);
+    try
+    {
+        var tasks = await getTasks.ExecuteAsync(
+            new EmployeeDataQuery(employeeId, name, language),
+            cancellationToken);
+        return Results.Ok(tasks);
+    }
+    catch (HcmSourceUnavailableException)
+    {
+        // Machine-readable reason only; the Web layer localizes the copy
+        // (SPEC-011 S3 degradation: honest "source unavailable", never
+        // synthetic data).
+        return Results.Json(
+            new { reason = "SourceUnavailable" },
+            statusCode: StatusCodes.Status503ServiceUnavailable);
+    }
 }).WithName("TasksByEmployee").RequireAuthorization();
 
 app.MapPost("/chat", async (
@@ -457,6 +535,9 @@ static IResult InvalidCredentials() => Results.Problem(
     statusCode: StatusCodes.Status401Unauthorized,
     title: "Invalid credentials",
     detail: "The provided credentials are not valid.");
+
+static string? FirstConfiguredValue(params string?[] values) =>
+    values.FirstOrDefault(value => !string.IsNullOrWhiteSpace(value));
 
 internal sealed record HealthResponse(string Status);
 internal sealed record LoginRequest(string UserName, string Password);
