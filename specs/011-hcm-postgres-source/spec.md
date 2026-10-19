@@ -1,10 +1,10 @@
 # SPEC-011 — Conector HCM real (PostgreSQL, solo consulta)
 
-- **Estado:** Propuesto para aprobación de planificación (2026-10-19).
-- **Implementación:** Ninguna; todavía no hay código asociado.
-- **Requisitos relacionados (propuestos):** FR-032, FR-033 y NFR-022. Relacionados existentes: FR-026, FR-027, FR-029; NFR-001, NFR-002, NFR-004, NFR-021.
-- **Criterios relacionados (propuestos):** AC-036, AC-037, AC-038.
-- **Decisión arquitectónica:** ADR-0012 propuesto (consumo directo de solo lectura tras los puertos existentes, con exposición MCP como iteración futura).
+- **Estado:** Aprobada para planificación (2026-10-19); implementada en la rama `feat/hcm-postgres-source`.
+- **Implementación:** T1, T2 y T3 implementados en la rama `feat/hcm-postgres-source` (commits `065eecb`, `495c4b5`, `e920a33`; cierre documental T3 como commit pendiente). Evidencia: build sin errores y suite completa en verde (127/127: 10 unitarias + 117 de integración) con las dos bases de pruebas activas, paridad exacta entre el contrato sembrado y las fuentes sintéticas, y sondas de solo lectura (lectura de vistas permitida, escritura sobre la vista denegada, lectura de tablas físicas denegada). La validación contra la base real del HCM queda pendiente de los prerrequisitos de §10.
+- **Requisitos relacionados:** FR-032, FR-033 y NFR-022. Relacionados existentes: FR-026, FR-027, FR-029; NFR-001, NFR-002, NFR-004, NFR-021.
+- **Criterios relacionados:** AC-036, AC-037, AC-038.
+- **Decisión arquitectónica:** ADR-0012 aceptado (consumo directo de solo lectura tras los puertos existentes, con exposición MCP como iteración futura).
 - **Decisión de producto registrada:** el usuario definió la dirección el 2026-10-19: “el hcm real tiene datos en una bd de postgres aunque es posible que en el futuro sea otro motor de bd, debemos definir una estrategia de consumo a esa bd de solo consulta por ahora, podria ser un mcp o conexion directa, te lo dejo a tu decision pero que sea una decision correcta y segura”, y confirmó la elección con “vamos con la opcion 1 pero con la posibilidad de una iteracion futura de mcp”. Es una ampliación de alcance explícita frente a la regla MVP de datos sintéticos exclusivos.
 - **Versión:** 0.1.
 
@@ -93,8 +93,21 @@ Que la aplicación pueda consumir **datos reales del HCM desde su PostgreSQL** �
 
 ## 10. Decisión pendiente (aprobación explícita requerida)
 
+**Estado: decisión pendiente; bloquea solo las pruebas en vivo con personas reales.**
+
 **Egreso de datos reales al proveedor de IA.** Con `Hcm__Source=Postgres` y el asistente respondiendo, las preguntas del usuario y los resultados de las herramientas (nombres, ausencias, tareas de personas reales) viajan a Groq. ADR-0011 lo dejó como compromiso a reabrir. Opciones: (a) aceptar el egreso a Groq con este HCM, (b) modo de modelo local (Ollama) para el modo «datos reales» — el cliente ya es compatible OpenAI, es solo configuración, o (c) minimizar/redactar campos antes de enviar. Esta decisión **no bloquea** la implementación del conector (que se prueba con datos sintéticos) pero **sí bloquea** cualquier prueba en vivo del asistente con personas reales.
 
 ## 11. Estado y aprobación
 
-SPEC-011 y ADR-0012 quedan propuestos a la espera de aprobación para planificación; la aprobación no autoriza cambios de código hasta autorizar tareas.
+SPEC-011 y ADR-0012 fueron aprobados para planificación el 2026-10-19 (log L3); la aprobación no autorizaba cambios de código hasta autorizar tareas, y T1 y T2 se autorizaron después por separado.
+
+Estado de implementación en la rama `feat/hcm-postgres-source`:
+
+| Tarea | Contenido | Commit |
+|---|---|---|
+| T1 | Contrato de vistas versionado (`db/hcm-contract/`) y base PostgreSQL local de pruebas con semilla sintética y sondas de solo lectura | `065eecb` |
+| Planificación | Especificación (SPEC-011) y ADR-0012 | `495c4b5` |
+| T2 | Adaptadores Npgsql, interruptor único, degradación honesta y pruebas | `e920a33` |
+| T3 | Documentación y cierre (FR/NFR/AC, guía local, `.env.example`, registro, visión) | Commit pendiente |
+
+Evidencia observada: build sin errores, suite completa en verde (127/127: 10 unitarias + 117 de integración) con las dos bases de pruebas activas, paridad exacta con las fuentes sintéticas tras reconciliar la semilla a la convención `office-demo-*`, y sondas de solo lectura (lectura de vistas permitida como rol de aplicación, `INSERT` sobre la vista denegado, lectura de tablas físicas denegada). Queda pendiente la validación contra la base real del HCM —prerrequisitos: PostgreSQL alcanzable, rol de solo lectura sobre las vistas del contrato, credenciales solo en `.env` local y `Ssl Mode=VerifyFull`— y la decisión de egreso del §10, que sigue pendiente y bloquea solo las pruebas en vivo con personas reales.

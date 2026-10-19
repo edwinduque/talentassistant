@@ -17,6 +17,7 @@ Este documento resume las decisiones de producto y arquitectura que gobiernan Ta
 | ADR-0009 | Datos sintéticos del HCM bilingües servidos por el idioma del usuario | Aceptado; implementado con limitaciones documentadas | `docs/architecture/adr/ADR-0009-bilingual-hcm-data.md`; `specs/007-bilingual-hcm-data/spec.md` |
 | ADR-0010 | Capacidades de consulta del asistente previas a la IA | Aceptado; implementado con limitaciones documentadas | `docs/architecture/adr/ADR-0010-assistant-query-capabilities.md`; `specs/008-assistant-query-capabilities/spec.md` |
 | ADR-0011 | Asistente conversacional con proveedor Groq (API compatible OpenAI) | Aceptado; implementado con limitaciones documentadas; refuerzo de ámbito y anti-alucinación (SPEC-010) | `docs/architecture/adr/ADR-0011-groq-conversational-assistant.md`; `specs/009-conversational-assistant/spec.md` |
+| ADR-0012 | Consumo directo de solo lectura del HCM (PostgreSQL) tras los puertos | Aceptado; implementado con limitaciones documentadas | `docs/architecture/adr/ADR-0012-read-only-hcm-consumption.md`; `specs/011-hcm-postgres-source/spec.md` |
 
 ## Línea base tecnológica confirmada
 

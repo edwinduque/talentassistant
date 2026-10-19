@@ -221,6 +221,57 @@ dotnet ef migrations add <NombreMigracion> --project tests/TalentAssistant.Integ
 
 Para detener únicamente MySQL en el perfil host, usa `docker compose stop mysql`; para volver a iniciarlo, `docker compose start mysql`. El flujo completo de persistencia y reset del perfil Compose está en la sección anterior.
 
+## Conector HCM (PostgreSQL, solo consulta)
+
+Desde SPEC-011 la aplicación puede consultar el HCM real desde su PostgreSQL de solo lectura tras los puertos existentes (ADR-0012). El interruptor único `Hcm__Source` gobierna a la vez todos los puertos de datos —directorio, presencia, ausencias, tareas y asistencia—: o todo lee de Postgres o todo de la fuente sintética; no existe modo mixto y una fuente desconocida o una cadena vacía en modo Postgres bloquean el arranque con un error controlado. El valor por defecto es `Sintética` y no cambia ningún comportamiento existente.
+
+### Modos y variables
+
+| Variable | Valor esperado |
+|---|---|
+| `Hcm__Source` | `Sintética` (por defecto) o `Postgres`. Gobierna ambos puertos a la vez. |
+| `HcmPostgres__ConnectionString` | Cadena Npgsql contra la base del HCM (`Host`, `Puerto`, `Base`, `Usuario`, `Clave`, `Ssl Mode=VerifyFull`). Obligatoria en modo Postgres; solo en tu `.env` local. |
+| `HcmPostgres__CommandTimeoutSeconds` | Tiempo de espera por comando en segundos (15 por defecto). |
+| `HCM_POSTGRES_DB` / `HCM_POSTGRES_USER` / `HCM_POSTGRES_PASSWORD` / `HCM_POSTGRES_APP_PASSWORD` | Variables del servicio local de pruebas `hcm-postgres`, con valores por defecto solo-locales en `.env.example`; no son la cadena de la base real. |
+
+### Servicio local de pruebas (`hcm-postgres`)
+
+El perfil Compose incluye un servicio `postgres:17-alpine` publicado **solo en loopback** (`127.0.0.1:5433`) que aplica el contrato de `db/hcm-contract/` sobre tablas de sustitución y lo siembra con filas sintéticas en el primer inicio de un volumen vacío. La base real del HCM nunca se toca desde este servicio y el servicio no lleva TLS por diseño: es una excepción local documentada, no la postura de la base real.
+
+Para restablecer por completo la base de pruebas del contrato:
+
+```powershell
+docker compose rm -sf hcm-postgres && docker volume rm talentassistant_hcm_postgres_data && docker compose up -d hcm-postgres
+```
+
+### Cómo obtienen las pruebas la cadena de conexión
+
+La suite completa necesita dos cadenas por entorno: `ConnectionStrings__TalentAssistantTests` (MySQL, ya documentada arriba) y `HcmPostgres__ConnectionString` contra el servicio local. El patrón correcto obtiene la contraseña desde el entorno del contenedor **sin imprimirla en el repositorio ni en la conversación**:
+
+```powershell
+$pgPass = docker compose exec -T hcm-postgres printenv HCM_POSTGRES_APP_PASSWORD
+$env:HcmPostgres__ConnectionString = "Host=127.0.0.1;Port=5433;Database=talentassistant_hcm;Username=talentassistant_hcm_app;Password=$pgPass;"
+dotnet test TalentAssistant.sln --configuration Debug --no-restore
+```
+
+Las pruebas se conectan como rol de aplicación de solo lectura (`talentassistant_hcm_app`, creado por `db/hcm-contract/roles.sql`); ningún test contacta la base real.
+
+### Degradación en modo Postgres
+
+Si la base no responde en modo Postgres, los endpoints de datos responden HTTP 503 con el error localizado `{"reason":"SourceUnavailable"}`; la aplicación **nunca** vuelve a datos sintéticos de forma silenciosa y no reintenta a ciegas. El modo sintético y la suite siguen intactos con la base apagada.
+
+### Checklist para la base real del HCM (DBA)
+
+Antes de apuntar la aplicación a la base real:
+
+- [ ] El DBA crea (o acuerda) las vistas del contrato de `db/hcm-contract/views.sql` sobre el esquema real, o se fija un conjunto de tablas/columnas igualmente estable mediante el paso de descubrimiento documentado en SPEC-011.
+- [ ] Se revisa la aplicabilidad de `db/hcm-contract/roles.sql` y `grants.sql`: rol de aplicación de solo lectura con `SELECT` exclusivamente sobre las vistas, sin grants sobre tablas físicas.
+- [ ] `HcmPostgres__ConnectionString` incluye `Ssl Mode=VerifyFull` para la base real; el loopback de pruebas sin TLS no es la norma.
+- [ ] En tu `.env` local (nunca versionado) quedan `Hcm__Source=Postgres`, la cadena anterior y, si hace falta, `HcmPostgres__CommandTimeoutSeconds`.
+- [ ] Cualquier prueba en vivo del asistente con personas reales exige antes la decisión de egreso de SPEC-011 §10.
+
+**Aviso de secretos:** las credenciales de la base del HCM se colocan solo en tu `.env` local; nunca en el chat, en el repositorio, en imágenes ni en logs.
+
 ## Consultas del asistente (API)
 
 Desde SPEC-008, la API expone cuatro endpoints de consulta —las herramientas que el asistente conversacional de SPEC-009 llamará— que exigen sesión (sin token válido responden HTTP 401) y responden en el idioma del perfil del usuario autenticado:

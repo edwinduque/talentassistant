@@ -47,7 +47,7 @@ Risk: item 2 (nueva credencial de la base del HCM, grants y manejo de secretos) 
 |---|---|---|---|---|
 | T1 | S1 | Inline | Implementada; contrato con paridad9/9/3/4/1 y sondas de solo lectura (vista legible, escritura y tablas físicas denegadas); init con ON_ERROR_STOP detectó un alias ausente (corregido) | Commit en esta entrada |
 | T2 | S2, S3, S4 | Delegada (context backstop) + reconciliación del padre | Implementada; build0/0 y suite127/127 (10 unit +117 integración) con las dos bases; paridad exacta de oficinas tras corregir la semilla de T1 (`office-demo-*`) | Commit en esta entrada |
-| T3 | S5 | Pendiente de ruta | Planificada | Depende de T1/T2 |
+| T3 | S5 | `docs/`, `.env.example`, `specs/011-hcm-postgres-source/spec.md` | Implementada | Commit pendiente |
 
 Forecast inicial: aproximadamente 800–1300 líneas authored (contrato SQL, dos adaptadores, cliente, interruptor, pruebas, documentación); archivos generados excluidos. Estrategia `feature-branch-chain`. El §10 de SPEC-011 (egreso con datos reales) se trae como decisión propia antes de cualquier prueba en vivo con personas reales; la implementación y las pruebas de este plan son100% sintéticas.
 
@@ -86,3 +86,11 @@ Reconciliación del padre: la semilla de T1 usaba `office-madrid`/`office-tokyo`
 Verificación final observada por el padre: `office_sample=office-demo-madrid`, `presence_today=9`, build0/0 con0 avisos, **suite127/127** (10 unit — incluida la ambiental `ArchitectureBoundaryTests`, que esta corrida pasó — +117 integración) con `ConnectionStrings__TalentAssistantTests` y `HcmPostgres__ConnectionString` activas, y `docker compose config` en verde.
 
 Risk: item 2 (credencial de la base: las pruebas se conectan como rol de aplicación de solo lectura; contraseñas solo vía entorno) y item 5 (dependencia Npgsql 10.0.3) — ambos verificados con las sondas y la suite.
+
+### L6 — Cierre de T3 y de la característica (2026-10-19)
+
+Texto exacto del usuario: “Autorizar T3 (recomendado)”. T3 delegado al writer (context backstop del padre; T1/T2 también se delegaron — rutas en la tabla).
+
+Evidencia de cierre (10 ficheros): FR-032/FR-033, NFR-022, AC-036..AC-038 textuales (cotejo programático spec↔catálogo: True/True/True) con trazabilidad, guía «Conector HCM (PostgreSQL, solo consulta)» en local-setup (modos, servicio local, reinicio de volumen, patrón de credenciales nunca impresas, degradación, checklist del DBA con `Ssl Mode=VerifyFull` y aviso de secretos), bloque `Hcm__` vacío en `.env.example` (el bloque local `HCM_POSTGRES_*` intacto), fila ADR-0012 en el registro como Aceptado, ADR-0012 con «Actualizaciones», visión §7 y spec §10/§11 con la decisión de egreso **pendiente** (bloquea solo pruebas en vivo con personas reales). Secretos con regex de forma de clave =0 hits. Suite 127/127 y build0/0 re-verificados en el árbol documental por el writer y con spot check del padre.
+
+Estado: rama `feat/hcm-postgres-source` con4 commits (`065eecb`, `495c4b5`, `e920a33`, cierre de T3), árbol limpio, sin push. Siguiente: verificador independiente por los items de riesgo 2 y 5 nombrados en T2, y decisión de publicación del usuario.

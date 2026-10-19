@@ -1,8 +1,8 @@
 # ADR-0012 — Consumo directo de solo lectura del HCM (PostgreSQL) tras los puertos
 
-- **Estado:** Propuesto (2026-10-19).
+- **Estado:** Aceptado (2026-10-19).
 - **Fecha:** 2026-10-19.
-- **Aprobación de arquitectura:** pendiente de aprobación del usuario junto con SPEC-011.
+- **Aprobación de arquitectura:** aprobado por el usuario el 2026-10-19 junto con SPEC-011 (log L3 del plan ODD).
 - **Especificación relacionada:** SPEC-011 — Conector HCM real (PostgreSQL, solo consulta).
 
 ## Contexto
@@ -52,3 +52,7 @@ MCP, aplicado al modelo, quebraría el invariantes ya aprobados (ADR-0003, SPEC-
 ## Verificación de la decisión
 
 La decisión se considerará implementada cuando AC-036..AC-038 tengan evidencia observada: capacidades reales y sintéticas en sus modos sin mezcla, grants de solo lectura + transacción `READ ONLY` + TLS + SQL fijo verificados, degradación localizada con la base apagada, suite completa en verde y ningún test tocando la base real. La aprobación de ADR-0012 autoriza planificar; la implementación se ejecuta por tareas.
+
+## Actualizaciones (2026-10-19)
+
+Implementado en la rama `feat/hcm-postgres-source` como interruptor `Hcm:Source` que registra ambos puertos sin modo mixto, adaptadores Npgsql 10.0.3 con comandos fijos parametrizados sobre las vistas del contrato (`db/hcm-contract/`, con la semilla reconciliada a la convención `office-demo-*`) y degradación a 503 `{"reason":"SourceUnavailable"}` localizado. Verificado con la suite completa en verde (127/127: 10 unitarias + 117 de integración) con las dos bases de prueba activas, compilación sin errores y sondas de solo lectura (lectura de vistas permitida, escritura denegada, tablas físicas denegadas). Commits: `065eecb` (contrato de vistas + base local de pruebas), `495c4b5` (SPEC-011 y ADR-0012) y `e920a33` (adaptadores, interruptor y pruebas); el cierre documental (T3) queda como commit pendiente. Siguen pendientes la validación contra la base real del HCM (credenciales locales y `Ssl Mode=VerifyFull`) y la decisión de egreso de SPEC-011 §10, que bloquea solo las pruebas en vivo con personas reales.

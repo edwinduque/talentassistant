@@ -38,6 +38,8 @@ Estado inicial: Propuesto. La aprobación del alcance convierte los requisitos s
 | FR-029 | El usuario podrá conversar con un asistente en lenguaje natural que responderá con datos del backend mediante un catálogo fijo de herramientas ejecutadas con la sesión e idioma del usuario, sin escrituras. | Must |
 | FR-030 | El asistente conversacional aplicará límites de tiempo de espera, de rondas y de longitud de respuesta; los errores del proveedor se traducirán a mensajes localizados y la aplicación funcionará sin IA. | Must |
 | FR-031 | El asistente conversacional operará únicamente en el ámbito de RR. HH./HCM y solo con los datos que devuelvan sus herramientas; a las peticiones ajenas —programación, conocimiento general, traducciones, recetas o escritura creativa— responderá con un rechazo localizado que recuerda su función y redirige al ámbito del equipo, nunca con código ni conocimiento general; si las herramientas no devuelven el dato, declarará la información no disponible en lugar de inventarla. | Must |
+| FR-032 | La aplicación consultará el HCM real desde su PostgreSQL de solo lectura mediante los puertos existentes, con un interruptor único de fuente (`Hcm__Source=Sintética|Postgres`) que gobierna a la vez todos los puertos de datos, sin SQL dinámico y con el cambio de motor de base de datos contenido en un adaptador de Infrastructure. | Must |
+| FR-033 | En modo Postgres, si la base del HCM no está disponible, los endpoints de datos devolverán un error localizado de fuente no disponible; el sistema nunca volverá a datos sintéticos de forma silenciosa. | Must |
 
 FR-020 fue aprobado mediante SPEC-004 y está implementado y verificado (commits en `main`); el perfil local Compose sirve los fixtures desde MySQL.
 
@@ -52,6 +54,8 @@ FR-026 y FR-027 fueron aprobados mediante SPEC-008 y ADR-0010 y están implement
 FR-029 y FR-030 fueron aprobados mediante SPEC-009 y ADR-0011 y están implementados y verificados en T1/T2 de la rama `feat/conversational-assistant`.
 
 FR-031 fue aprobado mediante SPEC-010 (sin ADR nuevo; refuerza ADR-0003 y ADR-0011) y está implementado y verificado en T1/T2 de la rama `feat/response-guardrails`.
+
+FR-032 y FR-033 fueron aprobados mediante SPEC-011 y ADR-0012 y están implementados y verificados en T1/T2 de la rama `feat/hcm-postgres-source` (suite completa en verde con ambas bases de prueba activas); la validación contra la base real del HCM queda pendiente de credenciales locales y de la decisión de egreso de SPEC-011 §10.
 
 ## Reglas de negocio iniciales
 
