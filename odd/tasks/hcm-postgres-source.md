@@ -106,3 +106,17 @@ Advisories honestados: (A1) el claim del padre mencionaba `tests/IntegrationTest
 ### L8 — Resolución del §10 y cierre de decisiones (2026-10-19)
 
 Texto exacto del usuario: “1. aceptar groq como fase inicial ya que es una prueba de concepto aun, en una iteracion futura decidiria que hacer si esto entra a fase productiva 2. cuando tenga la bd lo haré 3. ir limpiando las ramas locales”. Registrado: egreso aceptado con Groq para la fase de prueba de concepto (SPEC-011 §10 resuelto, ADR-0012 actualizado, ADR-0011 marcado como resuelto y reabrible antes de fase productiva); la validación contra la base real queda para cuando el usuario aporte credenciales locales y mapeo de vistas; se eliminan las ramas fusionadas locales.
+
+## T4 — Cierre de hallazgos de la revisión de seguridad (2026-10-19)
+
+| ID | Specs | Ruta | Estado | Evidencia / commit |
+|---|---|---|---|---|
+| T4 | AC-037 reforzado (SEC-001/002/003) | Inline | Implementada | Validación TLS en arranque, init con variable enlazada, nota de guía, tests |
+
+### L9 — Revisión de seguridad y decisión del usuario (2026-10-19)
+
+Texto exacto del usuario (aprobación del skill y lanzamiento): “Si, está bien”. Texto exacto del usuario (decisión sobre el hallazgo candidato T4): “1”. Ejecutada la primera revisión con el skill `security-review` en modo diff sobre `9c6883c..6510104` (informe completo en la conversación): hallazgos SEC-001 (Medium — TLS solo documentado), SEC-002 (Low — credenciales por defecto del servicio de pruebas) y SEC-003 (Low — contraseña interpolada en el SQL de init); controles VC-1..VC-9 verificados con evidencia; NV-1 (advisories de Npgsql) queda pendiente de autorización.
+
+T4 implementa el cierre de los tres hallazgos: `HcmPostgresTls.Validate` en Infrastructure exige `Ssl Mode=VerifyFull` para hosts no-loopback (bucles `localhost`/`127.0.0.1`/`::1` exentos por la base de pruebas local) invocado en el arranque de `Program` tras el validador existente; `01_init.sh` usa la variable enlazada `:'app_password'` de psql (SEC-003); guía con checklist de no-reutilizar credenciales por defecto (SEC-002); AC-037 reforzado a la par en SPEC-011 §7 y en `mvp-acceptance-criteria.md` (texto verbatim), con la fila resumida y el estado del §10 corregidos a “resuelto el 2026-10-19”. Tests nuevos: `PostgresTlsValidationTests` (4 casos: sin Ssl Mode falla, Require más débil falla, VerifyFull pasa, bucles exentos) y arranque con host no-loopback sin TLS que aborta (fábrica `PostgresModeNonLoopbackWithoutTlsFactory`).
+
+Risk: item 2 (se añade un control de seguridad en el arranque — validación de transporte); lleva verificación independiente tras los checks propios.

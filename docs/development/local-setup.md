@@ -266,7 +266,8 @@ Antes de apuntar la aplicación a la base real:
 
 - [ ] El DBA crea (o acuerda) las vistas del contrato de `db/hcm-contract/views.sql` sobre el esquema real, o se fija un conjunto de tablas/columnas igualmente estable mediante el paso de descubrimiento documentado en SPEC-011.
 - [ ] Se revisa la aplicabilidad de `db/hcm-contract/roles.sql` y `grants.sql`: rol de aplicación de solo lectura con `SELECT` exclusivamente sobre las vistas, sin grants sobre tablas físicas.
-- [ ] `HcmPostgres__ConnectionString` incluye `Ssl Mode=VerifyFull` para la base real; el loopback de pruebas sin TLS no es la norma.
+- [ ] `HcmPostgres__ConnectionString` incluye `Ssl Mode=VerifyFull` para la base real; el loopback de pruebas sin TLS no es la norma y el arranque exige `VerifyFull` en cualquier host no-loopback (validación automática desde SEC-001,2026-10-19).
+- [ ] No se reutilizan las credenciales por defecto del servicio local de pruebas (`talentassistant_hcm_*`) en la base real: se generan credenciales únicas (SEC-002,2026-10-19).
 - [ ] En tu `.env` local (nunca versionado) quedan `Hcm__Source=Postgres`, la cadena anterior y, si hace falta, `HcmPostgres__CommandTimeoutSeconds`.
 - [ ] Cualquier prueba en vivo del asistente con personas reales exige antes la decisión de egreso de SPEC-011 §10.
 

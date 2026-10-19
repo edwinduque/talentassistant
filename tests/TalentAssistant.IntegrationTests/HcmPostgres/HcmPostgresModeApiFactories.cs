@@ -112,3 +112,15 @@ public sealed class PostgresModeWithoutConnectionStringFactory : HcmPostgresMode
     {
     }
 }
+
+/// <summary>
+/// Postgres mode against a non-loopback host without TLS: must fail fast
+/// (SPEC-011 AC-037 hardened / security-review SEC-001). Synthetic values only.
+/// </summary>
+public sealed class PostgresModeNonLoopbackWithoutTlsFactory : HcmPostgresModeApiFactoryBase
+{
+    public PostgresModeNonLoopbackWithoutTlsFactory()
+        : base("Host=hcm.example.com;Port=5432;Database=talentassistant_hcm;Username=talentassistant_hcm_app;Password=test-only-synthetic")
+    {
+    }
+}

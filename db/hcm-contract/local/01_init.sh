@@ -10,8 +10,14 @@ psql -v ON_ERROR_STOP=1 -U "$POSTGRES_USER" -d "$POSTGRES_DB" -f /contract/local
 psql -v ON_ERROR_STOP=1 -U "$POSTGRES_USER" -d "$POSTGRES_DB" -f /contract/views.sql
 psql -v ON_ERROR_STOP=1 -U "$POSTGRES_USER" -d "$POSTGRES_DB" -f /contract/local/local_seed.sql
 psql -v ON_ERROR_STOP=1 -U "$POSTGRES_USER" -d "$POSTGRES_DB" -f /contract/roles.sql
+# SEC-003 (security-review 2026-10-19): pass the statement on stdin with the
+# password as a psql variable (:'var'). psql interpolates variables only in
+# file/stdin input - not inside -c - and stdin binding means a quote in the
+# value can never break or inject SQL, even locally.
 psql -v ON_ERROR_STOP=1 -U "$POSTGRES_USER" -d "$POSTGRES_DB" \
-    -c "ALTER ROLE talentassistant_hcm_app WITH PASSWORD '${HCM_POSTGRES_APP_PASSWORD}';"
+    -v app_password="$HCM_POSTGRES_APP_PASSWORD" <<'EOSQL'
+ALTER ROLE talentassistant_hcm_app WITH PASSWORD :'app_password';
+EOSQL
 psql -v ON_ERROR_STOP=1 -U "$POSTGRES_USER" -d "$POSTGRES_DB" -f /contract/grants.sql
 
 echo "hcm contract initialized (synthetic local seed, read-only grants)"

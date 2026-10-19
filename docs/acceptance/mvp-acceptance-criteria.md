@@ -154,13 +154,13 @@ Con `Hcm__Source=Postgres`, las cinco capacidades del asistente responden con lo
 
 ## AC-037 — Contrato de solo lectura verificable (propuesto en SPEC-011)
 
-El rol de la aplicación no puede escribir (grants de solo lectura aplicados), toda petición corre en transacción `READ ONLY` con *statement timeout*, las consultas son fijas y parametrizadas (grep de SQL dinámico vacío), TLS está activo y los logs no contienen valores de personas.
+El rol de la aplicación no puede escribir (grants de solo lectura aplicados), toda petición corre en transacción `READ ONLY` con *statement timeout*, las consultas son fijas y parametrizadas (grep de SQL dinámico vacío), el transporte exige TLS verificado para hosts no-loopback (`Ssl Mode=VerifyFull` validado en el arranque; los bucles locales quedan exentos por la base de pruebas local sin TLS) y los logs no contienen valores de personas. *(Reforzado el 2026-10-19 por SEC-001.)*
 
 ## AC-038 — Degradación honesta con la base apagada (propuesto en SPEC-011)
 
 Si la base del HCM no responde en modo Postgres, los endpoints devuelven el error localizado de fuente no disponible sin datos sintéticos; la suite completa permanece en verde sin tocar ninguna base real.
 
-AC-036..AC-038 fueron propuestos por SPEC-011; T1/T2 aportan evidencia y T3 completa la documentación. Evidencia observada en la rama `feat/hcm-postgres-source`: suite completa en verde (127/127: 10 unitarias + 117 de integración) con las dos bases de prueba activas, compilación sin errores, paridad exacta entre el contrato sembrado y las fuentes sintéticas, y sondas de solo lectura (lectura de vistas permitida, escritura sobre la vista denegada, lectura de tablas físicas denegada). Queda pendiente la validación contra la base real del HCM (requisitos previos de SPEC-011 §10): rol de solo lectura sobre las vistas, credenciales locales, TLS con `Ssl Mode=VerifyFull` y la decisión de egreso §10, que bloquea solo las pruebas en vivo con personas reales.
+AC-036..AC-038 fueron propuestos por SPEC-011; T1/T2 aportan evidencia y T3 completa la documentación. Evidencia observada en la rama `feat/hcm-postgres-source`: suite completa en verde (127/127: 10 unitarias + 117 de integración) con las dos bases de prueba activas, compilación sin errores, paridad exacta entre el contrato sembrado y las fuentes sintéticas, y sondas de solo lectura (lectura de vistas permitida, escritura sobre la vista denegada, lectura de tablas físicas denegada). Queda pendiente la validación contra la base real del HCM (requisitos previos de SPEC-011 §10): rol de solo lectura sobre las vistas, credenciales locales, TLS con `Ssl Mode=VerifyFull` (desde el 2026-10-19 el arranque lo exige para hosts no-loopback; SEC-001) y la decisión de egreso §10, resuelta el 2026-10-19 (Groq para la fase de prueba de concepto, reabre antes de fase productiva).
 
 ## Condiciones generales
 
@@ -209,7 +209,7 @@ Los identificadores de esta tabla pertenecen al catálogo general y no se reutil
 | AC-034 | FR-031, FR-029 | Datos no disponibles declarados explícitamente, sin cifras de salario ni empleados inventados; SPEC-010. |
 | AC-035 | FR-029 | Las siete preguntas de referencia siguen verdes y la suite completa permanece en verde tras el cambio; SPEC-010. |
 | AC-036 | FR-032, FR-033 | Modos Postgres y Sintético sin mezcla de orígenes; T1/T2 de la rama `feat/hcm-postgres-source`; SPEC-011. |
-| AC-037 | NFR-022, FR-032 | Grants de solo lectura, transacción `READ ONLY`, SQL fijo y logs sin valores de personas; TLS y validación contra la base real quedan pendientes; SPEC-011. |
+| AC-037 | NFR-022, FR-032 | Grants de solo lectura, transacción `READ ONLY`, SQL fijo, TLS `VerifyFull` exigido en el arranque para hosts no-loopback (bucles exentos) y logs sin valores de personas; validación contra la base real pendiente; SPEC-011. |
 | AC-038 | FR-033 | Degradación localizada de fuente no disponible con la base apagada, sin fallback sintético; SPEC-011. |
 
 Los AC-003 a AC-006 no se consideran satisfechos por la estructura arquitectónica creada en SPEC-001. Cada caso de asistencia necesita requisitos, pruebas y verificación propios; Tasks no forma parte de la primera vertical. NFR-011 no tiene todavía un umbral medible y deberá concretarse cuando se definan dataset y entorno. NFR-012 se verifica en cada especificación de interfaz; estos criterios no inventan un umbral cuantitativo de contraste.

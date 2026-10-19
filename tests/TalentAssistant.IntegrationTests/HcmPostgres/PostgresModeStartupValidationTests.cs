@@ -23,4 +23,20 @@ public sealed class PostgresModeStartupValidationTests
             exception.ToString(),
             StringComparison.Ordinal);
     }
+
+    [Fact]
+    public void PostgresModeAgainstANonLoopbackHostWithoutTlsFailsFastAtStartup()
+    {
+        // SPEC-011 AC-037 hardened (security-review SEC-001): a real-HCM host
+        // without Ssl Mode=VerifyFull must abort startup, never connect.
+        using var factory = new PostgresModeNonLoopbackWithoutTlsFactory();
+
+        var exception = Record.Exception(() => { factory.CreateClient(); });
+
+        Assert.NotNull(exception);
+        Assert.Contains(
+            "Ssl Mode=VerifyFull",
+            exception.ToString(),
+            StringComparison.Ordinal);
+    }
 }

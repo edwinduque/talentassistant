@@ -52,6 +52,14 @@ var hcmPostgresCommandTimeoutSeconds =
 HcmPostgresOptions.Validate(hcmSource, hcmPostgresConnectionString);
 var usePostgresHcmSource = HcmPostgresOptions.IsPostgres(hcmSource);
 
+// SEC-001 (security-review 2026-10-19 / SPEC-011 AC-037): the real HCM
+// connection must be TLS VerifyFull; loopback test hosts stay exempt.
+if (usePostgresHcmSource)
+{
+    TalentAssistant.Infrastructure.HcmPostgres.HcmPostgresTls.Validate(
+        hcmPostgresConnectionString!);
+}
+
 var initializeLocalData = args.Contains("--initialize-local-data", StringComparer.Ordinal);
 
 var seedUserName = builder.Configuration["Authentication:SeedUserName"]
