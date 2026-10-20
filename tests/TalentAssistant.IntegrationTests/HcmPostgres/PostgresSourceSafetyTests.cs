@@ -38,7 +38,12 @@ public sealed class PostgresSourceSafetyTests : PostgresSourceTestBase
             HcmPostgresTestEnvironment.ConnectionString());
         await connection.OpenAsync();
 
-        // Writing through a contract view is denied by the grants (42501).
+        // Writing through a contract view is impossible either way: with an
+        // auto-updatable view the grant denies it (42501, "permission denied");
+        // the rewired view projects derived columns, so PostgreSQL refuses the
+        // statement before any privilege check (55000, "cannot insert into
+        // view"). Both states mean the write never reaches the data
+        // (SPEC-011 AC-037, SPEC-012 T3 reconciliation).
         await using (var insert = connection.CreateCommand())
         {
             insert.CommandText =
@@ -50,8 +55,14 @@ public sealed class PostgresSourceSafetyTests : PostgresSourceTestBase
 
             var writeDenied = await Assert.ThrowsAsync<PostgresException>(
                 () => insert.ExecuteNonQueryAsync());
-            Assert.Equal(PostgresErrorCodes.InsufficientPrivilege, writeDenied.SqlState);
-            Assert.Contains("permission denied", writeDenied.Message, StringComparison.Ordinal);
+            Assert.True(
+                writeDenied.SqlState == PostgresErrorCodes.InsufficientPrivilege
+                    || writeDenied.SqlState == PostgresErrorCodes.ObjectNotInPrerequisiteState,
+                $"Unexpected SQLSTATE {writeDenied.SqlState}: {writeDenied.MessageText}");
+            Assert.True(
+                writeDenied.Message.Contains("permission denied", StringComparison.Ordinal)
+                    || writeDenied.Message.Contains("cannot insert", StringComparison.Ordinal),
+                $"Unexpected denial message: {writeDenied.Message}");
         }
 
         // The physical HCM tables behind the views are not readable either.

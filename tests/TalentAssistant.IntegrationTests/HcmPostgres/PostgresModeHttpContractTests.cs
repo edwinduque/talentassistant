@@ -74,7 +74,10 @@ public sealed class PostgresModeHttpContractTests
             var pedro = entries.EnumerateArray().Single(entry =>
                 entry.GetProperty("employee").GetProperty("id").GetString()
                     == "employee-demo-pedro");
-            Assert.Equal("vacation", pedro.GetProperty("state").GetString());
+            // SPEC-012 T3 (default3 aprobado): desde el20 Pedro no está de
+            // vacaciones (su ausencia terminó el19); ambos lados derivan
+            // not-arrived.
+            Assert.Equal("not-arrived", pedro.GetProperty("state").GetString());
         }
 
         using (var timeOff = await GetAsync("/timeoff"))

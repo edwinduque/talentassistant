@@ -141,7 +141,11 @@ public sealed class PostgresWorkforceSourceParityTests : PostgresSourceTestBase
         Assert.Equal(StateMap(synthetic), StateMap(postgres));
 
         var states = StateMap(postgres);
-        Assert.Equal("vacation", states["employee-demo-pedro"]);
+
+        // SPEC-012 T3 (default3 aprobado): la ausencia fixture de Pedro terminó
+        // el19 (inclusivo); desde el20 ambos lados derivan not-arrived (el
+        // fixture sintético de presencia se corrigió a la par en esta tarea).
+        Assert.Equal("not-arrived", states["employee-demo-pedro"]);
         Assert.Equal("working", states["employee-demo-juan"]);
         Assert.Equal("not-arrived", states["employee-demo-mauricio"]);
 
