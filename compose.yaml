@@ -80,6 +80,7 @@ services:
       - hcm_postgres_data:/var/lib/postgresql/data
       - ./db/hcm-contract/local:/docker-entrypoint-initdb.d:ro
       - ./db/hcm-contract:/contract:ro
+      - ./db/hcm-real:/real:ro
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U ${HCM_POSTGRES_USER:-talentassistant_hcm_admin} -d ${HCM_POSTGRES_DB:-talentassistant_hcm}"]
       interval: 5s

@@ -12,6 +12,10 @@
 # shebang fails in the Linux container with "/bin/sh^M: bad interpreter".
 set -e
 
+# SPEC-012 S1: forma real del HCM (db/hcm-real/schema.sql) convive con las
+# tablas de sustitución hcm.* hasta el recableado de vistas de T3; el orden
+# mantiene el contrato actual en verde entre tareas.
+psql -v ON_ERROR_STOP=1 -U "$POSTGRES_USER" -d "$POSTGRES_DB" -f /real/schema.sql
 psql -v ON_ERROR_STOP=1 -U "$POSTGRES_USER" -d "$POSTGRES_DB" -f /contract/local/local_tables.sql
 psql -v ON_ERROR_STOP=1 -U "$POSTGRES_USER" -d "$POSTGRES_DB" -f /contract/views.sql
 psql -v ON_ERROR_STOP=1 -U "$POSTGRES_USER" -d "$POSTGRES_DB" -f /contract/local/local_seed.sql
