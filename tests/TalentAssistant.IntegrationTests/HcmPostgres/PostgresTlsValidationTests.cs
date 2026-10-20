@@ -48,6 +48,53 @@ public sealed class PostgresTlsValidationTests
     }
 
     [Theory]
+    [InlineData("Ssl Mode=Disable")]
+    [InlineData("Ssl Mode=Allow")]
+    [InlineData("Ssl Mode=Prefer")]
+    [InlineData("Ssl Mode=VerifyCA")]
+    public void NonLoopbackHostWithAnyWeakerSslModeFailsFast(string sslMode)
+    {
+        // SEC-001 follow-up (verifier, 2026-10-19): every mode below VerifyFull
+        // must abort - encryption alone without certificate validation is not
+        // the contract for the real HCM database.
+        var exception = Record.Exception(
+            () => HcmPostgresTls.Validate(NonLoopbackHost + ";" + sslMode));
+
+        Assert.NotNull(exception);
+        Assert.Contains("Ssl Mode=VerifyFull", exception!.Message, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void NonLoopbackHostWithLowercaseVerifyFullPasses()
+    {
+        // Npgsql enum parsing is case-insensitive; the control must accept it.
+        var exception = Record.Exception(
+            () => HcmPostgresTls.Validate(NonLoopbackHost + ";Ssl Mode=verifyfull"));
+
+        Assert.Null(exception);
+    }
+
+    [Fact]
+    public void MissingHostFailsFast()
+    {
+        var exception = Record.Exception(
+            () => HcmPostgresTls.Validate("Port=5432;Database=talentassistant_hcm;Username=u;Password=test-only-synthetic"));
+
+        Assert.NotNull(exception);
+        Assert.Contains("does not define a host", exception!.Message, StringComparison.Ordinal);
+    }
+
+    [Theory]
+    [InlineData("Host=LOCALHOST;Port=5433;Database=talentassistant_hcm;Username=talentassistant_hcm_app;Password=test-only-synthetic")]
+    [InlineData("Host=[0:0:0:0:0:0:0:1];Port=5433;Database=talentassistant_hcm;Username=talentassistant_hcm_app;Password=test-only-synthetic")]
+    public void LoopbackHostVariantsStayExempt(string connectionString)
+    {
+        var exception = Record.Exception(() => HcmPostgresTls.Validate(connectionString));
+
+        Assert.Null(exception);
+    }
+
+    [Theory]
     [InlineData("Host=127.0.0.1;Port=5433;Database=talentassistant_hcm;Username=talentassistant_hcm_app;Password=test-only-synthetic")]
     [InlineData("Host=localhost;Port=5433;Database=talentassistant_hcm;Username=talentassistant_hcm_app;Password=test-only-synthetic")]
     [InlineData("Host=[::1];Port=5433;Database=talentassistant_hcm;Username=talentassistant_hcm_app;Password=test-only-synthetic")]

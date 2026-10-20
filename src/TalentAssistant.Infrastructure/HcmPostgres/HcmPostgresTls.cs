@@ -14,14 +14,22 @@ namespace TalentAssistant.Infrastructure.HcmPostgres;
 public static class HcmPostgresTls
 {
     private static readonly string[] LoopbackHosts =
-        ["localhost", "127.0.0.1", "::1"];
+        ["localhost", "127.0.0.1", "::1", "0:0:0:0:0:0:0:1"];
 
     public static void Validate(string connectionString)
     {
         var builder = new NpgsqlConnectionStringBuilder(connectionString);
 
+        var rawHost = builder.Host;
+        if (string.IsNullOrWhiteSpace(rawHost))
+        {
+            throw new InvalidOperationException(
+                "HcmPostgres:ConnectionString does not define a host. "
+                + "Set Host (and Ssl Mode=VerifyFull for non-loopback servers).");
+        }
+
         // Npgsql keeps IPv6 hosts bracketed ("[::1]"); normalize before compare.
-        var host = builder.Host.TrimStart('[').TrimEnd(']');
+        var host = rawHost.TrimStart('[').TrimEnd(']');
 
         if (LoopbackHosts.Contains(host, StringComparer.OrdinalIgnoreCase))
         {
@@ -31,7 +39,7 @@ public static class HcmPostgresTls
         if (builder.SslMode != SslMode.VerifyFull)
         {
             throw new InvalidOperationException(
-                $"HcmPostgres:ConnectionString targets the non-loopback host '{builder.Host}' "
+                $"HcmPostgres:ConnectionString targets the non-loopback host '{rawHost}' "
                 + $"but its Ssl Mode is '{builder.SslMode}'. Set Ssl Mode=VerifyFull "
                 + "(encryption with certificate validation) before using the real HCM database.");
         }
