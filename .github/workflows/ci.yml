@@ -1,0 +1,66 @@
+name: ci
+
+on:
+  pull_request:
+  push:
+    branches:
+      - main
+
+# Least privilege: the pipeline never needs more than reading the source.
+permissions:
+  contents: read
+
+jobs:
+  build-test:
+    name: Build and full suite against Postgres
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+
+      - name: Setup .NET SDK (pinned by global.json, no roll-forward)
+        uses: actions/setup-dotnet@a98b56852c35b8e3190ac28c8c2271da59106c68 # v6.0.0
+        with:
+          global-json-file: global.json
+
+      - name: Generate loopback-only synthetic credentials
+        run: |
+          # Test-only synthetic secrets for the composed databases. They are
+          # random per run, stay inside the ephemeral runner and are never
+          # committed, logged with values or reused outside this job.
+          {
+            echo "APP_POSTGRES_ADMIN_PASSWORD=$(openssl rand -hex 16)"
+            echo "APP_POSTGRES_PASSWORD=$(openssl rand -hex 16)"
+          } >> "$GITHUB_ENV"
+
+      - name: Start the test databases (same compose.yaml as local)
+        run: |
+          cp .env.example .env
+          docker compose config --quiet
+          docker compose up -d --wait app-postgres hcm-postgres
+
+      - name: Restore
+        run: dotnet restore TalentAssistant.sln
+
+      - name: Build
+        run: dotnet build TalentAssistant.sln --configuration Debug --no-restore
+
+      - name: Run the full automated suite (NFR-009/AC-009)
+        run: |
+          export ConnectionStrings__TalentAssistantTests="Host=127.0.0.1;Port=5434;Database=talentassistant_tests;Username=talentassistant_app;Password=${APP_POSTGRES_PASSWORD};"
+          export HcmPostgres__ConnectionString="Host=127.0.0.1;Port=5433;Database=talentassistant_hcm;Username=talentassistant_hcm_app;Password=$(docker compose exec -T hcm-postgres printenv HCM_POSTGRES_APP_PASSWORD);"
+          dotnet test TalentAssistant.sln --configuration Debug --no-restore --no-build --nologo
+
+  secret-scan:
+    name: Gitleaks over full history
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout full history
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          fetch-depth: 0
+
+      - name: Gitleaks
+        uses: gitleaks/gitleaks-action@e0c47f4f8be36e29cdc102c57e68cb5cbf0e8d1e # v3.0.0
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

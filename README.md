@@ -38,7 +38,7 @@ La fundación fija .NET SDK `10.0.402`, EF Core `10.0.13`, el proveedor `Npgsql.
 
 El perfil local completo construye y ejecuta API, Web y PostgreSQL con Docker Compose, y carga los fixtures sintéticos en `talentassistant_dev`. Desde SPEC-005 el perfil local exige iniciar sesión en Web y API con un usuario y una contraseña configurados en `.env`; el flujo de login, las variables y las limitaciones están documentados en la [guía de desarrollo local](docs/development/local-setup.md), junto con las comprobaciones HTTP, la persistencia del volumen y la alternativa host. La base de integración `talentassistant_tests` permanece separada y no recibe la semilla demo. Desde SPEC-006 el perfil local admite seleccionar el idioma (español o inglés) y dispone de una página de perfil (`/profile`) para el nombre visible, el idioma preferido y el cambio de contraseña. El alcance aprobado está en [SPEC-004](specs/004-containerized-local-environment/spec.md) y [ADR-0006](docs/architecture/adr/ADR-0006-containerized-local-development.md), y la autenticación en [SPEC-005](specs/005-local-authentication/spec.md) y [ADR-0007](docs/architecture/adr/ADR-0007-local-authentication.md).
 
-La canalización de CI sigue pendiente y se asignará a una especificación posterior (NFR-009 y AC-009); la estrategia de despliegue de producción queda fuera de la fundación técnica.
+La canalización de CI (SPEC-014 y [`.github/workflows/ci.yml`](.github/workflows/ci.yml)) ejecuta, en cada pull request y en cada push a `main`, la compilación y la suite completa contra los servicios PostgreSQL de la misma `compose.yaml` (132/132 integración y 11/11 unitarias esperadas), además del barrido de secretos con gitleaks sobre todo el historial. La estrategia de despliegue de producción queda para una especificación posterior. El LISTA de configuración de medidas de GitHub (secret scanning, push protection y branch protection) está en la [guía de desarrollo local](docs/development/local-setup.md).
 
 La incorporación de Python, Google ADK, MCP, n8n, RAG y agentes se evaluará en fases posteriores.
 
@@ -68,6 +68,8 @@ El flujo de trabajo comprende:
 ## Estado actual
 
 [SPEC-013](specs/013-postgres-only-persistence/spec.md) está implementada: la persistencia propia (identidad + asistencia sintética) corre sobre PostgreSQL 17 con `Npgsql.EntityFrameworkCore.PostgreSQL` `10.0.3`, `compose.yaml` ya no contiene ningún servicio MySQL y la suite completa obtiene 132/132 de integración y 10/10 unitarias desde una base vacía.
+
+[SPEC-014](specs/014-ci-pipeline/spec.md) añade la canalización de CI (`.github/workflows/ci.yml`) con la suite completa contra PostgreSQL, depedabot y gitleaks; su run en vivo queda pendiente del primer push del repo.
 
 La fundación técnica de SPEC-001 está implementada; su cierre permanece pausado. La primera vertical aprobada de SPEC-002 está implementada: build y smoke HTTP pasan, y la suite xUnit completa obtiene 12/12 pruebas (5 unitarias y 7 de integración, incluida la prueba de persistencia —hoy `PostgresPersistenceTests`— contra `talentassistant_tests`). SPEC-001 no se declara completa.
 

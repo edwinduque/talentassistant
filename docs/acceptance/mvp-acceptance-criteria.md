@@ -36,7 +36,7 @@ Las entradas inválidas y los fallos de la fuente de integración producen respu
 
 La canalización ejecuta compilación y pruebas automatizadas. Un fallo bloquea la validación satisfactoria del cambio.
 
-Este criterio permanece vigente para el MVP. Está fuera de SPEC-001 y debe asignarse a una especificación posterior antes de aceptar el MVP; las comprobaciones locales no lo satisfacen.
+Este criterio permanece vigente para el MVP; su implementación se asignó a SPEC-014 (canalización `.github/workflows/ci.yml`: build, suite completa contra PostgreSQL, gitleaks).
 
 ## AC-010 — Trazabilidad SDD
 
@@ -196,7 +196,7 @@ Los identificadores de esta tabla pertenecen al catálogo general y no se reutil
 | AC-006 | FR-004, FR-006, FR-007, NFR-010 | Tasks sigue siendo propiedad del HCM; una consulta de tareas se reserva para una especificación posterior. |
 | AC-007 | FR-018, NFR-001, NFR-002 | Los límites de Clean Architecture y el puerto/adaptador HCM se verifican en cada especificación funcional. |
 | AC-008 | FR-009, NFR-004, NFR-006, NFR-007 | Los errores controlados incluyen fallos de la fuente HCM, sin exponer datos internos. |
-| AC-009 | NFR-009 | CI queda aplazada a una especificación posterior y sigue sin cumplir. |
+| AC-009 | NFR-009 | Canalización implementada según SPEC-014; el run en vivo del CI queda pendiente del primer push del usuario. |
 | AC-010 | FR-011, NFR-015 | SPEC-001 incorpora IDs únicos y una matriz de criterio a requisito y verificación. |
 | AC-011 | FR-012–FR-017, NFR-013, NFR-014, NFR-016 | Las capacidades de IA permanecen fuera del alcance de la fundación. |
 | AC-012 | NFR-017, FR-010 | Requiere la aprobación de SPEC-004 y de la propuesta ADR-0006; afecta el supuesto actual de ejecución local en el host. |
