@@ -23,8 +23,8 @@ Branch: `feat/postgres-only-persistence` (base: `feat/hcm-real-schema-data` @ `3
 | T2 | S1,S2,S3,S4,S5 | inline | completado | `46461e5` — Npgsql, UseNpgsql ×2, renames de símbolos, `text`, migraciones regeneradas; probe (2 commits en total con factories design-time) |
 | T3 | S6,S8 | inline | completado | `56743fc` — compose app-postgres 5434, docker/postgres init, .env.example, script redacción |
 | T4 | S7 | inline | completado | `cbaaa67` — suite 132/132 + 10/10 ×2 corridas desde BD vacía; race de siembra idempotente |
-| T5 | S9 | inline | pendiente | — README, local-setup, ADRs heredados, notas en specs |
-| T6 | cierre | inline | pendiente | — checks diferenciales, log final, assess de revisión |
+| T5 | S9 | inline | completado | `abf0d63` — README, local-setup, ADRs heredados, notas en specs, requisitos/AC |
+| T6 | cierre | inline | completado | — barrido final OK; assess de revisión registrado en L7 |
 
 ## Log
 
@@ -39,3 +39,5 @@ Branch: `feat/postgres-only-persistence` (base: `feat/hcm-real-schema-data` @ `3
   - `HcmPostgresModeApiFactories` no necesitó cambio material: la suite pasa la cadena por `ConnectionStrings__TalentAssistantTests`, que ahora apunta a la BD propia Postgres.
   - Race de siembra corregida en `InitializeLocalAuthenticationData`: `CreateAsync` puede terminar 1) en `DbUpdateException` 23505 (perdedor de la carrera, índice "UserNameIndex" en transacción comprometida) o 2) con `result` fallido "is already taken" (la validación propia de Identity detectó la fila comprometida que el `FindByName` inicial no vio). En ambos casos se re-verifica la existencia y se retorna; si la BD no está disponible, el error original se propaga con causa preservada.
 - **L5** (2026-10-21, evidencia): `dotnet test TalentAssistant.sln` ×2 desde BD `talentassistant_tests` vacía → **132/132 integración, 10/10 unitarias** (la intermitencia ambiental `0x800711C7` no apareció en estas corridas); `docker compose config --quiet` OK; bootstrap verificado: roles/bases creadas por `docker/postgres/init/10-app-databases.sh` (`talentassistant_dev`, `talentassistant_tests`, rol `talentassistant_app`, admin `talentassistant_admin`).
+- **L6** (2026-10-21, evidencia de ciclo): `docker compose up -d --build --remove-orphans` recicló el proyecto (imagen API vieja regenerada, contenedor mysql orfanado retirado); `GET /health` y `GET /health/database` → `{"status":"healthy"}` contra PostgreSQL; `.\scripts\verify-database-secret-redaction.ps1` → **PASS: exit 0** (fallo sintético de autenticación devuelve 503 genérico sin centinela ni stack trace en la respuesta ni en los logs). User Secrets del host actualizados a la cadena PostgreSQL + SigningKey sintética (valores nunca versionados); nota: `RandomNumberGenerator.Fill` no existe en Windows PowerShell 5.1, se usó `RNGCryptoServiceProvider`.
+- **L7** (2026-10-21, herencia documental): política aplicada — mecciones históricas intactas; notas de herencia añadidas en ADR-0004/0006/0007/0008/0009/0012 y en specs 001/002/004/005/006/007/011. Barrido final `grep mysql` devuelve solo hits intencionales (heritage docs + gate de ArchitectureBoundaryTests).
