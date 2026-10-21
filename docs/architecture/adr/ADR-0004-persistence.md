@@ -1,6 +1,6 @@
 # ADR-0004: Persistencia con MySQL y Entity Framework Core
 
-- **Estado:** Aceptado
+- **Estado:** Sustituido (2026-10-21) por [ADR-0013](ADR-0013-postgresql-persistence.md), que migra toda la persistencia propia a PostgreSQL y retira MySQL del stack. El contenido siguiente se conserva como registro histórico de la decisión original.
 - **Fecha:** 2026-10-14
 - **Responsables de la decisión:** Equipo de desarrollo de Talent Assistant
 
