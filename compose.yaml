@@ -1,27 +1,27 @@
 name: talentassistant-local
 
 services:
-  mysql:
-    image: talentassistant-mysql:8.4.11-local
-    build:
-      context: .
-      dockerfile: docker/mysql/Dockerfile
+  app-postgres:
+    image: postgres:17-alpine
     environment:
-      MYSQL_DATABASE: ${MYSQL_DATABASE:?Set MYSQL_DATABASE in the local .env file}
-      MYSQL_USER: ${MYSQL_USER:?Set MYSQL_USER in the local .env file}
-      MYSQL_PASSWORD: ${MYSQL_PASSWORD:?Set MYSQL_PASSWORD in the local .env file}
-      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD:?Set MYSQL_ROOT_PASSWORD in the local .env file}
+      POSTGRES_USER: ${APP_POSTGRES_ADMIN:?Set APP_POSTGRES_ADMIN in the local .env file}
+      POSTGRES_PASSWORD: ${APP_POSTGRES_ADMIN_PASSWORD:?Set APP_POSTGRES_ADMIN_PASSWORD in the local .env file}
+      POSTGRES_DB: ${APP_POSTGRES_DB:?Set APP_POSTGRES_DB in the local .env file}
+      APP_POSTGRES_PASSWORD: ${APP_POSTGRES_PASSWORD:?Set APP_POSTGRES_PASSWORD in the local .env file}
     ports:
-      - "127.0.0.1:3306:3306"
+      # Loopback only (SEC-002). 5434 avoids the host 5432 (if any) and the
+      # HCM contract database on 5433 (SPEC-011/012).
+      - "127.0.0.1:5434:5432"
     volumes:
-      - mysql_data:/var/lib/mysql
+      - app_postgres_data:/var/lib/postgresql/data
+      - ./docker/postgres/init:/docker-entrypoint-initdb.d:ro
     healthcheck:
       # Liveness only; EF operations verify the application user's authentication.
-      test: ["CMD", "mysqladmin", "ping", "--host=127.0.0.1", "--silent"]
+      test: ["CMD-SHELL", "pg_isready -U ${APP_POSTGRES_ADMIN:?Set APP_POSTGRES_ADMIN in the local .env file} -d ${APP_POSTGRES_DB:?Set APP_POSTGRES_DB in the local .env file}"]
       interval: 5s
       timeout: 3s
       retries: 30
-      start_period: 20s
+      start_period: 10s
 
   db-init:
     image: talentassistant-api:local
@@ -31,11 +31,11 @@ services:
     command: ["--initialize-local-data"]
     environment:
       ASPNETCORE_ENVIRONMENT: Development
-      ConnectionStrings__TalentAssistant: "Server=mysql;Port=3306;Database=${MYSQL_DATABASE:?Set MYSQL_DATABASE in the local .env file};User Id=${MYSQL_USER:?Set MYSQL_USER in the local .env file};Password=${MYSQL_PASSWORD:?Set MYSQL_PASSWORD in the local .env file};"
+      ConnectionStrings__TalentAssistant: "Host=app-postgres;Port=5432;Database=${APP_POSTGRES_DB:?Set APP_POSTGRES_DB in the local .env file};Username=talentassistant_app;Password=${APP_POSTGRES_PASSWORD:?Set APP_POSTGRES_PASSWORD in the local .env file};"
       Authentication__SeedUserName: ${AUTH_SEED_USER:-demo@talentassistant.local}
       Authentication__SeedPassword: ${AUTH_SEED_PASSWORD:?Set AUTH_SEED_PASSWORD in the local .env file}
     depends_on:
-      mysql:
+      app-postgres:
         condition: service_healthy
     restart: "no"
 
@@ -47,8 +47,8 @@ services:
     environment:
       ASPNETCORE_ENVIRONMENT: Development
       ASPNETCORE_URLS: http://+:5101
-      Attendance__Source: MySql
-      ConnectionStrings__TalentAssistant: "Server=mysql;Port=3306;Database=${MYSQL_DATABASE:?Set MYSQL_DATABASE in the local .env file};User Id=${MYSQL_USER:?Set MYSQL_USER in the local .env file};Password=${MYSQL_PASSWORD:?Set MYSQL_PASSWORD in the local .env file};"
+      Attendance__Source: Dataset
+      ConnectionStrings__TalentAssistant: "Host=app-postgres;Port=5432;Database=${APP_POSTGRES_DB:?Set APP_POSTGRES_DB in the local .env file};Username=talentassistant_app;Password=${APP_POSTGRES_PASSWORD:?Set APP_POSTGRES_PASSWORD in the local .env file};"
       Authentication__SeedUserName: ${AUTH_SEED_USER:-demo@talentassistant.local}
       Authentication__SeedPassword: ${AUTH_SEED_PASSWORD:?Set AUTH_SEED_PASSWORD in the local .env file}
       Authentication__SigningKey: ${AUTH_SIGNING_KEY:?Set AUTH_SIGNING_KEY in the local .env file}
@@ -59,7 +59,7 @@ services:
     ports:
       - "127.0.0.1:5101:5101"
     depends_on:
-      mysql:
+      app-postgres:
         condition: service_healthy
       db-init:
         condition: service_completed_successfully
@@ -104,7 +104,7 @@ services:
         condition: service_started
 
 volumes:
-  mysql_data:
-    name: talentassistant_mysql_data
+  app_postgres_data:
+    name: talentassistant_app_postgres_data
   hcm_postgres_data:
     name: talentassistant_hcm_postgres_data
