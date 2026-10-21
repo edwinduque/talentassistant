@@ -30,7 +30,7 @@ El motor de la persistencia propia de Talent Assistant (identidad + asistencia s
 - Sin migración de datos: el volumen MySQL local se descarta; los datos son sintéticos y reproducibles.
 - Sin cambios en el HCM PostgreSQL (vistas, seed, fuentes) y sin conexión al HCM real.
 - Sin despliegue a producción (la topología de despliegue queda para la SPEC de CI/CD, NFR-009 pendiente de asignación) y sin CI.
-- Sin ADR nuevo más allá de ADR-0013; sin cambios en ADR-0011/0012.
+- Sin ADR nuevo más allá de ADR-0013. ADR-0011 no cambia; ADR-0012 solo recibe la nota de herencia documental de S9 (su decisión no varía).
 
 ## 3. Requisitos y límites
 

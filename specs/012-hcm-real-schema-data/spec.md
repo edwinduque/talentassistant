@@ -1,6 +1,6 @@
 # SPEC-012 — Esquema real del HCM y datos dummy robustos en PostgreSQL local
 
-- **Estado:** Aprobado (2026-10-20, con la corrección del vocabulario de `status_id`: 1 pendiente, 2 activo, 3 eliminado).
+- **Estado:** Aprobado (2026-10-20, con la corrección del vocabulario de `status_id`: 1 pendiente, 2 activo, 3 eliminado). Nota de herencia (2026-10-21): desde SPEC-013/ADR-0013 la persistencia propia de la aplicación ya NO usa MySQL — su frase «el MySQL del stack sigue siendo identidad + asistencia sintética» describía el alcance en su momento y quedó superada por la migración a PostgreSQL.
 - **Implementación:** Implementada en la rama `feat/hcm-real-schema-data` (resumen en §11).
 - **Requisitos relacionados:** sin FR nuevo (preparación de la validación real bajo FR-032/FR-033 y NFR-022 existentes).
 - **Criterios relacionados:** AC-039, AC-040, AC-041 (amplían la evidencia de AC-036..AC-038 de SPEC-011).
