@@ -5,7 +5,7 @@ using TalentAssistant.Infrastructure.Persistence;
 
 namespace TalentAssistant.Infrastructure.Attendance;
 
-public sealed class MySqlHcmAttendanceSource(TalentAssistantDbContext dbContext)
+public sealed class DatasetHcmAttendanceSource(TalentAssistantDbContext dbContext)
     : IHcmAttendanceSource
 {
     public const string DatasetId = "attendance-demo";

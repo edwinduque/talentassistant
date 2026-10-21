@@ -28,7 +28,9 @@ public sealed class ArchitectureBoundaryTests
             "TalentAssistant.Web",
             "Microsoft.EntityFrameworkCore",
             "MySql.EntityFrameworkCore",
-            "MySql.Data"
+            "MySql.Data",
+            "Npgsql.EntityFrameworkCore.PostgreSQL",
+            "Npgsql"
         };
 
         var violations = assembly.GetReferencedAssemblies()

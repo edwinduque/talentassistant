@@ -22,7 +22,7 @@ public sealed class TalentAssistantDbContext(
             entity.Property(dataset => dataset.PayloadVersion)
                 .IsRequired();
             entity.Property(dataset => dataset.PayloadJson)
-                .HasColumnType("longtext")
+                .HasColumnType("text")
                 .IsRequired();
         });
     }

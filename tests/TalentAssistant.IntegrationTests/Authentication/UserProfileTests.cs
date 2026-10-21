@@ -16,7 +16,7 @@ public sealed class UserProfileTests
         var services = new ServiceCollection();
         services.AddLogging();
         services.AddDbContext<TalentAssistantIdentityDbContext>(options =>
-            options.UseMySQL(connectionString));
+            options.UseNpgsql(connectionString));
         services.AddIdentity<ApplicationUser, IdentityRole>()
             .AddEntityFrameworkStores<TalentAssistantIdentityDbContext>();
 

@@ -10,7 +10,7 @@ namespace TalentAssistant.IntegrationTests.HcmPostgres;
 /// AC-036 over HTTP: with <c>Hcm:Source=Postgres</c> the five data endpoints of
 /// the assistant answer from the seeded contract views of the local PostgreSQL
 /// (same response formats as the synthetic mode), proving the switch registers
-/// the Postgres adapters end to end instead of the synthetic/MySQL ones.
+/// the Postgres adapters end to end instead of the synthetic/dataset ones.
 /// The seeded presence rows key on the database's <c>CURRENT_DATE</c> - its UTC
 /// day - which the test host shares, so the presence query uses the UTC day.
 /// </summary>

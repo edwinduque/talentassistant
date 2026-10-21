@@ -25,15 +25,15 @@ if (string.IsNullOrWhiteSpace(connectionString))
 }
 
 var attendanceSource = builder.Configuration["Attendance:Source"] ?? "Memory";
-var useMySqlAttendanceSource = string.Equals(
+var useDatasetAttendanceSource = string.Equals(
     attendanceSource,
-    "MySql",
+    "Dataset",
     StringComparison.OrdinalIgnoreCase);
-if (!useMySqlAttendanceSource
+if (!useDatasetAttendanceSource
     && !string.Equals(attendanceSource, "Memory", StringComparison.OrdinalIgnoreCase))
 {
     throw new InvalidOperationException(
-        "Attendance:Source must be configured as Memory or MySql.");
+        "Attendance:Source must be configured as Memory or Dataset.");
 }
 
 // Single HCM source switch (SPEC-011 S3): one value governs both ports at once
@@ -70,7 +70,7 @@ var lockoutMinutes = builder.Configuration.GetValue<int?>("Authentication:Lockou
 
 builder.Services.AddInfrastructure(
     connectionString,
-    useMySqlAttendanceSource,
+    useDatasetAttendanceSource,
     usePostgresHcmSource ? hcmPostgresConnectionString : null,
     hcmPostgresCommandTimeoutSeconds);
 builder.Services.AddIdentityInfrastructure(

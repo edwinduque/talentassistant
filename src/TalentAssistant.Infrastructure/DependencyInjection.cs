@@ -21,7 +21,7 @@ public static class DependencyInjection
     public static IServiceCollection AddInfrastructure(
         this IServiceCollection services,
         string connectionString,
-        bool useMySqlAttendanceSource = false,
+        bool useDatasetAttendanceSource = false,
         string? hcmPostgresConnectionString = null,
         int hcmPostgresCommandTimeoutSeconds = 15)
     {
@@ -35,16 +35,16 @@ public static class DependencyInjection
         }
 
         services.AddDbContext<TalentAssistantDbContext>(options =>
-            options.UseMySQL(connectionString));
-        services.AddScoped<IDatabaseAvailabilityCheck, MySqlDatabaseAvailabilityCheck>();
+            options.UseNpgsql(connectionString));
+        services.AddScoped<IDatabaseAvailabilityCheck, TalentAssistantDatabaseAvailabilityCheck>();
         services.AddScoped<InitializeLocalSyntheticAttendanceData>();
 
         if (hcmPostgresConnectionString is not null)
         {
-            // One switch governs BOTH ports (SPEC-011 S3): in Postgres mode the
-            // synthetic and MySQL adapters are never registered, so a mixed
-            // source is impossible. The data source connects lazily; the
-            // startup validation of Program has already rejected an empty value.
+            // One switch governs BOTH ports (SPEC-011 S3): in Postgres HCM mode the
+            // in-app dataset adapter is never registered, so a mixed source is
+            // impossible. The data source connects lazily; the startup validation
+            // of Program has already rejected an empty value.
             services.AddSingleton(new HcmPostgresAdapterOptions(hcmPostgresCommandTimeoutSeconds));
             services.AddSingleton<NpgsqlDataSource>(
                 _ => NpgsqlDataSource.Create(hcmPostgresConnectionString));
@@ -53,9 +53,9 @@ public static class DependencyInjection
         }
         else
         {
-            if (useMySqlAttendanceSource)
+            if (useDatasetAttendanceSource)
             {
-                services.AddScoped<IHcmAttendanceSource, MySqlHcmAttendanceSource>();
+                services.AddScoped<IHcmAttendanceSource, DatasetHcmAttendanceSource>();
             }
             else
             {
@@ -123,7 +123,7 @@ public static class DependencyInjection
 
         services.AddSingleton(options);
         services.AddDbContext<TalentAssistantIdentityDbContext>(identityOptions =>
-            identityOptions.UseMySQL(connectionString));
+            identityOptions.UseNpgsql(connectionString));
         services.AddIdentity<ApplicationUser, IdentityRole>(identity =>
             {
                 // Identity defaults are kept for password policy; only lockout is configurable.
