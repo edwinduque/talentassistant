@@ -28,9 +28,14 @@ jobs:
           # Test-only synthetic secrets for the composed databases. They are
           # random per run, stay inside the ephemeral runner and are never
           # committed, logged with values or reused outside this job.
+          # AUTH_* values are required by compose interpolation even though
+          # db-init/api are not started in CI.
+          seed_password="Ta-Ci-$(openssl rand -hex 12)-seed"
           {
             echo "APP_POSTGRES_ADMIN_PASSWORD=$(openssl rand -hex 16)"
             echo "APP_POSTGRES_PASSWORD=$(openssl rand -hex 16)"
+            echo "AUTH_SEED_PASSWORD=$seed_password"
+            echo "AUTH_SIGNING_KEY=$(openssl rand -base64 48 | tr -d '\n)=/+' )$(openssl rand -hex 4)"
           } >> "$GITHUB_ENV"
 
       - name: Start the test databases (same compose.yaml as local)
@@ -54,6 +59,11 @@ jobs:
   secret-scan:
     name: Gitleaks over full history
     runs-on: ubuntu-latest
+    # gitleaks-action inspects the pull request metadata on pull_request
+    # events; the default restrictive token needs pull-requests: read.
+    permissions:
+      contents: read
+      pull-requests: read
     steps:
       - name: Checkout full history
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
