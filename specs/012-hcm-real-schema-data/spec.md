@@ -1,9 +1,9 @@
 # SPEC-012 — Esquema real del HCM y datos dummy robustos en PostgreSQL local
 
-- **Estado:** Propuesto para aprobación de planificación (2026-10-20).
-- **Implementación:** Ninguna; todavía no hay código asociado.
-- **Requisitos relacionados (propuestos):** sin FR nuevo (preparación de la validación real bajo FR-032/FR-033 y NFR-022 existentes).
-- **Criterios relacionados (propuestos):** AC-039, AC-040, AC-041 (amplían la evidencia de AC-036..AC-038 de SPEC-011).
+- **Estado:** Aprobado (2026-10-20, con la corrección del vocabulario de `status_id`: 1 pendiente, 2 activo, 3 eliminado).
+- **Implementación:** Implementada en la rama `feat/hcm-real-schema-data` (resumen en §11).
+- **Requisitos relacionados:** sin FR nuevo (preparación de la validación real bajo FR-032/FR-033 y NFR-022 existentes).
+- **Criterios relacionados:** AC-039, AC-040, AC-041 (amplían la evidencia de AC-036..AC-038 de SPEC-011).
 - **Decisión arquitectónica:** ninguna nueva; aplica ADR-0012 (las vistas son el contrato; los adaptadores no cambian).
 - **Decisión de producto registrada:** el usuario aportó el esquema real de las tablas el 2026-10-20 con estas palabras: “quiero mostrarte un poco la estructura de las tablas de bd, para que te hagas una idea, esta informacion puede ser cambiante pero necesito crear unos datos dummies bastante robustos para estas tablas. de igual manera teniendo en cuenta de que la bd es postgres, podriamos tener un contenedor local pero no mysql sino postgres”.
 - **Versión:** 0.1.
@@ -60,12 +60,12 @@ Sin asignación (`working_day_assigment`) también cae en not-arrived. Empleados
 
 | Entidad | Volumen mínimo | Cobertura |
 |---|---|---|
-| `employee` | ≥200 | ≥8 departamentos, `status_id` y `role_id` distribuidos, ~5% con `deleted_on`, correos/teléfonos/fotos parciales, supervisores referenciando a otros empleados, `language_id` mezclado, contratos de `hire_date` de10 años |
-| `timeoff_type` | ≥6 | tipos con `amount` distinto, ventanas de fiscal_year, algún tipo con `status_id` inactivo |
-| `timeoff` | ≥600 | estados mezclados, `by_hour` sí/no, notas largas, ventanas pasadas/futuras/cruzando años, supervisores y `date_supervised` |
+| `employee` | ≥200 (verificado: 209) | ≥8 departamentos, `status_id` y `role_id` distribuidos, ~5% con `deleted_on`, correos/teléfonos/fotos parciales, supervisores referenciando a otros empleados, `language_id` mezclado, contratos de `hire_date` de10 años |
+| `timeoff_type` | ≥6 (verificado: 7) | tipos con `amount` distinto, ventanas de fiscal_year, algún tipo con `status_id` inactivo |
+| `timeoff` | ≥600 (verificado: 620) | estados mezclados, `by_hour` sí/no, notas largas, ventanas pasadas/futuras/cruzando años, supervisores y `date_supervised` |
 | `working_day` | ≥7 | variantes con `enable_delows`/`web_allowed`/`mobile_allowed` y un `is_default` |
-| `working_day_assigment` | 1 por empleado activo | algunos con asignación antigua duplicada (histórico) |
-| `time_check` | ≥3.000 (≈45 días) | secuencias completas `1 → (1/2 pausa/almuerzo) → 2/3`, casos de jornada finalizada, geolocalización e IP plausibles, `timezone` por oficina, `photo_face_url` parcial, `delay_id` enlazado |
+| `working_day_assigment` | 1 por empleado activo (verificado: 206 asignaciones) | algunos con asignación antigua duplicada (histórico) |
+| `time_check` | ≥3.000 (≈45 días; verificado: 18.651, ~45 días incluyendo hoy) | secuencias completas `1 → (1/2 pausa/almuerzo) → 2/3`, casos de jornada finalizada, geolocalización e IP plausibles, `timezone` por oficina, `photo_face_url` parcial, `delay_id` enlazado |
 | `time_check_delay` | ≥60 | estados de aprobación, `approved_by` sobre empleados, comentarios largos |
 
 Más casos límite obligatorios: empleados de demostración del banco (Juan Pérez, Pedro Rojas, Mauricio Cardenas, Juan Herrera) con los hechos equivalentes que la paridad exige (vacaciones de Juan13→16, Pedro15→20 con `checkout` cubriendo su patrón, tareas implícitas solo donde el banco lo verifica); un empleado sin ninguna marcación hoy; otro con `checkout_type_id=3` hoy; otro con `timeoff` hoy; el estado de cada `status_id` documentado como supuesto en §10.
@@ -85,9 +85,9 @@ Más casos límite obligatorios: empleados de demostración del banco (Juan Pér
 
 | ID | Criterio verificable | Evidencia futura |
 |---|---|---|
-| AC-039 | Con las vistas recableadas sobre el esquema real local, **cero cambios** en adaptadores, Application, Web y puertos, y la suite completa permanece verde (integración ≥132 con ambas bases) | `git diff` sin zonas prohibidas + suite completa |
-| AC-040 | El seed dummy cumple los volúmenes y casos límite de §6 con integridad referencial (FK) y es determinista (misma init → mismos conteos: `employees≥200`, `timeoff≥600`, `time_check≥3000`…) | Consultas de conteo y re-inicialización del volumen |
-| AC-041 | La presencia derivada (§5) reproduce los estados esperados para hoy: los empleados sin registros de hoy figuran como `not-arrived`, los que tienen entrada sin fin de jornada como `working`, los de jornada finalizada como `absent` y los con `timeoff` aprobado como `vacation`; las preguntas del banco responden igual | Pruebas de la vista + pasada en vivo opcional de las siete preguntas con la clave |
+| AC-039 | Con las vistas recableadas sobre el esquema real local, **cero cambios** en adaptadores, Application, Web y puertos, y la suite completa permanece verde (integración ≥132 con ambas bases) | `git diff` sin zonas prohibidas + suite completa (verificado: build 0/0, suite completa `SUITE_EXIT=0` con integración 132/132) |
+| AC-040 | El seed dummy cumple los volúmenes y casos límite de §6 con integridad referencial (FK) y es determinista (misma init → mismos conteos: `employees≥200`, `timeoff≥600`, `time_check≥3000`…) | Consultas de conteo y re-inicialización del volumen (verificado: 209/7/620/7/206/18.651/60, md5 idéntico entre dos reinicializaciones y 12 integridades a 0) |
+| AC-041 | La presencia derivada (§5) reproduce los estados esperados para hoy: los empleados sin registros de hoy figuran como `not-arrived`, los que tienen entrada sin fin de jornada como `working`, los de jornada finalizada como `absent` y los con `timeoff` aprobado como `vacation`; las preguntas del banco responden igual | Pruebas de la vista + pasada en vivo opcional de las siete preguntas con la clave (verificado: 9 estados de hoy alineados con el sintético corregido; la pasada en vivo opcional queda pendiente) |
 
 ## 9. Plan SDD propuesto
 
@@ -105,4 +105,20 @@ Más casos límite obligatorios: empleados de demostración del banco (Juan Pér
 
 ## 11. Estado y aprobación
 
-SPEC-012 queda propuesta a la espera de aprobación para planificación; la aprobación no autoriza cambios de código hasta autorizar tareas.
+SPEC-012 fue aprobada por el usuario el 2026-10-20 (Log L2 del plan ODD), con la corrección del vocabulario de `status_id` — «1 pendiente, 2 activo, 3 eliminado» — ya aplicada en §5 y §10; la aprobación para planificar autorizó después las tareas T1..T4.
+
+Queda implementada en la rama `feat/hcm-real-schema-data` con estos commits:
+
+| Commit | Contenido |
+|---|---|
+| `9b83859` | Esquema real adaptado (T1): `db/hcm-real/upstream.sql` verbatim + `schema.sql` de PostgreSQL con FK locales y wiring del contenedor. |
+| `07dd453` | Seed dummy determinista (T2): `db/hcm-real/seed.sql` y su cableado en el init. |
+| `7d27955` | Documentación: este spec y su ADR asociado. |
+| `9a37b5e` | Recableado de las vistas del contrato sobre el shape real (T3), con alcance a los nueve fixtures y derivación de presencia §5. |
+| «Commit pendiente» | Documentación y cierre (T4): guía local, catálogo AC-039..AC-041, visión y seguimiento ODD. |
+
+Evidencia verificada (2026-10-20): una inicialización limpia auto-carga schema+seed con el marcador «hcm contract initialized»; volúmenes de 209 empleados / 7 `timeoff_type` / 620 `timeoff` / 7 `working_day` / 206 asignaciones / 18.651 `time_check` (~45 días incluyendo hoy) / 60 retrasos; huellas md5 de tabla completa idénticas tras dos reinicializaciones completas; 12 sondas de integridad (FK y enlaces) a cero; los nueve identificadores exactos del contrato servidos desde `public.employee`; mapa de presencia de hoy de 9 estados alineado con el fuente sintético corregido; `ends_before` 16/17/20 con duraciones derivadas 3/1/5; tareas=4 e insights=1 desde la sustitución legada; el rol de aplicación denegado en las tablas físicas (`permission denied for table employee`) y en escritura a través de las vistas (`42501` o `55000`); build 0/0 y suite completa `SUITE_EXIT=0` con integridad de integración 132/132.
+
+Correcciones de fixture aprobadas y aplicadas (2026-10-20): presencia de hoy de Pedro `vacation → not-arrived` (ancla temporal expirada), duración de Mauricio `2 → 1` y de Pedro `4 → 5` (regla derivada `ends_before − starts_on`), con dos aserciones duras de prueba y la expectación de seguridad del INSERT hostil reconciliada (`42501` o `55000`).
+
+Gaps conocidos (documentados, no corregidos): el shape real no expone tabla de tareas ni tabla de hallazgos de regla evaluados, por lo que esas dos vistas del contrato siguen leyendo la sustitución legada hasta que el usuario comparta sus DDLs; el catálogo servido está acotado a los nueve empleados de fixture (`department LIKE 'office-demo-%'`), y ampliarlo es un cambio de una línea en la vista más la evolución de las pruebas. Las confirmaciones abiertas de §10 siguen abiertas: el nombre exacto de la columna de job title pendiente de confirmación del usuario, las FK añadidas localmente y el `date_end` nulo cubierto como «hasta nuevo aviso».

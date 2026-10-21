@@ -244,6 +244,42 @@ Para restablecer por completo la base de pruebas del contrato:
 docker compose rm -sf hcm-postgres && docker volume rm talentassistant_hcm_postgres_data && docker compose up -d hcm-postgres
 ```
 
+### Réplica local del shape real (SPEC-012)
+
+Desde SPEC-012, `hcm-postgres` sirve el contrato sobre una réplica local con la **forma real del HCM** (tablas `public.employee`, `timeoff_type`, `timeoff`, `working_day`, `working_day_assigment`, `time_check`, `time_check_delay`), regada con un seed dummy determinista; las vistas `hcm_contract.*` son la única capa que la aplicación conoce y los adaptadores no cambiaron.
+
+| Fichero | Qué contiene |
+|---|---|
+| `db/hcm-real/upstream.sql` | DDL del usuario **verbatim** (2026-10-20). No se ejecuta: es la fuente de verdad del shape cambiante. |
+| `db/hcm-real/schema.sql` | Adaptación ejecutable a PostgreSQL: identidades deterministas, `timestamp` (`time_check_date_utc` como `timestamptz`), `smallint`, `boolean`, `text`, `"job:title"` entrecomillado; añade 9 FK locales y 5 índices de apoyo (ambos documentados como añadidos locales en su cabecera). |
+| `db/hcm-real/seed.sql` | Semilla dummy determinista, 100 % ficticia y sin `random()`: todo procede de `generate_series`, aritmética de índice y constantes. Se ejecuta una sola vez por volumen; no es idempotente a propósito. |
+
+Orden del pipeline de init (`db/hcm-contract/local/01_init.sh`, con `ON_ERROR_STOP=1`): `/real/schema.sql` → `/real/seed.sql` → `local_tables.sql` (sustitución reducida) → `views.sql` → `local_seed.sql` (filas de sustitución) → `roles.sql` → contraseña del rol de aplicación desde el entorno → `grants.sql`. Al terminar imprime el marcador `hcm contract initialized`.
+
+**Cuando el usuario comparta un shape nuevo** (la información puede cambiar; misma revisión, sin atajos):
+
+1. Reemplaza `db/hcm-real/upstream.sql` por el nuevo DDL verbatim.
+2. Adapta `db/hcm-real/schema.sql` al nuevo shape conservando nombres de tablas y columnas.
+3. Revisa `db/hcm-contract/views.sql` **y** `db/hcm-real/seed.sql` en el MISMO cambio: las vistas y la semilla dependen del shape.
+4. Reinicializa el volumen con el comando de restablecimiento de la sección anterior (borra el volumen local de pruebas, sintético por definición) y comprueba el marcador de init, los conteos y la suite completa.
+
+Convenciones del shape (SPEC-012):
+
+| Convención | Detalle |
+|---|---|
+| `timeoff.date_end` es inclusivo | El contrato expone el exclusivo `ends_before = date_end + 1 día`. |
+| Vocabulario de `status_id` | `1` pendiente, `2` activo, `3` eliminado (confirmado por el usuario). |
+| `department` como unidad orgánica | La columna dobla como identificador de unidad orgánica del contrato (marcador de alcance abajo). |
+| `time_check.status_id` | Su mapeo por valor es un supuesto documentado en la cabecera del seed. |
+| Días en UTC | Los límites de día de las marcaciones se evalúan en UTC. |
+| Ausencias que cubren hoy | Horizonte rodante a +365 días para no degradar la paridad sin reinicializar. |
+| Determinismo | Por día civil UTC; el seed es one-shot (re-inicializar el volumen lo regenera). |
+
+Alcance y gaps documentados (no corregidos):
+
+- El catálogo servido está acotado a los nueve empleados de fixture mediante el marcador `department LIKE 'office-demo-%'`; ampliarlo es retirar ese filtro en la vista, una línea, más la evolución de las pruebas.
+- El shape real **no expone tabla de tareas ni tabla de hallazgos de regla evaluados**: las vistas de tareas e insights siguen leyendo la sustitución legada (`hcm.tasks`, `hcm.attendance_incidents`) hasta que el usuario comparta esos DDLs; la aplicación nunca deriva reglas del HCM.
+
 ### Cómo obtienen las pruebas la cadena de conexión
 
 La suite completa necesita dos cadenas por entorno: `ConnectionStrings__TalentAssistantTests` (MySQL, ya documentada arriba) y `HcmPostgres__ConnectionString` contra el servicio local. El patrón correcto obtiene la contraseña desde el entorno del contenedor **sin imprimirla en el repositorio ni en la conversación**:

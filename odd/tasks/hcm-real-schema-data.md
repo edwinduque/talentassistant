@@ -41,8 +41,8 @@ Risk: none en previsión — solo datos sintéticos locales, contrato de vistas 
 |---|---|---|---|---|
 | T1 | S1 | Inline | Planificada | upstream.sql + schema.sql PG + FK + init reordenado |
 | T2 | S2 | Pendiente de ruta | Planificada | Depende de T1 |
-| T3 | S3 | Pendiente de ruta | Planificada | Depende de T2 |
-| T4 | S4 | Pendiente de ruta | Planificada | Depende de T3 |
+| T3 | S3 | Pendiente de ruta | Implementada | 9a37b5e |
+| T4 | S4 | Pendiente de ruta | Implementada | Commit pendiente |
 
 Forecast inicial: aproximadamente 1200–1800 líneas authored (el seed domina); archivos generados excluidos. Estrategia `feature-branch-chain`. El DDL del usuario puede cambiar: el flujo de actualización queda documentado en T4 (reemplazar `upstream.sql`, adaptar `schema.sql`, revisar vistas y seed juntos).
 
@@ -91,3 +91,13 @@ Defectos reales atrapados por la suite durante el recableado (RED observado): (1
 Verificación final observada: marcador de init; los9 identificadores exactos del contrato servidos desde `public.employee`; mapa de presencia de hoy =9 estados alineados con el sintético corregido (working×4: juan/herrera/madrid/tokyo-002; vacation×2: tokyo/madrid-002; not-arrived×3: pedro/mauricio/madrid-004); `timeoff` triples con `ends_before`16/17/20 y duraciones derivadas3/1/5; tasks=4 e insights=1 desde la fuente legada; tablas reales con209/620 intactas; build0/0; **suite completa SUITE_EXIT=0 con integración132/132**.
 
 Risk: none (correcciones de fixture aprobadas por el usuario, sin datos reales, contrato fijado por la suite; sin cambios de aplicación fuera del fuente sintético corregido).
+
+### L6 — Cierre de T4 y de la característica (2026-10-20)
+
+Texto exacto del usuario: “continua” (autorización de T4 tras la interrupción de la pregunta). T4 delegado al writer (context backstop; T1/T3 en línea por cirugía del contrato y T2 delegado — rutas en la tabla).
+
+Evidencia de cierre (5 ficheros): guía «Réplica local del shape real (SPEC-012)» en local-setup (contenido de db/hcm-real, procedimiento ante un shape nuevo del usuario — reemplazar upstream.sql → adaptar schema.sql → revisar vistas y seed en el MISMO cambio → reinicializar volumen —, orden del init, convenciones: date_end inclusivo, vocabulario1/2/3, department como unidad orgánica, día en UTC, horizonte+365, semilla de un solo disparo, alcance fixtures y los dos gaps legados); AC-039..AC-041 textuales con trazabilidad y evidencia verificada (cotejo verbatim AC-040 por SHA-256: idéntico); spec en estado Aprobada/Implementada con tabla de commits y marcadores «(verificado: …)» en los volúmenes; una frase en visión §7; filas T3 (`9a37b5e`) y T4 actualizadas. Secretos con regex de forma =0.
+
+Episodio del límite de día: el worker detectó que la suite quedaba en131/132 porque UTC había rodado a2026-10-21 mientras la semilla de un solo disparo anclaba los registros de «hoy» al20 (el ancla vive en la fecha UTC de la carga; el sintético usa la fecha local del host) — diagnosticó el remedio (reinicio del volumen) que por ser operación de contenedor no ejecutó, acertando con el diseño. El padre reinicializó con el procedimiento documentado: marcador verde y **suite completa SUITE_EXIT=0 —10/10 unit +132/132 integración**. Este límite queda documentado en la guía y en el propio test (su pista interna ya lo decía).
+
+Estado final: rama `feat/hcm-real-schema-data` con5 commits (`9b83859`, `07dd453`, `7d27955`, `9a37b5e`, cierre de T4), árbol limpio, sin push. Risk de cierre: none (sin tareas nombraron items de riesgo alto; sin verificador independiente obligatorio — la suite completa y las sondas de contrato son la evidencia). Pendiente del usuario: publicación y, cuando comparta el DDL real de tareas/hallazgos, el cambio de los dos gaps legados.
