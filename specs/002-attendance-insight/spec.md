@@ -1,6 +1,6 @@
 # SPEC-002 — Explicación de incidencias de marcaje del HCM
 
-- Estado: Implementada; verificación parcial (2026-10-15). La aceptación automatizada sigue pendiente.
+- Estado: Implementada; verificación parcial (2026-10-15). La aceptación automatizada sigue pendiente. Nota de herencia (2026-10-21): el motor usado por su fuente relacional pasó de MySQL a PostgreSQL ([ADR-0013](../../docs/architecture/adr/ADR-0013-postgresql-persistence.md)); la semántica del fixture no cambia.
 - Aprobación: el usuario confirmó SPEC-002 y autorizó implementar solo este caso de uso. Las reglas detalladas adicionales de TimeOff quedan aplazadas.
 - Versión: 0.1
 - Objetivo: definir una primera vertical de asistencia que consulta una fuente HCM sintética y explica una incidencia con su evidencia.

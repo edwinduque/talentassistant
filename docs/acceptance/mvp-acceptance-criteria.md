@@ -48,7 +48,7 @@ El MVP puede ejecutar sus funcionalidades operativas sin claves de proveedores L
 
 ## AC-012 — Stack local contenedorizado (propuesto en SPEC-004)
 
-Desde un checkout limpio y con Docker Desktop disponible, el desarrollador puede construir y arrancar API, Web y MySQL usando sus Dockerfiles y Docker Compose; los servicios quedan saludables y la interfaz Web es accesible localmente.
+Desde un checkout limpio y con Docker Desktop disponible, el desarrollador puede construir y arrancar API, Web y la base de datos propia (PostgreSQL, ADR-0013/SPEC-013) usando sus Dockerfiles y Docker Compose; los servicios quedan saludables y la interfaz Web es accesible localmente.
 
 ## AC-013 — Semilla sintética reproducible (propuesto en SPEC-004)
 

@@ -10,7 +10,7 @@ Este documento resume las decisiones de producto y arquitectura que gobiernan Ta
 | ADR-0002 | Utilizar respuestas sintéticas del HCM en el MVP, sin replicar sus módulos | Aceptado | `docs/architecture/adr/ADR-0002-synthetic-data.md` |
 | ADR-0003 | Mantener un límite arquitectónico para un posible servicio de IA futuro | Aceptado | `docs/architecture/adr/ADR-0003-ai-service-boundary.md` |
 | ADR-0004 | Utilizar MySQL con Entity Framework Core | Sustituido (2026-10-21, por ADR-0013) | `docs/architecture/adr/ADR-0004-persistence.md` |
-| ADR-0013 | Utilizar PostgreSQL como única base de datos relacional con Entity Framework Core; retira MySQL del stack | Aceptado; migración en curso según SPEC-013 | `docs/architecture/adr/ADR-0013-postgresql-persistence.md`; `specs/013-postgres-only-persistence/spec.md` |
+| ADR-0013 | Utilizar PostgreSQL como única base de datos relacional con Entity Framework Core; retira MySQL del stack | Aceptado; implementado y verificado según SPEC-013 (132/132 integración desde base vacía) | `docs/architecture/adr/ADR-0013-postgresql-persistence.md`; `specs/013-postgres-only-persistence/spec.md` |
 | ADR-0005 | Utilizar CQRS ligero sin MediatR en la etapa inicial | Aceptado | `docs/architecture/adr/ADR-0005-lightweight-cqrs.md` |
 | ADR-0006 | Añadir perfil local Compose para API/Web/MySQL con dataset sintético versionado y fuente MySQL detrás de `IHcmAttendanceSource` | Aceptado; perfil local implementado con limitaciones de verificación documentadas; la fuente de asistencia sobre la BD propia queda redefinida en PostgreSQL por ADR-0013 | `docs/architecture/adr/ADR-0006-containerized-local-development.md`; `specs/004-containerized-local-environment/spec.md` |
 | ADR-0007 | Autenticación local con Identity y JWT | Aceptado; implementado con limitaciones documentadas | `docs/architecture/adr/ADR-0007-local-authentication.md`; `specs/005-local-authentication/spec.md` |
@@ -29,7 +29,7 @@ Las siguientes decisiones están aprobadas y deben guiar la implementación inic
 - **API backend:** ASP.NET Core Web API.
 - **Arquitectura:** Clean Architecture dentro de un monolito modular.
 - **Persistencia:** PostgreSQL 17 como único motor relacional de la aplicación, con Entity Framework Core `10.0.13` y proveedor `Npgsql.EntityFrameworkCore.PostgreSQL` `10.0.3` (licencia PostgreSQL, permisiva). La base propia se ejecuta como servicio Compose propio con bases `talentassistant_dev` y `talentassistant_tests`; el conector HCM sostiene su contenedor PostgreSQL de solo lectura (SPEC-011/012). La selección y sus límites están documentados en ADR-0013, que sustituye a ADR-0004.
-- **Entorno local:** SPEC-001 conserva el flujo de fundación con API/Web en el host y MySQL en Compose. ADR-0006 añade un perfil Compose opcional para el stack local completo; ambos perfiles están documentados en `docs/development/local-setup.md`.
+- **Entorno local:** SPEC-001 conserva el flujo de fundación con API/Web en el host y la base de datos en Compose (PostgreSQL desde ADR-0013/SPEC-013). ADR-0006 añade un perfil Compose opcional para el stack local completo; ambos perfiles están documentados en `docs/development/local-setup.md`.
 - **Pruebas automatizadas:** xUnit.
 - **Patrón de aplicación:** Commands y Queries explícitos, sin MediatR en la primera versión.
 - **Datos:** respuestas y contratos sintéticos del HCM para el MVP; el HCM sigue siendo el sistema fuente y Talent Assistant no recrea sus procesos.

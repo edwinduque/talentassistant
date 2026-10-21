@@ -1,6 +1,6 @@
 # ADR-0006 — Entorno local contenedorizado
 
-- **Estado:** Aceptado; perfil local implementado con evidencia y limitaciones registradas en SPEC-004 (2026-10-16).
+- **Estado:** Aceptado; perfil local implementado con evidencia y limitaciones registradas en SPEC-004 (2026-10-16). Nota de herencia (2026-10-21): el servidor MySQL del perfil local se sustituyó por PostgreSQL al migrar la persistencia de la fundación ([ADR-0013](ADR-0013-postgresql-persistence.md)/[SPEC-013](../../specs/013-postgres-only-persistence/spec.md)); las menciones históricas a MySQL que siguen describen la decisión en su momento y no el estado actual.
 - **Fecha:** 2026-10-15.
 - **Aprobación de arquitectura:** usuario, 2026-10-15. La implementación se autorizó mediante las tareas T1-T3 del plan ODD.
 - **Especificación relacionada:** SPEC-004 — Entorno local contenedorizado y semilla sintética.

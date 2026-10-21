@@ -1,6 +1,6 @@
 # ADR-0012 — Consumo directo de solo lectura del HCM (PostgreSQL) tras los puertos
 
-- **Estado:** Aceptado (2026-10-19).
+- **Estado:** Aceptado (2026-10-19). Nota de herencia (2026-10-21): la persistencia propia corre ahora sobre PostgreSQL ([ADR-0013](ADR-0013-postgresql-persistence.md)); el contrato de vistas del HCM no cambia.
 - **Fecha:** 2026-10-19.
 - **Aprobación de arquitectura:** aprobado por el usuario el 2026-10-19 junto con SPEC-011 (log L3 del plan ODD).
 - **Especificación relacionada:** SPEC-011 — Conector HCM real (PostgreSQL, solo consulta).

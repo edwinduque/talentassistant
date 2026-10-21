@@ -1,6 +1,6 @@
 # ADR-0007 — Autenticación local con ASP.NET Core Identity y JWT
 
-- **Estado:** Propuesto (2026-10-16).
+- **Estado:** Propuesto (2026-10-16). Nota de herencia (2026-10-21): la persistencia de Identity corre ahora sobre PostgreSQL ([ADR-0013](ADR-0013-postgresql-persistence.md)); las referencias a MySQL describen la decisión en su momento.
 - **Fecha:** 2026-10-16.
 - **Aprobación de arquitectura:** pendiente de aprobación del usuario junto con SPEC-005.
 - **Especificación relacionada:** SPEC-005 — Autenticación local para Web y API.

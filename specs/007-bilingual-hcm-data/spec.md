@@ -1,6 +1,6 @@
 # SPEC-007 — Datos sintéticos del HCM bilingües
 
-- **Estado:** Propuesto para aprobación de planificación (2026-10-17).
+- **Estado:** Propuesto para aprobación de planificación (2026-10-17). Nota de herencia (2026-10-21): la fuente relacional del dataset corre sobre PostgreSQL ([ADR-0013](../../docs/architecture/adr/ADR-0013-postgresql-persistence.md)).
 - **Implementación:** T1 y T2 implementadas y verificadas; recorrido de navegador validado en español e inglés; sin comprobaciones pendientes.
 - **Requisitos relacionados (propuestos):** FR-025 y NFR-020. Relacionados existentes: FR-006, FR-019, FR-024; NFR-005, NFR-017.
 - **Criterios relacionados (propuestos):** AC-023 y AC-024 (amendan AC-021 de SPEC-006, ver §7).

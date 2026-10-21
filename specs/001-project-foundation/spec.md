@@ -1,6 +1,6 @@
 # SPEC-001: Fundación técnica del proyecto
 
-- **Estado:** Lista para pasar a implementación; la aplicación y todos sus criterios siguen sin implementar ni verificar
+- **Estado:** Lista para pasar a implementación; la aplicación y todos sus criterios siguen sin implementar ni verificar. Nota de herencia (2026-10-21): el motor MySQL que esta especificación introdujo fue sustituido por PostgreSQL según [ADR-0013](../../docs/architecture/adr/ADR-0013-postgresql-persistence.md)/[SPEC-013](../013-postgres-only-persistence/spec.md); su texto de esquema/Compose se conserva como historial.
 - **Proyecto:** Talent Assistant
 - **Tipo:** Fundación técnica
 - **Fecha:** 2026-10-14

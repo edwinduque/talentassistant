@@ -19,10 +19,10 @@ Branch: `feat/postgres-only-persistence` (base: `feat/hcm-real-schema-data` @ `3
 
 | ID | Specs | Ruta | Estado | Commit |
 |---|---|---|---|---|
-| T1 | S9 | inline | completado | pendiente de commit — SPEC-013 + ADR-0013 + ADR-0004 Sustituido + decision-register |
-| T2 | S1,S2,S3,S4,S5 | inline | pendiente | — código: paquetes Npgsql, UseNpgsql ×2, renames, config, migraciones regeneradas, probe |
-| T3 | S6,S8 | inline | pendiente | — infra: compose, docker/postgres, .env.example, script redacción |
-| T4 | S7 | inline | pendiente | — suite completa GREEN contra Postgres; evidencia en Log |
+| T1 | S9 | inline | completado | `f909213` — SPEC-013 + ADR-0013 + ADR-0004 Sustituido + decision-register |
+| T2 | S1,S2,S3,S4,S5 | inline | completado | `46461e5` — Npgsql, UseNpgsql ×2, renames de símbolos, `text`, migraciones regeneradas; probe (2 commits en total con factories design-time) |
+| T3 | S6,S8 | inline | completado | `56743fc` — compose app-postgres 5434, docker/postgres init, .env.example, script redacción |
+| T4 | S7 | inline | completado | `cbaaa67` — suite 132/132 + 10/10 ×2 corridas desde BD vacía; race de siembra idempotente |
 | T5 | S9 | inline | pendiente | — README, local-setup, ADRs heredados, notas en specs |
 | T6 | cierre | inline | pendiente | — checks diferenciales, log final, assess de revisión |
 
@@ -31,3 +31,11 @@ Branch: `feat/postgres-only-persistence` (base: `feat/hcm-real-schema-data` @ `3
 - **L1** (2026-10-21, usuario, verbatim): «solo una correccion que debemos hacer en la documentacion, solo vamos a trabajar con postgres no mysql». Tras presentar la evidencia (MySQL vive en código, no solo en docs) se presentaron 2 caminos: (1) migración completa a PostgreSQL [recomendado, evita dos motores en producción dado que la VPS del usuario ya usa postgres] o (2) postgres de aquí en adelante con MySQL congelado como legado. El usuario eligió: **«1»** → migración completa.
 - **L2** (2026-10-21): feature creada tras mapeo `gentle-ai-explore` (handoff con path:line en la sesión; 10 riesgos detectados, incluidos: anotaciones MySQL en 4 migraciones + 1 probe, cadena compartida de los dos contextos, `verify-database-secret-redaction.ps1` laudable MySQL, HcmPostgresModeApiFactories pasa cadena MySQL a identidad, ArchitectureBoundaryTests con gate de proveedor).
 - **L3** (2026-10-21): política test-first: sin RED clásico posible para un swap de proveedor (no existe Postgres propio antes del switch). La red de regresión es la suite existente de integración (132/132) contra Compose Postgres; excepción documentada en SPEC-013 §Verificación.
+- **L4** (2026-10-21, decisiones de diseño observadas y tomadas):
+  - **S4** resuelto: `PayloadJson` se serializa con `System.Text.Json` (`SyntheticAttendanceDatasetSerializer.Serialize`) → tipo PostgreSQL elegido: `text` (JSON UTF-8 textual, no binario puro).
+  - Nombres registrados (S5): valor de config `Attendance:Source=Dataset`; clases `DatasetHcmAttendanceSource` y `TalentAssistantDatabaseAvailabilityCheck`; `useDatasetAttendanceSource` como parámetro renombrado.
+  - Migraciones consolidadas: desde BD vacía no se re-encadena la historia MySQL; quedan 2 migraciones (una por contexto: `InitialCreate` de TalentAssistantDbContext en `Migrations/`, `AddIdentityTables` de Identity en `Migrations/TalentAssistantIdentityDb/`) + 1 de probe en IntegrationTests. Justificación: el volumen se descarta, la historia previa es irrepetible regresivamente y mantener 5 migraciones MySQL-reescritas sumaría solo riesgo.
+  - Añadidas `DesignTimeDbContextFactories` (2 factories) porque el host de la API exige SigningKey al arrancar y rompía `dotnet ef migrations add`; apuntan al proveedor correcto (el SQL de la migración depende de él) con cadena placeholder que nunca se conecta.
+  - `HcmPostgresModeApiFactories` no necesitó cambio material: la suite pasa la cadena por `ConnectionStrings__TalentAssistantTests`, que ahora apunta a la BD propia Postgres.
+  - Race de siembra corregida en `InitializeLocalAuthenticationData`: `CreateAsync` puede terminar 1) en `DbUpdateException` 23505 (perdedor de la carrera, índice "UserNameIndex" en transacción comprometida) o 2) con `result` fallido "is already taken" (la validación propia de Identity detectó la fila comprometida que el `FindByName` inicial no vio). En ambos casos se re-verifica la existencia y se retorna; si la BD no está disponible, el error original se propaga con causa preservada.
+- **L5** (2026-10-21, evidencia): `dotnet test TalentAssistant.sln` ×2 desde BD `talentassistant_tests` vacía → **132/132 integración, 10/10 unitarias** (la intermitencia ambiental `0x800711C7` no apareció en estas corridas); `docker compose config --quiet` OK; bootstrap verificado: roles/bases creadas por `docker/postgres/init/10-app-databases.sh` (`talentassistant_dev`, `talentassistant_tests`, rol `talentassistant_app`, admin `talentassistant_admin`).
