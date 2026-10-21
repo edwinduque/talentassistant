@@ -1,0 +1,106 @@
+name: deploy
+
+# SPEC-015: production deployment is NEVER automatic. A maintainer dispatches
+# this workflow and the "production" environment protection rule asks them
+# for explicit approval; certificate, nginx and database layout stay under
+# human control through the documented VPS checklist.
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: production-deploy
+  cancel-in-progress: false
+
+environment: production
+
+jobs:
+  deploy:
+    name: Publish, upload, health-check or roll back
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+
+      - name: Setup .NET SDK (pinned by global.json, no roll-forward)
+        uses: actions/setup-dotnet@a98b56852c35b8e3190ac28c8c2271da59106c68 # v6.0.0
+        with:
+          global-json-file: global.json
+
+      - name: Restore and build Release
+        run: |
+          dotnet restore TalentAssistant.sln
+          dotnet publish src/TalentAssistant.Api -c Release --no-restore -o publish/api
+          dotnet publish src/TalentAssistant.Web -c Release --no-restore -o publish/web
+
+      - name: Package
+        run: |
+          mkdir -p bundle
+          tar -czf bundle/deploy.tar.gz -C publish api web
+
+      - name: Prepare SSH key
+        run: |
+          install -m 600 /dev/null ssh_key
+          echo "${{ secrets.SSH_PRIVATE_KEY }}" > ssh_key
+          mkdir -p ~/.ssh
+          echo "${{ secrets.SSH_KNOWN_HOSTS }}" >> ~/.ssh/known_hosts
+          chmod 600 ~/.ssh/known_hosts
+
+      - name: Ship and release on the VPS
+        env:
+          SSH_HOST: ${{ secrets.SSH_HOST }}
+          SSH_PORT: ${{ secrets.SSH_PORT }}
+          SSH_USER: ${{ secrets.SSH_USER }}
+        run: |
+          TS="$(date +%Y%m%d%H%M%S)"
+          scp -P "$SSH_PORT" -i ssh_key bundle/deploy.tar.gz "/tmp/talentassistant-$TS.tar.gz"
+          ssh -p "$SSH_PORT" -i ssh_key "$SSH_USER@$SSH_HOST" "bash -s" -- "$TS" <<'EOS'
+          set -euo pipefail
+          TS="$1"
+          BASE="/opt/talentassistant"
+          mkdir -p "$BASE/releases"
+          tar -xzf "/tmp/talentassistant-$TS.tar.gz" -C "$BASE" --one-top-level="$BASE/releases/$TS"
+          rm -f "/tmp/talentassistant-$TS.tar.gz"
+
+          # Apply EF migrations idempotently against the production database.
+          cd "$BASE/releases/$TS/api"
+          set -a; source "$BASE/.env.production"; set +a
+          ./TalentAssistant.Api --initialize-local-data
+
+          # Health-check the NEW binaries on a private probe port so the
+          # currently-running systemd services and other sites are untouched.
+          PROBE_PORT=5199
+          ASPNETCORE_URLS="http://127.0.0.1:$PROBE_PORT" ASPNETCORE_ENVIRONMENT=Production \
+            ./TalentAssistant.Api & api_pid=$!
+          trap 'kill $api_pid 2>/dev/null || true' EXIT
+          for _ in $(seq 1 30); do
+            curl -fsS "http://127.0.0.1:$PROBE_PORT/health" >/dev/null 2>&1 && break
+            sleep 2
+          done
+          curl -fsS "http://127.0.0.1:$PROBE_PORT/health" >/dev/null || {
+            echo "health check of the new release failed before switch"; exit 1; }
+
+          previous=$(readlink "$BASE/current" 2>/dev/null || true)
+          ln -sfn "$BASE/releases/$TS" "$BASE/current"
+          sudo -n systemctl restart talentassistant-api
+          sudo -n systemctl restart talentassistant-web
+
+          ok=1
+          for _ in $(seq 1 30); do
+            curl -fsS "http://127.0.0.1:5101/health" >/dev/null 2>&1 \
+              && curl -fsS "http://127.0.0.1:5101/health/database" >/dev/null 2>&1 \
+              && ok=0 && break
+            sleep 2
+          done
+          if [ $ok -ne 0 ]; then
+            echo "new release failed the live health check; rolling back"
+            if [ -n "$previous" ]; then
+              ln -sfn "$previous" "$BASE/current"
+              sudo -n systemctl restart talentassistant-api
+              sudo -n systemctl restart talentassistant-web
+            fi
+            exit 1
+          fi
+          EOS
