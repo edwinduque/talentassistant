@@ -37,7 +37,7 @@ sudo cp deploy/systemd/talentassistant-web.service.tpl /etc/systemd/system/talen
 sudo systemctl daemon-reload
 ```
 
-Las unidades endpoints: `EnvironmentFile=/opt/talentassistant/.env.production`, `User=talentassistant`, endurecimiento activo (`NoNewPrivileges`, `PrivateTmp`, `ProtectSystem=strict`), bindean SOLÓ `127.0.0.1` (vía `ASPNETCORE_URLS` del archivo de entorno). Si las NUEVAS web/api FK de producción deben liberar otros puertos, se cambia en el archivo de entorno, no en la unidad.
+Las unidades `cp`-copia quedan correctas tal cual el repo (el Web ya trae su puerto `5102` y su WorkingDirectory de la web). Nota (lección del 2026-10-23): si generas la unidad web editando a mano la de la API, recuerda cambiar TAMBIÉN `Environment=ASPNETCORE_URLS` a `http://127.0.0.1:5102`; sin ese cambio la web intenta bindear el puerto de la API y entra en "address already in use" (crash loop).
 
 ### 2.3 Base de datos de producción (nueva, en el postgres EXISTENTE)
 
