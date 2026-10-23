@@ -112,6 +112,12 @@ app.MapPost("/session/login", async (
 
     var identity = new ClaimsIdentity(CookieAuthenticationDefaults.AuthenticationScheme);
     identity.AddClaim(new Claim(ClaimTypes.Name, login.UserName));
+    // SPEC-016: the role claims (e.g. "admin") flow into the session cookie,
+    // so page-level [Authorize(Roles)] and the conditional navigation work.
+    foreach (var role in login.Roles)
+    {
+        identity.AddClaim(new Claim(ClaimTypes.Role, role));
+    }
     identity.AddClaim(new Claim(
         AuthenticationMessageHandler.FullNameClaimType,
         login.FullName));

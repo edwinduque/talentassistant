@@ -1,0 +1,225 @@
+@page "/admin/users"
+@using Microsoft.AspNetCore.Authorization
+@using Microsoft.AspNetCore.Components.Authorization
+@using Microsoft.AspNetCore.Components.Forms
+@using System.Security.Claims
+@using TalentAssistant.Web.Authentication
+@attribute [Authorize(Roles = "admin")]
+@inject AuthApiClient AuthApi
+@inject AuthenticationStateProvider AuthenticationState
+@inject IStringLocalizer<AdminUsers> Local
+
+<PageTitle>@Local["PageTitle"]</PageTitle>
+
+<div class="attendance-page">
+    <header class="attendance-heading">
+        <p class="eyebrow">@Local["Eyebrow"]</p>
+        <h1>@Local["Title"]</h1>
+        <p class="attendance-intro">
+            @Local["Subtitle"]
+        </p>
+    </header>
+
+    <section class="filter-panel" aria-labelledby="create-heading">
+        <div class="section-heading">
+            <div>
+                <p class="eyebrow">@Local["CreateEyebrow"]</p>
+                <h2 id="create-heading">@Local["CreateHeading"]</h2>
+            </div>
+        </div>
+
+        <EditForm Model="_form" OnValidSubmit="CreateAsync">
+            <fieldset class="filter-fields">
+                <legend class="visually-hidden">@Local["CreateHeading"]</legend>
+                <div class="filter-field">
+                    <label for="admin-user-username">@Local["UsernameLabel"]</label>
+                    <InputText id="admin-user-username"
+                               class="filter-control"
+                               placeholder="@Local["UsernamePlaceholder"]"
+                               @bind-Value="_form.UserName" />
+                </div>
+                <div class="filter-field">
+                    <label for="admin-user-fullname">@Local["FullNameLabel"]</label>
+                    <InputText id="admin-user-fullname"
+                               class="filter-control"
+                               @bind-Value="_form.FullName" />
+                </div>
+                <div class="filter-field">
+                    <label for="admin-user-language">@Local["LanguageLabel"]</label>
+                    <InputSelect id="admin-user-language" class="filter-control" @bind-Value="_form.PreferredLanguage">
+                        <option value="es">@Local["LanguageEs"]</option>
+                        <option value="en">@Local["LanguageEn"]</option>
+                    </InputSelect>
+                </div>
+                <div class="filter-field">
+                    <label for="admin-user-password">@Local["PasswordLabel"]</label>
+                    <InputText id="admin-user-password"
+                               type="password"
+                               class="filter-control"
+                               aria-describedby="admin-user-password-help"
+                               @bind-Value="_form.Password" />
+                    <p id="admin-user-password-help" class="filter-help">
+                        @Local["PasswordHelp"]
+                    </p>
+                </div>
+                <div class="filter-field">
+                    <label for="admin-user-adminflag">@Local["AdminFlagLabel"]</label>
+                    <InputCheckbox id="admin-user-adminflag" @bind-Value="_form.IsAdmin" />
+                    <span class="filter-help">@Local["AdminFlagHelp"]</span>
+                </div>
+                <div class="filter-action">
+                    <button type="submit" disabled="@_isBusy">
+                        @(_isBusy ? Local["CreatingButton"] : Local["CreateButton"])
+                    </button>
+                </div>
+            </fieldset>
+        </EditForm>
+
+        @if (_success is not null)
+        {
+            <p class="result-count" role="status" aria-live="polite">@_success</p>
+        }
+        @if (_error is not null)
+        {
+            <p class="error-message" role="alert">@_error</p>
+        }
+    </section>
+
+    <section class="results-section" aria-labelledby="users-heading">
+        <div class="section-heading">
+            <div>
+                <p class="eyebrow">@Local["ListEyebrow"]</p>
+                <h2 id="users-heading">@Local["ListHeading"]</h2>
+            </div>
+        </div>
+
+        @if (_users is not null && _users.Count > 0)
+        {
+            <table class="admin-users-table">
+                <thead>
+                    <tr>
+                        <th scope="col">@Local["ColumnUser"]</th>
+                        <th scope="col">@Local["ColumnFullName"]</th>
+                        <th scope="col">@Local["ColumnLanguage"]</th>
+                        <th scope="col">@Local["ColumnAdmin"]</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach (var user in _users)
+                    {
+                        <tr>
+                            <td>@user.UserName</td>
+                            <td>@user.FullName</td>
+                            <td>@user.PreferredLanguage</td>
+                            <td>@(user.IsAdmin ? Local["AdminBadge"] : Local["MemberBadge"])</td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        }
+        else
+        {
+            <p>@Local["EmptyList"]</p>
+        }
+    </section>
+</div>
+
+@code {
+    private IReadOnlyList<AdminUserResult>? _users;
+    private bool _isBusy;
+    private string? _success;
+    private string? _error;
+    private ToolingAdminFormModel _form = new() { PreferredLanguage = "es" };
+
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadListAsync();
+    }
+
+    private async Task LoadListAsync()
+    {
+        var accessToken = await GetAccessTokenAsync();
+        if (accessToken is null)
+        {
+            _users = null;
+            _error = Local["ErrorSession"];
+            return;
+        }
+
+        var listed = await AuthApi.ListUsersAsync(accessToken);
+        if (listed is null)
+        {
+            _error = Local["ErrorSession"];
+            _users = null;
+            return;
+        }
+
+        _users = listed;
+    }
+
+    private async Task CreateAsync()
+    {
+        _success = null;
+        _error = null;
+
+        var accessToken = await GetAccessTokenAsync();
+        if (accessToken is null)
+        {
+            _error = Local["ErrorSession"];
+            return;
+        }
+
+        _isBusy = true;
+        try
+        {
+            var outcome = await AuthApi.CreateUserAsync(accessToken, new AdminCreateUserCommand(
+                _form.UserName.Trim(),
+                _form.Password,
+                string.IsNullOrWhiteSpace(_form.FullName) ? null : _form.FullName.Trim(),
+                _form.PreferredLanguage,
+                _form.IsAdmin));
+
+            switch (outcome.Outcome)
+            {
+                case AdminCreateUserOutcome.Success:
+                    _success = Local["SuccessMessage", outcome.User!.UserName];
+                    _form = new ToolingAdminFormModel { PreferredLanguage = _form.PreferredLanguage };
+                    await LoadListAsync();
+                    break;
+                case AdminCreateUserOutcome.InvalidDetails:
+                    _error = Local["ErrorInvalid", string.IsNullOrEmpty(outcome.RejectDetail)
+                        ? string.Empty
+                        : outcome.RejectDetail];
+                    break;
+                case AdminCreateUserOutcome.NotAuthorized:
+                    _error = Local["ErrorNotAuthorized"];
+                    break;
+                default:
+                    _error = Local["ErrorUnreachable"];
+                    break;
+            }
+        }
+        finally
+        {
+            _isBusy = false;
+        }
+    }
+
+    private string? GetAccessToken(ClaimsPrincipal principal) =>
+        principal.FindFirst(AuthenticationMessageHandler.AccessTokenClaimType)?.Value;
+
+    private async Task<string?> GetAccessTokenAsync()
+    {
+        var state = await AuthenticationState.GetAuthenticationStateAsync();
+        return GetAccessToken(state.User);
+    }
+
+    private sealed class ToolingAdminFormModel
+    {
+        public string UserName { get; set; } = string.Empty;
+        public string FullName { get; set; } = string.Empty;
+        public string PreferredLanguage { get; set; } = "es";
+        public string Password { get; set; } = string.Empty;
+        public bool IsAdmin { get; set; }
+    }
+}

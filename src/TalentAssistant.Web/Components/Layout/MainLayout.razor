@@ -21,6 +21,10 @@
                     <NavLink href="" Match="NavLinkMatch.All">@Local["NavOverview"]</NavLink>
                     <NavLink href="attendance-insights">@Local["NavAttendance"]</NavLink>
                     <NavLink href="assistant">@Local["NavAssistant"]</NavLink>
+                    @if (context.User.IsInRole("admin"))
+                    {
+                        <NavLink href="admin/users">@Local["NavAdmin"]</NavLink>
+                    }
                     <NavLink href="profile">@Local["NavProfile"]</NavLink>
                 </nav>
             </Authorized>

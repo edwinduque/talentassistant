@@ -8,7 +8,39 @@ public sealed record LoginResult(
     DateTimeOffset ExpiresAtUtc,
     string UserName,
     string FullName,
-    string PreferredLanguage);
+    string PreferredLanguage,
+    IReadOnlyList<string> Roles);
+
+/// <summary>
+/// SPEC-016: a user as served by the admin surface. Hashes and internal
+/// data never leave the backend.
+/// </summary>
+public sealed record AdminUserResult(
+    string Id,
+    string UserName,
+    string FullName,
+    string PreferredLanguage,
+    bool IsAdmin);
+
+public enum AdminCreateUserOutcome
+{
+    Success,
+    InvalidDetails,
+    NotAuthorized,
+    Failed,
+}
+
+public sealed record AdminCreateUserCommand(
+    string UserName,
+    string Password,
+    string? FullName,
+    string? PreferredLanguage,
+    bool IsAdmin);
+
+public sealed record AdminCreateUserResult(
+    AdminCreateUserOutcome Outcome,
+    AdminUserResult? User,
+    string? RejectDetail);
 
 /// <summary>User profile as returned by the API (<c>GET auth/me</c>, <c>POST auth/profile</c>).</summary>
 public sealed record UserProfileResult(
@@ -67,7 +99,8 @@ public sealed class AuthApiClient(
                 payload.ExpiresAtUtc,
                 payload.UserName,
                 payload.FullName ?? string.Empty,
-                payload.PreferredLanguage ?? SessionCulture.Default);
+                payload.PreferredLanguage ?? SessionCulture.Default,
+                payload.Roles ?? Array.Empty<string>());
         }
         catch (HttpRequestException exception)
         {
@@ -85,6 +118,139 @@ public sealed class AuthApiClient(
             return null;
         }
     }
+
+    /// <summary>
+    /// Creates a user on the admin surface (SPEC-016). The <paramref name="accessToken"/>
+    /// must belong to an administrator: the backend rejects anyone else.
+    /// </summary>
+    public async Task<AdminCreateUserResult> CreateUserAsync(
+        string accessToken,
+        AdminCreateUserCommand command,
+        CancellationToken cancellationToken = default)
+    {
+        try
+        {
+            using var request = new HttpRequestMessage(HttpMethod.Post, "admin/users");
+            request.Headers.Authorization =
+                new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", accessToken);
+            request.Content = JsonContent.Create(command);
+
+            using var response = await httpClient.SendAsync(request, cancellationToken);
+            if (response.StatusCode == System.Net.HttpStatusCode.OK)
+            {
+                var payload = await response.Content.ReadFromJsonAsync<AdminUserPayload>(
+                    cancellationToken: cancellationToken);
+                return payload is null
+                    ? new AdminCreateUserResult(AdminCreateUserOutcome.Failed, null, null)
+                    : new AdminCreateUserResult(
+                        AdminCreateUserOutcome.Success,
+                        new AdminUserResult(
+                            payload.Id,
+                            payload.UserName,
+                            payload.FullName ?? string.Empty,
+                            payload.PreferredLanguage ?? "es",
+                            payload.IsAdmin),
+                        null);
+            }
+
+            if (response.StatusCode == System.Net.HttpStatusCode.Forbidden)
+            {
+                return new AdminCreateUserResult(AdminCreateUserOutcome.NotAuthorized, null, null);
+            }
+
+            if (response.StatusCode == System.Net.HttpStatusCode.BadRequest)
+            {
+                var problem = await response.Content.ReadFromJsonAsync<ProblemPayload>(
+                    cancellationToken: cancellationToken);
+                return new AdminCreateUserResult(
+                    AdminCreateUserOutcome.InvalidDetails,
+                    null,
+                    problem?.Detail ?? problem?.Title);
+            }
+
+            logger.LogWarning(
+                "The admin user creation endpoint returned HTTP {StatusCode}.",
+                (int)response.StatusCode);
+            return new AdminCreateUserResult(AdminCreateUserOutcome.Failed, null, null);
+        }
+        catch (HttpRequestException exception)
+        {
+            logger.LogWarning(exception, "Could not reach the admin user creation endpoint.");
+            return new AdminCreateUserResult(AdminCreateUserOutcome.Failed, null, null);
+        }
+        catch (TaskCanceledException exception) when (!cancellationToken.IsCancellationRequested)
+        {
+            logger.LogWarning(exception, "The admin user creation request timed out.");
+            return new AdminCreateUserResult(AdminCreateUserOutcome.Failed, null, null);
+        }
+        catch (System.Text.Json.JsonException exception)
+        {
+            logger.LogWarning(exception, "The admin user creation response was not valid JSON.");
+            return new AdminCreateUserResult(AdminCreateUserOutcome.Failed, null, null);
+        }
+    }
+
+    /// <summary>
+    /// Lists the users of the admin surface (SPEC-016). Null when the surface
+    /// is unreachable or the caller is not authorized.
+    /// </summary>
+    public async Task<IReadOnlyList<AdminUserResult>?> ListUsersAsync(
+        string accessToken,
+        CancellationToken cancellationToken = default)
+    {
+        try
+        {
+            using var request = new HttpRequestMessage(HttpMethod.Get, "admin/users");
+            request.Headers.Authorization =
+                new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", accessToken);
+
+            using var response = await httpClient.SendAsync(request, cancellationToken);
+            if (response.StatusCode != System.Net.HttpStatusCode.OK)
+            {
+                logger.LogWarning(
+                    "The admin users endpoint returned HTTP {StatusCode}.",
+                    (int)response.StatusCode);
+                return null;
+            }
+
+            var payload = await response.Content.ReadFromJsonAsync<List<AdminUserPayload>>(
+                cancellationToken: cancellationToken);
+            if (payload is null)
+            {
+                return null;
+            }
+
+            return payload
+                .Select(ToAdminUserResult)
+                .ToList()
+                .AsReadOnly();
+        }
+        catch (HttpRequestException exception)
+        {
+            logger.LogWarning(exception, "Could not reach the admin users endpoint.");
+            return null;
+        }
+        catch (TaskCanceledException exception) when (!cancellationToken.IsCancellationRequested)
+        {
+            logger.LogWarning(exception, "The admin users request timed out.");
+            return null;
+        }
+        catch (System.Text.Json.JsonException exception)
+        {
+            logger.LogWarning(exception, "The admin users response was not valid JSON.");
+            return null;
+        }
+    }
+
+    private static AdminUserResult ToAdminUserResult(AdminUserPayload payload) =>
+        new(payload.Id, payload.UserName, payload.FullName ?? string.Empty, payload.PreferredLanguage ?? "es", payload.IsAdmin);
+
+    private sealed record AdminUserPayload(
+        string Id,
+        string UserName,
+        string? FullName,
+        string? PreferredLanguage,
+        bool IsAdmin);
 
     public async Task LogoutAsync(
         string accessToken,
@@ -288,7 +454,8 @@ public sealed class AuthApiClient(
         DateTimeOffset ExpiresAtUtc,
         string UserName,
         string FullName,
-        string PreferredLanguage);
+        string PreferredLanguage,
+        IReadOnlyList<string>? Roles = null);
 
     private sealed record ProfileRequest(string FullName, string PreferredLanguage);
 

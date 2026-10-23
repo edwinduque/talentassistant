@@ -1,0 +1,40 @@
+<?xml version="1.0" encoding="utf-8"?>
+<root>
+  <xsd:schema id="root" xmlns="" xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:msdata="urn:schemas-microsoft-com:xml-msdata" />
+  <resheader name="resmimetype"><value>text/microsoft-resx</value></resheader>
+  <resheader name="version"><value>2.0</value></resheader>
+  <resheader name="reader"><value>System.Resources.ResXResourceReader, System.Windows.Forms</value></resheader>
+  <resheader name="writer"><value>System.Resources.ResXResourceWriter, System.Windows.Forms</value></resheader>
+  <data name="PageTitle" xml:space="preserve"><value>Usuarios · Talent Assistant</value></data>
+  <data name="Eyebrow" xml:space="preserve"><value>Administración</value></data>
+  <data name="Title" xml:space="preserve"><value>Usuarios</value></data>
+  <data name="Subtitle" xml:space="preserve"><value>Da acceso al equipo de producto con su propio usuario; cada persona inicia sesión con su contraseña y elige su idioma.</value></data>
+  <data name="CreateEyebrow" xml:space="preserve"><value>Alta</value></data>
+  <data name="CreateHeading" xml:space="preserve"><value>Crear usuario</value></data>
+  <data name="UsernameLabel" xml:space="preserve"><value>Usuario (correo)</value></data>
+  <data name="UsernamePlaceholder" xml:space="preserve"><value>persona@talentassistant.local</value></data>
+  <data name="FullNameLabel" xml:space="preserve"><value>Nombre visible (opcional)</value></data>
+  <data name="LanguageLabel" xml:space="preserve"><value>Idioma</value></data>
+  <data name="LanguageEs" xml:space="preserve"><value>Español</value></data>
+  <data name="LanguageEn" xml:space="preserve"><value>Inglés</value></data>
+  <data name="PasswordLabel" xml:space="preserve"><value>Contraseña inicial</value></data>
+  <data name="PasswordHelp" xml:space="preserve"><value>Mínimo 6 caracteres con mayúscula, minúscula, dígito y un símbolo. La persona puede cambiarla después en su perfil.</value></data>
+  <data name="AdminFlagLabel" xml:space="preserve"><value>Administrador</value></data>
+  <data name="AdminFlagHelp" xml:space="preserve"><value>Solo para responsables: puede crear más usuarios.</value></data>
+  <data name="CreateButton" xml:space="preserve"><value>Crear usuario</value></data>
+  <data name="CreatingButton" xml:space="preserve"><value>Creando…</value></data>
+  <data name="SuccessMessage" xml:space="preserve"><value>Usuario {0} creado con la contraseña entregada.</value></data>
+  <data name="ErrorInvalid" xml:space="preserve"><value>No se pudo crear el usuario: {0}</value></data>
+  <data name="ErrorNotAuthorized" xml:space="preserve"><value>Tu sesión no tiene permisos de administración.</value></data>
+  <data name="ErrorSession" xml:space="preserve"><value>No se pudo leer la lista de usuarios; vuelve a iniciar sesión.</value></data>
+  <data name="ErrorUnreachable" xml:space="preserve"><value>El servicio no respondió; reintenta en unos segundos.</value></data>
+  <data name="ListEyebrow" xml:space="preserve"><value>Equipo</value></data>
+  <data name="ListHeading" xml:space="preserve"><value>Usuarios existentes</value></data>
+  <data name="ColumnUser" xml:space="preserve"><value>Usuario</value></data>
+  <data name="ColumnFullName" xml:space="preserve"><value>Nombre</value></data>
+  <data name="ColumnLanguage" xml:space="preserve"><value>Idioma</value></data>
+  <data name="ColumnAdmin" xml:space="preserve"><value>Rol</value></data>
+  <data name="AdminBadge" xml:space="preserve"><value>Administrador</value></data>
+  <data name="MemberBadge" xml:space="preserve"><value>Miembro</value></data>
+  <data name="EmptyList" xml:space="preserve"><value>Todavía no hay usuarios con sesión habilitada.</value></data>
+</root>
