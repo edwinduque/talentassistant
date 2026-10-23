@@ -54,14 +54,19 @@ jobs:
           SSH_USER: ${{ secrets.SSH_USER }}
         run: |
           TS="$(date +%Y%m%d%H%M%S)"
-          scp -P "$SSH_PORT" -i ssh_key bundle/deploy.tar.gz "/tmp/talentassistant-$TS.tar.gz"
+          # Fixed remote filename: scp expands the destination path in the
+          # REMOTE shell (where $TS does not exist); a variable there would
+          # silently strip it. Concurrency group 1 keeps single-writer safety.
+          scp -P "$SSH_PORT" -i ssh_key bundle/deploy.tar.gz \
+            "$SSH_USER@$SSH_HOST:/tmp/talentassistant-deploy-bundle.tar.gz"
           ssh -p "$SSH_PORT" -i ssh_key "$SSH_USER@$SSH_HOST" "bash -s" -- "$TS" <<'EOS'
           set -euo pipefail
           TS="$1"
           BASE="/opt/talentassistant"
+          ls -l /tmp/talentassistant-deploy-bundle.tar.gz >/dev/null  # the upload must exist
           mkdir -p "$BASE/releases"
-          tar -xzf "/tmp/talentassistant-$TS.tar.gz" -C "$BASE" --one-top-level="$BASE/releases/$TS"
-          rm -f "/tmp/talentassistant-$TS.tar.gz"
+          tar -xzf /tmp/talentassistant-deploy-bundle.tar.gz -C "$BASE" --one-top-level="$BASE/releases/$TS"
+          rm -f /tmp/talentassistant-deploy-bundle.tar.gz
 
           # Apply EF migrations idempotently against the production database.
           cd "$BASE/releases/$TS/api"
