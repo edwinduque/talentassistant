@@ -77,7 +77,17 @@ jobs:
 
           # Apply EF migrations idempotently against the production database.
           cd "$BASE/releases/$TS/api"
-          set -a; source "$BASE/.env.production"; set +a
+          # Load the env file WITHOUT evaluating it: a plain `source` would
+          # chop the connection string at the first ';' (and stumble on
+          # stray CRLF). One key= value per line, split on the FIRST '='.
+          set -a
+          while IFS='=' read -r envkey envval; do
+            case "$envkey" in ""|\#*) continue ;; esac
+            envval="${envval%\"}"; envval="${envval#\"}"
+            export "$envkey=$envval"
+          done < "$BASE/.env.production"
+          set +a
+          echo "connection string loaded (masked): $(echo "$ConnectionStrings__TalentAssistant" | sed -E 's/Password=[^;]*/Password=***/')"
           ./TalentAssistant.Api --initialize-local-data
 
           # Health-check the NEW binaries on a private probe port so the
