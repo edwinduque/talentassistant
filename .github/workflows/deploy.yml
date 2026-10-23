@@ -1,0 +1,132 @@
+name: deploy
+
+# SPEC-015: production deployment is NEVER automatic. A maintainer dispatches
+# this workflow and the "production" environment protection rule asks them
+# for explicit approval; certificate, nginx and database layout stay under
+# human control through the documented VPS checklist.
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: production-deploy
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    name: Publish, upload, health-check or roll back
+    runs-on: ubuntu-latest
+    environment: production
+    steps:
+      - name: Checkout
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+
+      - name: Setup .NET SDK (pinned by global.json, no roll-forward)
+        uses: actions/setup-dotnet@a98b56852c35b8e3190ac28c8c2271da59106c68 # v6.0.0
+        with:
+          global-json-file: global.json
+
+      - name: Restore and build Release
+        run: |
+          dotnet restore TalentAssistant.sln
+          dotnet publish src/TalentAssistant.Api -c Release --no-restore -o publish/api
+          dotnet publish src/TalentAssistant.Web -c Release --no-restore -o publish/web
+
+      - name: Package
+        run: |
+          mkdir -p bundle
+          tar -czf bundle/deploy.tar.gz -C publish api web
+
+      - name: Prepare SSH key
+        run: |
+          install -m 600 /dev/null ssh_key
+          echo "${{ secrets.SSH_PRIVATE_KEY }}" > ssh_key
+          mkdir -p ~/.ssh
+          echo "${{ secrets.SSH_KNOWN_HOSTS }}" >> ~/.ssh/known_hosts
+          chmod 600 ~/.ssh/known_hosts
+
+      - name: Ship and release on the VPS
+        env:
+          SSH_HOST: ${{ secrets.SSH_HOST }}
+          SSH_PORT: ${{ secrets.SSH_PORT }}
+          SSH_USER: ${{ secrets.SSH_USER }}
+        run: |
+          TS="$(date +%Y%m%d%H%M%S)"
+          # Fixed remote filename: scp expands the destination path in the
+          # REMOTE shell (where $TS does not exist); a variable there would
+          # silently strip it. Concurrency group 1 keeps single-writer safety.
+          scp -P "$SSH_PORT" -i ssh_key bundle/deploy.tar.gz \
+            "$SSH_USER@$SSH_HOST:/tmp/talentassistant-deploy-bundle.tar.gz"
+          ssh -p "$SSH_PORT" -i ssh_key "$SSH_USER@$SSH_HOST" "bash -s" -- "$TS" <<'EOS'
+          set -euo pipefail
+          TS="$1"
+          BASE="/opt/talentassistant"
+          ls -l /tmp/talentassistant-deploy-bundle.tar.gz >/dev/null  # the upload must exist
+          mkdir -p "$BASE/releases"
+          # Extract into a staging dir inside the SAME filesystem as /opt:
+          # the bundle must not be a shared mount strip mismatch; tar's
+          # --one-top-level a rename() from the temp dir fails with
+          # "Invalid cross-device link" on hosts where /tmp is a separate
+          # filesystem.
+          staging="$(mktemp -d "$BASE/releases/.deploy-XXXXXX")"
+          tar -xzf /tmp/talentassistant-deploy-bundle.tar.gz -C "$staging"
+          mv "$staging" "$BASE/releases/$TS"
+          rm -f /tmp/talentassistant-deploy-bundle.tar.gz
+
+          # Apply EF migrations idempotently against the production database.
+          cd "$BASE/releases/$TS/api"
+          # Load the env file WITHOUT evaluating it: a plain `source` would
+          # chop the connection string at the first ';' (and stumble on
+          # stray CRLF). One key= value per line, split on the FIRST '='.
+          set -a
+          while IFS='=' read -r envkey envval; do
+            case "$envkey" in ""|\#*) continue ;; esac
+            envval="${envval%\"}"; envval="${envval#\"}"
+            export "$envkey=$envval"
+          done < "$BASE/.env.production"
+          set +a
+          echo "connection string loaded (masked): $(echo "$ConnectionStrings__TalentAssistant" | sed -E 's/Password=[^;]*/Password=***/')"
+          ./TalentAssistant.Api --initialize-local-data
+
+          # Health-check the NEW binaries on a private probe port so the
+          # currently-running systemd services and other sites are untouched.
+          PROBE_PORT=5199
+          ASPNETCORE_URLS="http://127.0.0.1:$PROBE_PORT" ASPNETCORE_ENVIRONMENT=Production \
+            ./TalentAssistant.Api & api_pid=$!
+          trap 'kill $api_pid 2>/dev/null || true' EXIT
+          for _ in $(seq 1 30); do
+            curl -fsS "http://127.0.0.1:$PROBE_PORT/health" >/dev/null 2>&1 && break
+            sleep 2
+          done
+          curl -fsS "http://127.0.0.1:$PROBE_PORT/health" >/dev/null || {
+            echo "health check of the new release failed before switch"; exit 1; }
+
+          previous=$(readlink "$BASE/current" 2>/dev/null || true)
+          ln -sfn "$BASE/releases/$TS" "$BASE/current"
+          sudo -n systemctl restart talentassistant-api
+          sudo -n systemctl restart talentassistant-web
+
+          ok=1
+          for _ in $(seq 1 30); do
+            # Both services must answer: the API health endpoints and the
+            # public web entry (it redirects to /login without a session).
+            if curl -fsS "http://127.0.0.1:5101/health" >/dev/null 2>&1 \
+              && curl -fsS "http://127.0.0.1:5101/health/database" >/dev/null 2>&1 \
+              && curl -fsS -L "http://127.0.0.1:5102/" >/dev/null 2>&1
+            then
+              ok=0 && break
+            fi
+            sleep 2
+          done
+          if [ $ok -ne 0 ]; then
+            echo "new release failed the live health check; rolling back"
+            if [ -n "$previous" ]; then
+              ln -sfn "$previous" "$BASE/current"
+              sudo -n systemctl restart talentassistant-api
+              sudo -n systemctl restart talentassistant-web
+            fi
+            exit 1
+          fi
+          EOS
