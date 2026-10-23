@@ -65,7 +65,14 @@ jobs:
           BASE="/opt/talentassistant"
           ls -l /tmp/talentassistant-deploy-bundle.tar.gz >/dev/null  # the upload must exist
           mkdir -p "$BASE/releases"
-          tar -xzf /tmp/talentassistant-deploy-bundle.tar.gz -C "$BASE" --one-top-level="$BASE/releases/$TS"
+          # Extract into a staging dir inside the SAME filesystem as /opt:
+          # the bundle must not be a shared mount strip mismatch; tar's
+          # --one-top-level a rename() from the temp dir fails with
+          # "Invalid cross-device link" on hosts where /tmp is a separate
+          # filesystem.
+          staging="$(mktemp -d "$BASE/releases/.deploy-XXXXXX")"
+          tar -xzf /tmp/talentassistant-deploy-bundle.tar.gz -C "$staging"
+          mv "$staging" "$BASE/releases/$TS"
           rm -f /tmp/talentassistant-deploy-bundle.tar.gz
 
           # Apply EF migrations idempotently against the production database.
