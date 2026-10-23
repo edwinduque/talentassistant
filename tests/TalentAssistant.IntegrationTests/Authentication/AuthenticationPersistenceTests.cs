@@ -1,6 +1,7 @@
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Logging.Abstractions;
 using TalentAssistant.Infrastructure.Authentication;
 using TalentAssistant.Infrastructure.Persistence;
 
@@ -185,5 +186,65 @@ public sealed class AuthenticationPersistenceTests
         var initializer = new InitializeLocalAuthenticationData(userManager, roleManager, context, options);
 
         await Assert.ThrowsAsync<InvalidOperationException>(() => initializer.InitializeAsync());
+    }
+
+    [Fact]
+    public async Task SeedInitializer_WhenRoleCreationLosesRaceToExistingRole_ThrowsControlledErrorNotDbUpdate()
+    {
+        // SPEC-016 hardening: a concurrent initializer can slip past RoleExistsAsync
+        // and lose the race on "RoleNameIndex" (PostgreSQL unique index committed in a
+        // separate transaction). The loser must not surface a raw DbUpdateException;
+        // it must swallow that failure once the role is observed to exist and keep
+        // seeding. A blank password stops the flow right after the role block, so the
+        // controlled InvalidOperationException from the password guard proves the role
+        // race was swallowed instead of escaping.
+        await using var provider = await BuildProviderAsync(ConnectionString());
+        using var scope = provider.CreateScope();
+        var userManager = scope.ServiceProvider.GetRequiredService<UserManager<ApplicationUser>>();
+        var context = scope.ServiceProvider
+            .GetRequiredService<TalentAssistantIdentityDbContext>();
+        var realRoleStore = scope.ServiceProvider.GetRequiredService<IRoleStore<IdentityRole>>();
+        var options = new AuthenticationStoreOptions(
+            5,
+            TimeSpan.FromMinutes(5),
+            $"integration-role-race-{Guid.NewGuid():N}",
+            SeedPassword: " ");
+
+        var roleManager = new RoleCreateRaceLosingRoleManager(realRoleStore);
+        var initializer = new InitializeLocalAuthenticationData(userManager, roleManager, context, options);
+
+        // RED proves a raw DbUpdateException escapes; GREEN proves the initializer
+        // observes the role now exists and proceeds to the controlled password error.
+        await Assert.ThrowsAsync<InvalidOperationException>(() => initializer.InitializeAsync());
+    }
+
+    // Simulates the SPEC-016 admin-role race: the role reads as absent on the first
+    // check, CreateAsync loses to a concurrent writer with a "RoleNameIndex" unique
+    // violation, and the role reads as present on the recovery check.
+    private sealed class RoleCreateRaceLosingRoleManager(IRoleStore<IdentityRole> store)
+        : RoleManager<IdentityRole>(
+            store,
+            Array.Empty<IRoleValidator<IdentityRole>>(),
+            new UpperInvariantLookupNormalizer(),
+            new IdentityErrorDescriber(),
+            NullLogger<RoleManager<IdentityRole>>.Instance)
+    {
+        private int _roleExistsCalls;
+
+        public override Task<bool> RoleExistsAsync(string roleName)
+        {
+            // First call: absent (so the initializer attempts the create). Recovery
+            // call inside the race handler: present (another initializer won).
+            return Task.FromResult(Interlocked.Increment(ref _roleExistsCalls) > 1);
+        }
+
+        public override Task<IdentityResult> CreateAsync(IdentityRole role)
+        {
+            return Task.FromException<IdentityResult>(
+                new DbUpdateException(
+                    "An error occurred while saving the entity changes.",
+                    new Exception(
+                        "duplicate key value violates unique constraint \"RoleNameIndex\"")));
+        }
     }
 }

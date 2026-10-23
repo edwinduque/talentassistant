@@ -26,14 +26,46 @@ public sealed class InitializeLocalAuthenticationData(
 
         if (!await roleManager.RoleExistsAsync(AdminRoleName))
         {
-            var roleResult = await roleManager.CreateAsync(new IdentityRole(AdminRoleName));
-            if (!roleResult.Succeeded)
+            try
             {
-                var descriptions = string.Join(
-                    " ",
-                    roleResult.Errors.Select(error => error.Description));
-                throw new InvalidOperationException(
-                    $"The admin role could not be seeded: {descriptions}");
+                var roleResult = await roleManager.CreateAsync(new IdentityRole(AdminRoleName));
+                if (!roleResult.Succeeded)
+                {
+                    var descriptions = string.Join(
+                        " ",
+                        roleResult.Errors.Select(error => error.Description));
+                    throw new InvalidOperationException(
+                        $"The admin role could not be seeded: {descriptions}");
+                }
+            }
+            // PostgreSQL creates the unique index in a committed transaction, so a
+            // concurrent initializer can slip past RoleExistsAsync and lose the
+            // race on "RoleNameIndex". Only swallow that failure when the role now
+            // exists (another initializer seeded it); otherwise the original error
+            // keeps its identity for the caller.
+            catch (DbUpdateException exception)
+            {
+                bool seededByAnotherInitializer;
+                try
+                {
+                    seededByAnotherInitializer =
+                        await roleManager.RoleExistsAsync(AdminRoleName);
+                }
+                catch (DbException)
+                {
+                    // The database is unavailable instead of racing: report that.
+                    throw new InvalidOperationException(
+                        "The admin role could not be seeded because the identification store is unavailable.",
+                        exception);
+                }
+
+                if (!seededByAnotherInitializer)
+                {
+                    throw;
+                }
+
+                // Another initializer wins the race: the role already exists, which
+                // is the intended end state.
             }
         }
 
