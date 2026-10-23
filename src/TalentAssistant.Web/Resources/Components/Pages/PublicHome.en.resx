@@ -1,0 +1,156 @@
+<?xml version="1.0" encoding="utf-8"?>
+<root>
+  <resheader name="resmimetype">
+    <value>text/microsoft-resx</value>
+  </resheader>
+  <resheader name="version">
+    <value>2.0</value>
+  </resheader>
+  <resheader name="reader">
+    <value>System.Resources.ResXResourceReader, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </resheader>
+  <resheader name="writer">
+    <value>System.Resources.ResXResourceWriter, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </resheader>
+  <data name="PageTitle" xml:space="preserve">
+    <value>Talent Assistant | Home</value>
+  </data>
+  <data name="SkipLink" xml:space="preserve">
+    <value>Skip to content</value>
+  </data>
+  <data name="BrandHomeLabel" xml:space="preserve">
+    <value>Talent Assistant, home</value>
+  </data>
+  <data name="PrimaryNavigation" xml:space="preserve">
+    <value>Primary navigation</value>
+  </data>
+  <data name="NavHome" xml:space="preserve">
+    <value>Home</value>
+  </data>
+  <data name="NavProject" xml:space="preserve">
+    <value>The project</value>
+  </data>
+  <data name="NavHowItWorks" xml:space="preserve">
+    <value>How it works</value>
+  </data>
+  <data name="NavLogin" xml:space="preserve">
+    <value>Sign in</value>
+  </data>
+  <data name="Eyebrow" xml:space="preserve">
+    <value>Workforce insight for HR teams</value>
+  </data>
+  <data name="Headline" xml:space="preserve">
+    <value>Make HCM data easier to review, one case at a time.</value>
+  </data>
+  <data name="Introduction" xml:space="preserve">
+    <value>Talent Assistant organizes attendance information, evidence, and HCM context so HR teams can understand each situation.</value>
+  </data>
+  <data name="PrimaryAction" xml:space="preserve">
+    <value>About the project</value>
+  </data>
+  <data name="LoginAction" xml:space="preserve">
+    <value>Open the app</value>
+  </data>
+  <data name="SyntheticDataNote" xml:space="preserve">
+    <value>The MVP uses synthetic data: it does not connect to corporate systems or use real personal data.</value>
+  </data>
+  <data name="CaseEyebrow" xml:space="preserve">
+    <value>A review with context</value>
+  </data>
+  <data name="CaseTag" xml:space="preserve">
+    <value>Illustrative view</value>
+  </data>
+  <data name="CaseTitle" xml:space="preserve">
+    <value>One case, with its sources in view</value>
+  </data>
+  <data name="SourceLabel" xml:space="preserve">
+    <value>HCM result</value>
+  </data>
+  <data name="SourceValue" xml:space="preserve">
+    <value>Source rules and status</value>
+  </data>
+  <data name="EvidenceLabel" xml:space="preserve">
+    <value>Evidence</value>
+  </data>
+  <data name="EvidenceValue" xml:space="preserve">
+    <value>Time records and schedule, when available</value>
+  </data>
+  <data name="ContextLabel" xml:space="preserve">
+    <value>Context</value>
+  </data>
+  <data name="ContextValue" xml:space="preserve">
+    <value>Related information, when relevant</value>
+  </data>
+  <data name="CaseCaption" xml:space="preserve">
+    <value>Talent Assistant presents the information; the HCM retains its rules and remains the source.</value>
+  </data>
+  <data name="ProjectEyebrow" xml:space="preserve">
+    <value>The project</value>
+  </data>
+  <data name="ProjectHeading" xml:space="preserve">
+    <value>Review more clearly, without replacing the HCM.</value>
+  </data>
+  <data name="ProjectIntroduction" xml:space="preserve">
+    <value>Talent Assistant queries, relates, and interprets HCM information to help HR teams understand situations and review available evidence.</value>
+  </data>
+  <data name="SourcePrincipleTitle" xml:space="preserve">
+    <value>The HCM stays in control</value>
+  </data>
+  <data name="SourcePrincipleCopy" xml:space="preserve">
+    <value>Employee, schedule, and time-record data and rules remain with the source system.</value>
+  </data>
+  <data name="EvidencePrincipleTitle" xml:space="preserve">
+    <value>Evidence stays close</value>
+  </data>
+  <data name="EvidencePrincipleCopy" xml:space="preserve">
+    <value>Available information appears with the result to make review easier.</value>
+  </data>
+  <data name="HumanPrincipleTitle" xml:space="preserve">
+    <value>People make decisions</value>
+  </data>
+  <data name="HumanPrincipleCopy" xml:space="preserve">
+    <value>The app organizes information; HR teams remain responsible for review and decisions.</value>
+  </data>
+  <data name="ProcessEyebrow" xml:space="preserve">
+    <value>The workflow</value>
+  </data>
+  <data name="ProcessHeading" xml:space="preserve">
+    <value>From data to an informed review</value>
+  </data>
+  <data name="ProcessIntroduction" xml:space="preserve">
+    <value>A simple way to understand what the source reports and what may need a closer look.</value>
+  </data>
+  <data name="StepOneTitle" xml:space="preserve">
+    <value>Query</value>
+  </data>
+  <data name="StepOneCopy" xml:space="preserve">
+    <value>Attendance information provided by the HCM.</value>
+  </data>
+  <data name="StepTwoTitle" xml:space="preserve">
+    <value>Relate</value>
+  </data>
+  <data name="StepTwoCopy" xml:space="preserve">
+    <value>Evidence and context the source marks as relevant.</value>
+  </data>
+  <data name="StepThreeTitle" xml:space="preserve">
+    <value>Review</value>
+  </data>
+  <data name="StepThreeCopy" xml:space="preserve">
+    <value>HR teams assess the information; the tool does not make decisions.</value>
+  </data>
+  <data name="CalloutEyebrow" xml:space="preserve">
+    <value>Talent Assistant</value>
+  </data>
+  <data name="CalloutHeading" xml:space="preserve">
+    <value>Explore a clearer way to review each case.</value>
+  </data>
+  <data name="CalloutCopy" xml:space="preserve">
+    <value>Sign in to access the overview and application tools.</value>
+  </data>
+  <data name="CalloutAction" xml:space="preserve">
+    <value>Sign in</value>
+  </data>
+  <data name="FooterNote" xml:space="preserve">
+    <value>MVP with synthetic data · The HCM keeps its rules and data.</value>
+  </data>
+</root>

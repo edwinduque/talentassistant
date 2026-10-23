@@ -1,0 +1,133 @@
+@page "/"
+@layout PublicLayout
+@using Microsoft.AspNetCore.Authorization
+@attribute [AllowAnonymous]
+@inject IStringLocalizer<PublicHome> Local
+@inject IStringLocalizer<Common> CommonLocal
+
+<PageTitle>@Local["PageTitle"]</PageTitle>
+
+<div class="landing-page">
+    <a class="landing-skip-link" href="#main-content">@Local["SkipLink"]</a>
+
+    <header class="landing-header">
+        <div class="landing-header-inner">
+            <a class="brand landing-brand" href="/" aria-label="@Local["BrandHomeLabel"]">
+                <span class="brand-mark" aria-hidden="true">TA</span>
+                <span class="brand-name">@CommonLocal["AppName"]</span>
+            </a>
+
+            <nav class="landing-navigation" aria-label="@Local["PrimaryNavigation"]">
+                <a href="#intro">@Local["NavHome"]</a>
+                <a href="#project">@Local["NavProject"]</a>
+                <a href="#how-it-works">@Local["NavHowItWorks"]</a>
+                <a class="landing-login-link" href="/login">@Local["NavLogin"]</a>
+            </nav>
+        </div>
+    </header>
+
+    <main class="landing-main" id="main-content" tabindex="-1">
+        <section class="landing-hero" id="intro" aria-labelledby="landing-title">
+            <div class="landing-hero-copy">
+                <p class="landing-eyebrow">@Local["Eyebrow"]</p>
+                <h1 id="landing-title">@Local["Headline"]</h1>
+                <p class="landing-lead">@Local["Introduction"]</p>
+
+                <div class="landing-actions">
+                    <a class="landing-primary-action" href="#project">@Local["PrimaryAction"]</a>
+                    <a class="landing-secondary-action" href="/login">@Local["LoginAction"]</a>
+                </div>
+
+                <p class="landing-data-note">@Local["SyntheticDataNote"]</p>
+            </div>
+
+            <figure class="case-preview" aria-labelledby="case-preview-title">
+                <div class="case-preview-heading">
+                    <p class="case-preview-kicker">@Local["CaseEyebrow"]</p>
+                    <span class="case-preview-tag">@Local["CaseTag"]</span>
+                </div>
+                <h2 id="case-preview-title">@Local["CaseTitle"]</h2>
+
+                <dl class="case-facts">
+                    <div class="case-fact">
+                        <dt>@Local["SourceLabel"]</dt>
+                        <dd>@Local["SourceValue"]</dd>
+                    </div>
+                    <div class="case-fact">
+                        <dt>@Local["EvidenceLabel"]</dt>
+                        <dd>@Local["EvidenceValue"]</dd>
+                    </div>
+                    <div class="case-fact">
+                        <dt>@Local["ContextLabel"]</dt>
+                        <dd>@Local["ContextValue"]</dd>
+                    </div>
+                </dl>
+
+                <figcaption>@Local["CaseCaption"]</figcaption>
+            </figure>
+        </section>
+
+        <section class="landing-section landing-project" aria-labelledby="project">
+            <div class="landing-section-intro">
+                <p class="landing-eyebrow">@Local["ProjectEyebrow"]</p>
+                <h2 id="project" tabindex="-1">@Local["ProjectHeading"]</h2>
+                <p>@Local["ProjectIntroduction"]</p>
+            </div>
+
+            <ul class="principle-list" role="list">
+                <li>
+                    <span class="principle-rule" aria-hidden="true"></span>
+                    <h3>@Local["SourcePrincipleTitle"]</h3>
+                    <p>@Local["SourcePrincipleCopy"]</p>
+                </li>
+                <li>
+                    <span class="principle-rule" aria-hidden="true"></span>
+                    <h3>@Local["EvidencePrincipleTitle"]</h3>
+                    <p>@Local["EvidencePrincipleCopy"]</p>
+                </li>
+                <li>
+                    <span class="principle-rule" aria-hidden="true"></span>
+                    <h3>@Local["HumanPrincipleTitle"]</h3>
+                    <p>@Local["HumanPrincipleCopy"]</p>
+                </li>
+            </ul>
+        </section>
+
+        <section class="landing-section landing-process" aria-labelledby="how-it-works">
+            <div class="landing-section-intro">
+                <p class="landing-eyebrow">@Local["ProcessEyebrow"]</p>
+                <h2 id="how-it-works" tabindex="-1">@Local["ProcessHeading"]</h2>
+                <p>@Local["ProcessIntroduction"]</p>
+            </div>
+
+            <ol class="process-list">
+                <li>
+                    <h3>@Local["StepOneTitle"]</h3>
+                    <p>@Local["StepOneCopy"]</p>
+                </li>
+                <li>
+                    <h3>@Local["StepTwoTitle"]</h3>
+                    <p>@Local["StepTwoCopy"]</p>
+                </li>
+                <li>
+                    <h3>@Local["StepThreeTitle"]</h3>
+                    <p>@Local["StepThreeCopy"]</p>
+                </li>
+            </ol>
+        </section>
+
+        <section class="landing-callout" aria-labelledby="callout-title">
+            <div>
+                <p class="landing-eyebrow">@Local["CalloutEyebrow"]</p>
+                <h2 id="callout-title">@Local["CalloutHeading"]</h2>
+                <p>@Local["CalloutCopy"]</p>
+            </div>
+            <a class="landing-primary-action" href="/login">@Local["CalloutAction"]</a>
+        </section>
+    </main>
+
+    <footer class="landing-footer">
+        <p>@Local["FooterNote"]</p>
+        <a href="/login">@Local["NavLogin"]</a>
+    </footer>
+</div>

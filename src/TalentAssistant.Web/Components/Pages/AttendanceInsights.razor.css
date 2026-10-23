@@ -1,131 +1,17 @@
-.attendance-page {
-    display: grid;
-    width: min(100%, 74rem);
-    gap: 1.75rem;
-    margin-inline: auto;
-}
-
-.attendance-heading,
-.section-heading {
-    display: grid;
-    gap: 0.75rem;
-}
-
-.attendance-heading h1,
-.section-heading h2,
-.insight-card h3,
-.insight-card h4,
-.attendance-heading p,
-.section-heading p {
-    margin: 0;
-}
-
-.attendance-intro {
-    max-width: 52rem;
-    color: var(--muted);
-}
-
 .synthetic-notice {
     display: grid;
     gap: 0.25rem;
     padding: 0.9rem 1rem;
-    border-inline-start: 0.25rem solid var(--accent);
-    background: var(--surface);
-}
-
-.filter-panel,
-.insight-card {
     border: 1px solid var(--border);
+    border-inline-start: 0.25rem solid var(--brand-highlight);
+    border-radius: var(--surface-radius);
     background: var(--surface);
-}
-
-.filter-panel {
-    display: grid;
-    gap: 1.25rem;
-    padding: clamp(1rem, 2vw, 1.5rem);
-}
-
-.filter-help,
-.context-reference {
-    color: var(--muted);
-    font-size: 0.9rem;
-}
-
-.filter-fields {
-    display: grid;
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-    gap: 1rem;
-    margin: 0;
-    padding: 0;
-    border: 0;
-}
-
-.filter-field {
-    display: grid;
-    align-content: start;
-    gap: 0.35rem;
-}
-
-.filter-field label {
-    font-weight: 650;
-}
-
-.filter-control {
-    width: 100%;
-    min-height: 2.75rem;
-    padding: 0.5rem 0.65rem;
-    border: 1px solid var(--border);
-    border-radius: 0.3rem;
-    background: var(--surface);
-    color: var(--ink);
-    font: inherit;
-}
-
-.filter-control:focus-visible,
-.filter-action button:focus-visible,
-.punch-details summary:focus-visible {
-    outline: 3px solid var(--focus);
-    outline-offset: 3px;
-}
-
-.filter-action {
-    display: flex;
-    align-items: end;
-}
-
-.filter-action button {
-    min-height: 2.75rem;
-    padding: 0.55rem 1rem;
-    border: 1px solid var(--accent);
-    border-radius: 0.3rem;
-    background: var(--accent);
-    color: var(--surface);
-    font: inherit;
-    font-weight: 650;
-    cursor: pointer;
-}
-
-.filter-action button:disabled {
-    cursor: wait;
-    opacity: 0.75;
-}
-
-.validation-summary,
-.error-message {
-    color: var(--danger);
-}
-
-.validation-summary:empty {
-    display: none;
+    box-shadow: var(--surface-shadow);
 }
 
 .results-section {
     display: grid;
     gap: 1rem;
-}
-
-.result-count {
-    color: var(--muted);
 }
 
 .insight-list {
@@ -136,11 +22,20 @@
     list-style: none;
 }
 
+.insight-card h3,
+.insight-card h4 {
+    margin: 0;
+}
+
 .insight-card {
     display: grid;
     gap: 1rem;
     padding: clamp(1rem, 2vw, 1.5rem);
-    border-inline-start: 0.3rem solid var(--accent);
+    border: 1px solid var(--border);
+    border-inline-start: 0.3rem solid var(--brand-highlight);
+    border-radius: var(--surface-radius);
+    background: var(--surface);
+    box-shadow: var(--surface-shadow);
 }
 
 .insight-card--review {
@@ -200,7 +95,8 @@
 .review-section,
 .timeoff-context {
     padding: 0.9rem 1rem;
-    background: var(--canvas);
+    border-radius: var(--control-radius);
+    background: var(--surface-soft);
 }
 
 .finding-details {
@@ -235,6 +131,11 @@
     text-underline-offset: 0.2em;
 }
 
+.punch-details summary:focus-visible {
+    outline: 3px solid var(--focus);
+    outline-offset: 3px;
+}
+
 .punch-details ul {
     margin-block-start: 0.75rem;
 }
@@ -247,28 +148,20 @@
 .empty-message {
     padding: 1rem;
     border: 1px dashed var(--border);
+    border-radius: var(--control-radius);
+    background: var(--surface);
     color: var(--muted);
 }
 
 @media (max-width: 48rem) {
-    .filter-fields,
     .insight-facts {
         grid-template-columns: minmax(0, 1fr);
-    }
-
-    .filter-action button {
-        width: 100%;
     }
 }
 
 @media (forced-colors: active) {
-    .filter-panel,
     .insight-card,
     .synthetic-notice {
         border: 1px solid CanvasText;
-    }
-
-    .filter-action button {
-        border: 1px solid ButtonText;
     }
 }

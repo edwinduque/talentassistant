@@ -1,0 +1,156 @@
+<?xml version="1.0" encoding="utf-8"?>
+<root>
+  <resheader name="resmimetype">
+    <value>text/microsoft-resx</value>
+  </resheader>
+  <resheader name="version">
+    <value>2.0</value>
+  </resheader>
+  <resheader name="reader">
+    <value>System.Resources.ResXResourceReader, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </resheader>
+  <resheader name="writer">
+    <value>System.Resources.ResXResourceWriter, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </resheader>
+  <data name="PageTitle" xml:space="preserve">
+    <value>Talent Assistant | Inicio</value>
+  </data>
+  <data name="SkipLink" xml:space="preserve">
+    <value>Saltar al contenido</value>
+  </data>
+  <data name="BrandHomeLabel" xml:space="preserve">
+    <value>Talent Assistant, inicio</value>
+  </data>
+  <data name="PrimaryNavigation" xml:space="preserve">
+    <value>Navegación principal</value>
+  </data>
+  <data name="NavHome" xml:space="preserve">
+    <value>Inicio</value>
+  </data>
+  <data name="NavProject" xml:space="preserve">
+    <value>El proyecto</value>
+  </data>
+  <data name="NavHowItWorks" xml:space="preserve">
+    <value>Cómo funciona</value>
+  </data>
+  <data name="NavLogin" xml:space="preserve">
+    <value>Iniciar sesión</value>
+  </data>
+  <data name="Eyebrow" xml:space="preserve">
+    <value>Asistencia para equipos de Recursos Humanos</value>
+  </data>
+  <data name="Headline" xml:space="preserve">
+    <value>La información del HCM, más clara para revisar cada caso.</value>
+  </data>
+  <data name="Introduction" xml:space="preserve">
+    <value>Talent Assistant organiza información de asistencia, evidencia y contexto del HCM para ayudar a los responsables de Recursos Humanos a comprender cada situación.</value>
+  </data>
+  <data name="PrimaryAction" xml:space="preserve">
+    <value>Conoce el proyecto</value>
+  </data>
+  <data name="LoginAction" xml:space="preserve">
+    <value>Acceder al sistema</value>
+  </data>
+  <data name="SyntheticDataNote" xml:space="preserve">
+    <value>El MVP usa datos sintéticos: no se conecta a sistemas corporativos ni utiliza datos personales reales.</value>
+  </data>
+  <data name="CaseEyebrow" xml:space="preserve">
+    <value>Una revisión, con contexto</value>
+  </data>
+  <data name="CaseTag" xml:space="preserve">
+    <value>Vista conceptual</value>
+  </data>
+  <data name="CaseTitle" xml:space="preserve">
+    <value>Un caso, con sus fuentes a la vista</value>
+  </data>
+  <data name="SourceLabel" xml:space="preserve">
+    <value>Resultado del HCM</value>
+  </data>
+  <data name="SourceValue" xml:space="preserve">
+    <value>Reglas y estado de la fuente</value>
+  </data>
+  <data name="EvidenceLabel" xml:space="preserve">
+    <value>Evidencia</value>
+  </data>
+  <data name="EvidenceValue" xml:space="preserve">
+    <value>Marcajes y jornada, cuando están disponibles</value>
+  </data>
+  <data name="ContextLabel" xml:space="preserve">
+    <value>Contexto</value>
+  </data>
+  <data name="ContextValue" xml:space="preserve">
+    <value>Información relacionada, si aplica</value>
+  </data>
+  <data name="CaseCaption" xml:space="preserve">
+    <value>Talent Assistant presenta la información; el HCM conserva sus reglas y su condición de fuente.</value>
+  </data>
+  <data name="ProjectEyebrow" xml:space="preserve">
+    <value>El proyecto</value>
+  </data>
+  <data name="ProjectHeading" xml:space="preserve">
+    <value>Revisar mejor, sin reemplazar al HCM.</value>
+  </data>
+  <data name="ProjectIntroduction" xml:space="preserve">
+    <value>Talent Assistant consulta, relaciona e interpreta información del HCM para que los responsables de RR. HH. comprendan situaciones y revisen la evidencia disponible.</value>
+  </data>
+  <data name="SourcePrincipleTitle" xml:space="preserve">
+    <value>El HCM conserva el control</value>
+  </data>
+  <data name="SourcePrincipleCopy" xml:space="preserve">
+    <value>Los datos y las reglas de empleados, jornadas y marcajes siguen perteneciendo al sistema fuente.</value>
+  </data>
+  <data name="EvidencePrincipleTitle" xml:space="preserve">
+    <value>La evidencia acompaña</value>
+  </data>
+  <data name="EvidencePrincipleCopy" xml:space="preserve">
+    <value>La información disponible se presenta junto al resultado para facilitar su revisión.</value>
+  </data>
+  <data name="HumanPrincipleTitle" xml:space="preserve">
+    <value>Las personas deciden</value>
+  </data>
+  <data name="HumanPrincipleCopy" xml:space="preserve">
+    <value>La aplicación organiza la información; los responsables de RR. HH. mantienen la revisión y la decisión.</value>
+  </data>
+  <data name="ProcessEyebrow" xml:space="preserve">
+    <value>El recorrido</value>
+  </data>
+  <data name="ProcessHeading" xml:space="preserve">
+    <value>De los datos a una revisión informada</value>
+  </data>
+  <data name="ProcessIntroduction" xml:space="preserve">
+    <value>Un recorrido simple para entender qué muestra la fuente y qué conviene revisar.</value>
+  </data>
+  <data name="StepOneTitle" xml:space="preserve">
+    <value>Consulta</value>
+  </data>
+  <data name="StepOneCopy" xml:space="preserve">
+    <value>La información de asistencia que expone el HCM.</value>
+  </data>
+  <data name="StepTwoTitle" xml:space="preserve">
+    <value>Relaciona</value>
+  </data>
+  <data name="StepTwoCopy" xml:space="preserve">
+    <value>La evidencia y el contexto que la fuente indica como pertinentes.</value>
+  </data>
+  <data name="StepThreeTitle" xml:space="preserve">
+    <value>Revisa</value>
+  </data>
+  <data name="StepThreeCopy" xml:space="preserve">
+    <value>El responsable de RR. HH. evalúa la información; la herramienta no toma decisiones.</value>
+  </data>
+  <data name="CalloutEyebrow" xml:space="preserve">
+    <value>Talent Assistant</value>
+  </data>
+  <data name="CalloutHeading" xml:space="preserve">
+    <value>Explora una forma más clara de revisar cada caso.</value>
+  </data>
+  <data name="CalloutCopy" xml:space="preserve">
+    <value>Inicia sesión para acceder al resumen y a las herramientas de la aplicación.</value>
+  </data>
+  <data name="CalloutAction" xml:space="preserve">
+    <value>Iniciar sesión</value>
+  </data>
+  <data name="FooterNote" xml:space="preserve">
+    <value>MVP con datos sintéticos · El HCM conserva sus reglas y sus datos.</value>
+  </data>
+</root>
