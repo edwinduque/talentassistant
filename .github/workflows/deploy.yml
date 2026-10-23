@@ -110,9 +110,14 @@ jobs:
 
           ok=1
           for _ in $(seq 1 30); do
-            curl -fsS "http://127.0.0.1:5101/health" >/dev/null 2>&1 \
+            # Both services must answer: the API health endpoints and the
+            # public web entry (it redirects to /login without a session).
+            if curl -fsS "http://127.0.0.1:5101/health" >/dev/null 2>&1 \
               && curl -fsS "http://127.0.0.1:5101/health/database" >/dev/null 2>&1 \
-              && ok=0 && break
+              && curl -fsS -L "http://127.0.0.1:5102/" >/dev/null 2>&1
+            then
+              ok=0 && break
+            fi
             sleep 2
           done
           if [ $ok -ne 0 ]; then
