@@ -69,7 +69,8 @@ El flujo de trabajo comprende:
 
 [SPEC-013](specs/013-postgres-only-persistence/spec.md) está implementada: la persistencia propia (identidad + asistencia sintética) corre sobre PostgreSQL 17 con `Npgsql.EntityFrameworkCore.PostgreSQL` `10.0.3`, `compose.yaml` ya no contiene ningún servicio MySQL y la suite completa obtiene 132/132 de integración y 10/10 unitarias desde una base vacía.
 
-[SPEC-014](specs/014-ci-pipeline/spec.md) añade la canalización de CI (`.github/workflows/ci.yml`) con la suite completa contra PostgreSQL, depedabot y gitleaks; su run en vivo queda pendiente del primer push del repo.
+[SPEC-014](specs/014-ci-pipeline/spec.md) añade la canalización de CI (`.github/workflows/ci.yml`) con la suite completa contra PostgreSQL, dependabot y gitleaks; su run en vivo ya pasó en verde.
+
 
 La fundación técnica de SPEC-001 está implementada; su cierre permanece pausado. La primera vertical aprobada de SPEC-002 está implementada: build y smoke HTTP pasan, y la suite xUnit completa obtiene 12/12 pruebas (5 unitarias y 7 de integración, incluida la prueba de persistencia —hoy `PostgresPersistenceTests`— contra `talentassistant_tests`). SPEC-001 no se declara completa.
 
