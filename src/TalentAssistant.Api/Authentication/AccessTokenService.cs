@@ -12,7 +12,7 @@ public sealed record AccessToken(
 
 public interface IAccessTokenService
 {
-    AccessToken Create(string userId, string userName);
+    AccessToken Create(string userId, string userName, IEnumerable<string> roles = default!);
 }
 
 /// <summary>
@@ -27,10 +27,17 @@ public sealed class AccessTokenService(
 {
     private const int MinimumSigningKeyLength = 32;
 
-    public AccessToken Create(string userId, string userName)
+    public AccessToken Create(
+        string userId,
+        string userName,
+        IEnumerable<string> roles = default!)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(userId);
         ArgumentException.ThrowIfNullOrWhiteSpace(userName);
+        // SPEC-016: the JwtBearer handler maps the inbound "role" claim back
+        // to ClaimTypes.Role, so backend policies and the web menu can rely
+        // on the standard role principal.
+        var assignedRoles = roles ?? Array.Empty<string>();
 
         if (string.IsNullOrWhiteSpace(signingKey) || signingKey.Length < MinimumSigningKeyLength)
         {
@@ -45,14 +52,19 @@ public sealed class AccessTokenService(
             new SymmetricSecurityKey(Encoding.UTF8.GetBytes(signingKey)),
             SecurityAlgorithms.HmacSha256);
 
+        var claims = new List<Claim>
+        {
+            new(JwtRegisteredClaimNames.Sub, userId),
+            new(JwtRegisteredClaimNames.UniqueName, userName),
+        };
+        claims.AddRange(assignedRoles
+            .Where(role => !string.IsNullOrWhiteSpace(role))
+            .Select(role => new Claim("role", role)));
+
         var token = new JwtSecurityToken(
             issuer: issuer,
             audience: audience,
-            claims:
-            [
-                new Claim(JwtRegisteredClaimNames.Sub, userId),
-                new Claim(JwtRegisteredClaimNames.UniqueName, userName)
-            ],
+            claims: claims,
             notBefore: issuedAt.UtcDateTime,
             expires: expiresAt.UtcDateTime,
             signingCredentials: credentials);
