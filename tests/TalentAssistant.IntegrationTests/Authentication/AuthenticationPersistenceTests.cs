@@ -144,11 +144,12 @@ public sealed class AuthenticationPersistenceTests
 
         try
         {
-            await new InitializeLocalAuthenticationData(userManager, context, options)
+            var roleManager = scope.ServiceProvider.GetRequiredService<RoleManager<IdentityRole>>();
+            await new InitializeLocalAuthenticationData(userManager, roleManager, context, options)
                 .InitializeAsync();
 
             var changedPasswordOptions = options with { SeedPassword = "Changed!Pass123" };
-            await new InitializeLocalAuthenticationData(userManager, context, changedPasswordOptions)
+            await new InitializeLocalAuthenticationData(userManager, roleManager, context, changedPasswordOptions)
                 .InitializeAsync();
 
             var user = await userManager.FindByNameAsync(seedUserName);
@@ -180,7 +181,8 @@ public sealed class AuthenticationPersistenceTests
             $"integration-missing-{Guid.NewGuid():N}",
             SeedPassword: " ");
 
-        var initializer = new InitializeLocalAuthenticationData(userManager, context, options);
+        var roleManager = scope.ServiceProvider.GetRequiredService<RoleManager<IdentityRole>>();
+        var initializer = new InitializeLocalAuthenticationData(userManager, roleManager, context, options);
 
         await Assert.ThrowsAsync<InvalidOperationException>(() => initializer.InitializeAsync());
     }

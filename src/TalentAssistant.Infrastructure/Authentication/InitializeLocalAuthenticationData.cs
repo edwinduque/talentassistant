@@ -9,20 +9,38 @@ namespace TalentAssistant.Infrastructure.Authentication;
 /// Seeds one synthetic local user, idempotently and only from external configuration.
 /// Applies the identity migration first so the one-shot initializer works on an empty
 /// database. The password is never stored in the repository and never overwritten
-/// once the user exists.
+/// once the user exists. SPEC-016: the seed user is the demo administrator — the
+/// seeder also ensures the "admin" role exists and is attached to that user.
 /// </summary>
 public sealed class InitializeLocalAuthenticationData(
     UserManager<ApplicationUser> userManager,
+    RoleManager<IdentityRole> roleManager,
     TalentAssistantIdentityDbContext identityDbContext,
     AuthenticationStoreOptions options)
 {
+    public const string AdminRoleName = "admin";
+
     public async Task InitializeAsync(CancellationToken cancellationToken = default)
     {
         await identityDbContext.Database.MigrateAsync(cancellationToken);
 
+        if (!await roleManager.RoleExistsAsync(AdminRoleName))
+        {
+            var roleResult = await roleManager.CreateAsync(new IdentityRole(AdminRoleName));
+            if (!roleResult.Succeeded)
+            {
+                var descriptions = string.Join(
+                    " ",
+                    roleResult.Errors.Select(error => error.Description));
+                throw new InvalidOperationException(
+                    $"The admin role could not be seeded: {descriptions}");
+            }
+        }
+
         var existingUser = await userManager.FindByNameAsync(options.SeedUserName);
         if (existingUser is not null)
         {
+            await EnsureSeedUserIsAdminAsync(existingUser);
             return;
         }
 
@@ -86,6 +104,8 @@ public sealed class InitializeLocalAuthenticationData(
                     // The user materialized between the first find and the
                     // create (concurrent bootstrap): the seed already exists,
                     // and the seeded password is never overwritten.
+                    await EnsureSeedUserIsAdminAsync(
+                        (await userManager.FindByNameAsync(options.SeedUserName))!);
                     return;
                 }
             }
@@ -99,6 +119,26 @@ public sealed class InitializeLocalAuthenticationData(
                 result.Errors.Select(error => error.Description));
             throw new InvalidOperationException(
                 $"The local user could not be seeded: {descriptions}");
+        }
+
+        await EnsureSeedUserIsAdminAsync(user);
+    }
+
+    private async Task EnsureSeedUserIsAdminAsync(ApplicationUser user)
+    {
+        if (await userManager.IsInRoleAsync(user, AdminRoleName))
+        {
+            return;
+        }
+
+        var result = await userManager.AddToRoleAsync(user, AdminRoleName);
+        if (!result.Succeeded)
+        {
+            var descriptions = string.Join(
+                " ",
+                result.Errors.Select(error => error.Description));
+            throw new InvalidOperationException(
+                $"The seed user could not be assigned the admin role: {descriptions}");
         }
     }
 }

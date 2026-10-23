@@ -3,6 +3,7 @@ using System.Security.Claims;
 using System.Text;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Identity;
+using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
 using TalentAssistant.Api.Authentication;
 using TalentAssistant.Application.Assistant;
@@ -16,6 +17,9 @@ using TalentAssistant.Application.Hcm;
 using TalentAssistant.Application.Workforce;
 
 var builder = WebApplication.CreateBuilder(args);
+
+// SPEC-016: backend-enforced authorization for the admin surface.
+const string AdminPolicy = "AdminOnly";
 
 var connectionString = builder.Configuration.GetConnectionString("TalentAssistant");
 if (string.IsNullOrWhiteSpace(connectionString))
@@ -126,7 +130,11 @@ if (!initializeLocalData)
                 ClockSkew = TimeSpan.FromMinutes(1)
             };
         });
-    builder.Services.AddAuthorization();
+    builder.Services.AddAuthorization(options =>
+    {
+        options.AddPolicy(AdminPolicy, policy =>
+            policy.RequireRole(InitializeLocalAuthenticationData.AdminRoleName));
+    });
     builder.Services.AddScoped<IAccessTokenService>(_ =>
         new AccessTokenService(
             authenticationIssuer,
@@ -196,13 +204,18 @@ app.MapPost("/auth/login", async (
         return InvalidCredentials();
     }
 
-    var accessToken = accessTokenService.Create(user.Id, user.UserName ?? request.UserName);
+    var userRoles = await signInManager.UserManager.GetRolesAsync(user);
+    var accessToken = accessTokenService.Create(
+        user.Id,
+        user.UserName ?? request.UserName,
+        userRoles);
     return Results.Ok(new LoginResponse(
         accessToken.Token,
         accessToken.ExpiresAtUtc,
         accessToken.UserName,
         user.FullName ?? string.Empty,
-        user.PreferredLanguage));
+        user.PreferredLanguage,
+        [.. userRoles]));
 }).WithName("Login").AllowAnonymous();
 
 app.MapPost("/auth/logout", () => Results.Ok(new LogoutResponse("signed out")))
@@ -219,7 +232,8 @@ app.MapGet("/auth/me", async (
         : Results.Ok(new ProfileResponse(
             user.UserName ?? string.Empty,
             user.FullName ?? string.Empty,
-            user.PreferredLanguage));
+            user.PreferredLanguage,
+            (await userManager.GetRolesAsync(user)).AsReadOnly()));
 }).WithName("AuthenticatedUser")
     .RequireAuthorization();
 
@@ -260,7 +274,8 @@ app.MapPost("/auth/profile", async (
     return Results.Ok(new ProfileResponse(
         user.UserName ?? string.Empty,
         user.FullName ?? string.Empty,
-        user.PreferredLanguage));
+        user.PreferredLanguage,
+        (await userManager.GetRolesAsync(user)).AsReadOnly()));
 }).WithName("UpdateProfile").RequireAuthorization();
 
 app.MapPost("/auth/change-password", async (
@@ -289,6 +304,98 @@ app.MapPost("/auth/change-password", async (
 
     return Results.Ok(new ChangePasswordResponse("password changed"));
 }).WithName("ChangePassword").RequireAuthorization();
+
+// SPEC-016: user administration surface. Authorization is verified by the
+// backend backend: the AdminOnly policy requires the "admin" role issued in
+// the JWT at login. The seeding initializer creates the role and assigns it
+// to the seed user, so one administrator always exists.
+app.MapGet("/admin/users", async (UserManager<ApplicationUser> userManager) =>
+{
+    var summaries = new List<AdminUserSummary>();
+    var users = await userManager.Users
+        .OrderBy(user => user.UserName)
+        .ToListAsync();
+    foreach (var user in users)
+    {
+        var roles = await userManager.GetRolesAsync(user);
+        summaries.Add(new AdminUserSummary(
+            user.Id,
+            user.UserName ?? string.Empty,
+            user.FullName ?? string.Empty,
+            user.PreferredLanguage,
+            roles.Contains(InitializeLocalAuthenticationData.AdminRoleName)));
+    }
+
+    return Results.Ok(summaries);
+}).WithName("AdminListUsers").RequireAuthorization(AdminPolicy);
+
+app.MapPost("/admin/users", async (
+    AdminCreateUserRequest request,
+    UserManager<ApplicationUser> userManager) =>
+{
+    if (string.IsNullOrWhiteSpace(request.UserName)
+        || string.IsNullOrWhiteSpace(request.Password))
+    {
+        return Results.Problem(
+            statusCode: StatusCodes.Status400BadRequest,
+            title: "Username and password are required",
+            detail: "Provide a username (email) and a password for the new user.");
+    }
+
+    if (!SupportedLanguages.IsSupported(request.PreferredLanguage ?? string.Empty))
+    {
+        return Results.Problem(
+            statusCode: StatusCodes.Status400BadRequest,
+            title: "Unsupported language",
+            detail: "Provide 'es' or 'en' as the preferred language.");
+    }
+
+    var user = new ApplicationUser
+    {
+        UserName = request.UserName.Trim(),
+        Email = request.UserName.Trim(),
+        EmailConfirmed = true,
+        FullName = string.IsNullOrWhiteSpace(request.FullName)
+            ? null
+            : request.FullName.Trim(),
+        PreferredLanguage = request.PreferredLanguage,
+    };
+
+    var createResult = await userManager.CreateAsync(user, request.Password);
+    if (!createResult.Succeeded)
+    {
+        return Results.Problem(
+            statusCode: StatusCodes.Status400BadRequest,
+            title: "User creation failed",
+            detail: string.Join(
+                " ",
+                createResult.Errors.Select(error => error.Description)));
+    }
+
+    if (request.IsAdmin)
+    {
+        var roleResult = await userManager.AddToRoleAsync(
+            user,
+            InitializeLocalAuthenticationData.AdminRoleName);
+        if (!roleResult.Succeeded)
+        {
+            return Results.Problem(
+                statusCode: StatusCodes.Status400BadRequest,
+                title: "Admin role assignment failed",
+                detail: string.Join(
+                    " ",
+                    roleResult.Errors.Select(error => error.Description)));
+        }
+    }
+
+    var roles = await userManager.GetRolesAsync(user);
+    return Results.Ok(new AdminUserSummary(
+        user.Id,
+        user.UserName ?? string.Empty,
+        user.FullName ?? string.Empty,
+        user.PreferredLanguage,
+        roles.Contains(InitializeLocalAuthenticationData.AdminRoleName)));
+}).WithName("AdminCreateUser").RequireAuthorization(AdminPolicy);
 
 app.MapGet("/attendance/insights", async (
     string? from,
@@ -554,12 +661,29 @@ internal sealed record LoginResponse(
     DateTimeOffset ExpiresAtUtc,
     string UserName,
     string FullName,
-    string PreferredLanguage);
+    string PreferredLanguage,
+    IReadOnlyList<string> Roles);
 internal sealed record LogoutResponse(string Status);
 internal sealed record ProfileRequest(string FullName, string? PreferredLanguage);
-internal sealed record ProfileResponse(string UserName, string FullName, string PreferredLanguage);
+internal sealed record ProfileResponse(
+    string UserName,
+    string FullName,
+    string PreferredLanguage,
+    IReadOnlyList<string>? Roles = null);
 internal sealed record ChangePasswordRequest(string CurrentPassword, string NewPassword);
 internal sealed record ChangePasswordResponse(string Status);
+internal sealed record AdminUserSummary(
+    string Id,
+    string UserName,
+    string FullName,
+    string PreferredLanguage,
+    bool IsAdmin);
+internal sealed record AdminCreateUserRequest(
+    string UserName,
+    string Password,
+    string? FullName,
+    string? PreferredLanguage,
+    bool IsAdmin = false);
 internal sealed record ChatRequest(string Message, IReadOnlyList<ChatTurn>? History);
 internal sealed record ChatTurn(string Role, string Content);
 
