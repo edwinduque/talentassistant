@@ -21,10 +21,10 @@
 
         .assistant-heading h1 {
             margin: 0;
-            font-family: Georgia, "Times New Roman", serif;
+            font-family: inherit;
             font-size: clamp(2rem, 5vw, 3rem);
-            font-weight: 500;
-            letter-spacing: -0.03em;
+            font-weight: 760;
+            letter-spacing: -0.055em;
             line-height: 1.05;
         }
 
@@ -45,6 +45,8 @@
             margin: 0;
             padding: 1.5rem;
             border: 1px dashed var(--border);
+            border-radius: var(--surface-radius);
+            background: var(--surface);
             color: var(--muted);
         }
 
@@ -55,13 +57,14 @@
             max-width: 46rem;
             padding: 1rem 1.25rem;
             border: 1px solid var(--border);
-            border-radius: 0.75rem;
+            border-radius: var(--surface-radius);
             background: var(--surface);
+            box-shadow: var(--surface-shadow);
         }
 
         .assistant-message--user {
             align-self: flex-end;
-            background: color-mix(in srgb, var(--accent) 8%, var(--surface));
+            background: var(--surface-soft);
         }
 
         .assistant-message-text {
@@ -84,7 +87,7 @@
             margin: 0;
             padding: 0.85rem 1.25rem;
             border: 1px solid color-mix(in srgb, var(--danger) 40%, var(--border));
-            border-radius: 0.75rem;
+            border-radius: var(--control-radius);
             color: var(--danger);
             font-weight: 600;
         }
@@ -101,8 +104,8 @@
             max-height: 10rem;
             padding: 0.7rem 1rem;
             border: 1px solid var(--border);
-            border-radius: 0.75rem;
-            background: color-mix(in srgb, var(--ink) 6%, var(--surface));
+            border-radius: var(--control-radius);
+            background: var(--field-surface);
             color: var(--ink);
             font: inherit;
             resize: vertical;
@@ -120,10 +123,10 @@
         .assistant-send {
             min-height: 3rem;
             padding: 0.5rem 1.4rem;
-            border: 0;
-            border-radius: 0.75rem;
-            background: var(--accent);
-            color: #ffffff;
+            border: 1px solid var(--action-background);
+            border-radius: var(--control-radius);
+            background: var(--action-background);
+            color: var(--action-foreground);
             font: inherit;
             font-weight: 700;
             cursor: pointer;
@@ -132,6 +135,12 @@
         .assistant-send:disabled {
             cursor: wait;
             opacity: 0.7;
+        }
+
+        .assistant-send:hover:not(:disabled) {
+            border-color: var(--action-hover-background);
+            background: var(--action-hover-background);
+            color: var(--action-hover-foreground);
         }
 
         .assistant-send:focus-visible {

@@ -176,6 +176,18 @@ La presencia derivada (§5) reproduce los estados esperados para hoy: los emplea
 
 AC-039..AC-041 fueron propuestos por SPEC-012 (aprobada el 2026-10-20) y quedan implementados en la rama `feat/hcm-real-schema-data`. Evidencia observada: compilación sin errores (0/0) y suite completa en verde (`SUITE_EXIT=0`) con integridad de integración 132/132 sobre ambas bases; volúmenes sembrados de 209 empleados, 7 `timeoff_type`, 620 `timeoff`, 7 `working_day`, 206 asignaciones, 18.651 `time_check` (~45 días incluyendo hoy) y 60 retrasos; huellas md5 por tabla idénticas tras dos reinicializaciones completas y 12 sondas de integridad (FK y enlaces) a cero; los nueve identificadores exactos del contrato servidos desde `public.employee`; mapa de presencia de hoy de 9 estados alineado con el fuente sintético corregido (`ends_before` 16/17/20 con duraciones derivadas 3/1/5); tareas=4 e insights=1 servidos desde la sustitución legada; el rol de aplicación no lee las tablas físicas (`permission denied for table employee`) ni escribe a través de las vistas (códigos `42501` o `55000`). AC-041 queda verificado sobre la vista; la pasada en vivo opcional de las siete preguntas con la clave sigue pendiente (opcional según el criterio).
 
+## AC-042 — Landing pública (propuesto en SPEC-017)
+
+Una persona sin sesión puede abrir `/` y entender que Talent Assistant ayuda a responsables de RR. HH. a revisar información y evidencia de asistencia suministradas por el HCM. La landing presenta navegación superior hacia sus secciones y hacia `/login`, y sus textos se localizan en español e inglés; esta iteración no incluye video ni un reproductor de placeholder.
+
+## AC-043 — Acceso autenticado conservado (propuesto en SPEC-017)
+
+El resumen operativo se presenta en `/overview` y continúa protegido: una persona sin sesión que lo abre es enviada a `/login`. Un login sin `ReturnUrl` explícito dirige a `/overview`; `/login` permanece accesible sin sesión.
+
+## AC-044 — Identidad visual unificada (propuesto en SPEC-018)
+
+La landing, el login, las pantallas operativas (`/overview`, `/attendance-insights`, `/assistant`, `/profile` y `/admin/users`), las páginas de error y el diálogo de reconexión comparten la paleta, tipografía, superficies, controles y acciones del lenguaje visual de la landing. La interfaz conserva su contenido localizado, jerarquía propia y comportamiento existente; se mantiene usable en escritorio y móvil, con navegación por teclado, foco visible y modos claro/oscuro y de alto contraste.
+
 ## Condiciones generales
 
 Los criterios deberán verificarse con pruebas automatizadas cuando sea razonable y con pruebas de aceptación documentadas cuando la automatización no aporte suficiente valor.
@@ -228,5 +240,8 @@ Los identificadores de esta tabla pertenecen al catálogo general y no se reutil
 | AC-039 | FR-032, FR-033 | Contrato intacto sobre el esquema real local con la suite en verde; T3 de la rama `feat/hcm-real-schema-data`; SPEC-012. |
 | AC-040 | NFR-022 | Seed dummy con los volúmenes de §6, FK íntegras y determinismo entre reinicializaciones; T2 de la rama `feat/hcm-real-schema-data`; SPEC-012. |
 | AC-041 | FR-026, FR-029 | Presencia derivada con los estados de hoy correctos y el banco de preguntas intacto; T3 de la rama `feat/hcm-real-schema-data`; SPEC-012. |
+| AC-042 | FR-024, NFR-012 | Landing pública localizada en español e inglés, con enlaces a secciones y login; SPEC-017. |
+| AC-043 | FR-021, FR-034 | `/overview` protegido, `/login` público y destino por defecto tras login; SPEC-017. |
+| AC-044 | NFR-012, NFR-019, NFR-023 | Identidad visual común en login y pantallas operativas, sin alterar localización ni comportamiento; SPEC-018. |
 
 Los AC-003 a AC-006 no se consideran satisfechos por la estructura arquitectónica creada en SPEC-001. Cada caso de asistencia necesita requisitos, pruebas y verificación propios; Tasks no forma parte de la primera vertical. NFR-011 no tiene todavía un umbral medible y deberá concretarse cuando se definan dataset y entorno. NFR-012 se verifica en cada especificación de interfaz; estos criterios no inventan un umbral cuantitativo de contraste.

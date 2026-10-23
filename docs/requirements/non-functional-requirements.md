@@ -24,6 +24,7 @@
 | NFR-020 | Localización de datos | Los textos de presentación del dataset sintético existirán en español e inglés sobre un único payload versionado; los identificadores y valores temporales serán idénticos entre variantes; una versión de payload desconocida fallará de forma controlada. |
 | NFR-021 | Proveedor externo de IA | Las claves del proveedor de IA vivirán solo en configuración externa al repositorio; las llamadas al proveedor tendrán tiempo de espera y la degradación ante fallos será controlada, sin que el resto de la aplicación dependa del proveedor. |
 | NFR-022 | Seguridad de la base del HCM | El rol de la aplicación tendrá permisos de solo SELECT sobre las vistas del contrato, ninguna petición podrá escribir (transacción de solo lectura con *statement timeout*), las consultas serán fijas y parametrizadas sin SQL dinámico, TLS estará exigido para la conexión con la base real, las credenciales vivirán solo en configuración externa al repositorio y los logs no registrarán valores de personas. |
+| NFR-023 | Consistencia visual | Las pantallas públicas y autenticadas de Web compartirán los tokens y patrones visuales definidos a partir de la landing de Talent Assistant, manteniendo localización, accesibilidad y comportamiento existentes. |
 
 ## Objetivos que quedan por definir
 
@@ -38,6 +39,8 @@ Antes de cerrar los requisitos no funcionales se deberán concretar:
 - Estrategia de despliegue y operación.
 
 NFR-017 fue aprobado mediante SPEC-004 y ADR-0006 y está implementado y verificado: el stack Compose, la semilla idempotente y la guía local quedaron comprobados.
+
+NFR-023 fue aprobado mediante SPEC-018; la consistencia visual se verifica sobre las páginas Web públicas y autenticadas sin cambiar sus flujos ni contratos.
 
 No se asignan cifras arbitrarias hasta disponer de un escenario de referencia.
 

@@ -34,6 +34,7 @@
   <ItemGroup>
     <ProjectReference Include="..\..\src\TalentAssistant.Api\TalentAssistant.Api.csproj" />
     <ProjectReference Include="..\..\src\TalentAssistant.Infrastructure\TalentAssistant.Infrastructure.csproj" />
+    <ProjectReference Include="..\..\src\TalentAssistant.Web\TalentAssistant.Web.csproj" Aliases="Web" />
   </ItemGroup>
 
 </Project>

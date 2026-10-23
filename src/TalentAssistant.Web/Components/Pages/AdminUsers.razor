@@ -64,7 +64,7 @@
                 </div>
                 <div class="filter-field">
                     <label for="admin-user-adminflag">@Local["AdminFlagLabel"]</label>
-                    <InputCheckbox id="admin-user-adminflag" @bind-Value="_form.IsAdmin" />
+                    <InputCheckbox id="admin-user-adminflag" class="form-checkbox" @bind-Value="_form.IsAdmin" />
                     <span class="filter-help">@Local["AdminFlagHelp"]</span>
                 </div>
                 <div class="filter-action">
@@ -95,27 +95,30 @@
 
         @if (_users is not null && _users.Count > 0)
         {
-            <table class="admin-users-table">
-                <thead>
-                    <tr>
-                        <th scope="col">@Local["ColumnUser"]</th>
-                        <th scope="col">@Local["ColumnFullName"]</th>
-                        <th scope="col">@Local["ColumnLanguage"]</th>
-                        <th scope="col">@Local["ColumnAdmin"]</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    @foreach (var user in _users)
-                    {
+            <div class="admin-users-table-scroll" role="region" aria-labelledby="users-heading" tabindex="0">
+                <table class="admin-users-table">
+                    <caption class="visually-hidden">@Local["ListHeading"]</caption>
+                    <thead>
                         <tr>
-                            <td>@user.UserName</td>
-                            <td>@user.FullName</td>
-                            <td>@user.PreferredLanguage</td>
-                            <td>@(user.IsAdmin ? Local["AdminBadge"] : Local["MemberBadge"])</td>
+                            <th scope="col">@Local["ColumnUser"]</th>
+                            <th scope="col">@Local["ColumnFullName"]</th>
+                            <th scope="col">@Local["ColumnLanguage"]</th>
+                            <th scope="col">@Local["ColumnAdmin"]</th>
                         </tr>
-                    }
-                </tbody>
-            </table>
+                    </thead>
+                    <tbody>
+                        @foreach (var user in _users)
+                        {
+                            <tr>
+                                <td>@user.UserName</td>
+                                <td>@user.FullName</td>
+                                <td>@user.PreferredLanguage</td>
+                                <td>@(user.IsAdmin ? Local["AdminBadge"] : Local["MemberBadge"])</td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
         }
         else
         {

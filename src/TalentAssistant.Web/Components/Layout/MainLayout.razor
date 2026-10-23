@@ -10,7 +10,7 @@
     <a class="skip-link" href="#main-content">@Local["SkipLink"]</a>
 
     <header class="masthead">
-        <a class="brand" href="/" aria-label="@Local["BrandHomeLabel"]">
+        <a class="brand" href="/overview" aria-label="@Local["BrandHomeLabel"]">
             <span class="brand-mark" aria-hidden="true">TA</span>
             <span class="brand-name">@CommonLocal["AppName"]</span>
         </a>
@@ -18,7 +18,7 @@
         <AuthorizeView>
             <Authorized>
                 <nav class="primary-navigation" aria-label="@Local["PrimaryNavigation"]">
-                    <NavLink href="" Match="NavLinkMatch.All">@Local["NavOverview"]</NavLink>
+                    <NavLink href="overview" Match="NavLinkMatch.All">@Local["NavOverview"]</NavLink>
                     <NavLink href="attendance-insights">@Local["NavAttendance"]</NavLink>
                     <NavLink href="assistant">@Local["NavAssistant"]</NavLink>
                     @if (context.User.IsInRole("admin"))
@@ -54,7 +54,7 @@
 
 <div id="blazor-error-ui" role="alert" data-nosnippet>
     <span>@Local["ErrorUnexpected"]</span>
-    <a href="/">@Local["ErrorReload"]</a>
+    <a href="/overview">@Local["ErrorReload"]</a>
     <button type="button" class="dismiss" aria-label="@Local["ErrorDismiss"]">×</button>
 </div>
 
@@ -64,15 +64,6 @@
         font-weight: 600;
     }
 
-    .sign-out-button {
-        min-height: 2.25rem;
-        padding: 0.25rem 0.9rem;
-        border: 1px solid var(--border);
-        background: var(--surface);
-        color: var(--ink);
-        font: inherit;
-        cursor: pointer;
-    }
 </style>
 
 @code {
