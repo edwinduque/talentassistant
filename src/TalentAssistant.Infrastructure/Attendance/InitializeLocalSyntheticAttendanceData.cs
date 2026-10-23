@@ -19,14 +19,14 @@ public sealed class InitializeLocalSyntheticAttendanceData(
 
         var dataset = await dbContext.SyntheticAttendanceDatasets
             .SingleOrDefaultAsync(
-                item => item.DatasetId == MySqlHcmAttendanceSource.DatasetId,
+                item => item.DatasetId == DatasetHcmAttendanceSource.DatasetId,
                 cancellationToken);
 
         if (dataset is null)
         {
             dbContext.SyntheticAttendanceDatasets.Add(new SyntheticAttendanceDataset
             {
-                DatasetId = MySqlHcmAttendanceSource.DatasetId,
+                DatasetId = DatasetHcmAttendanceSource.DatasetId,
                 PayloadVersion = SyntheticAttendanceDatasetSerializer.CurrentPayloadVersion,
                 PayloadJson = payloadJson
             });

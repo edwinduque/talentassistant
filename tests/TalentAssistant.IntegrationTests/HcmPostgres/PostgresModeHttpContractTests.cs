@@ -10,7 +10,7 @@ namespace TalentAssistant.IntegrationTests.HcmPostgres;
 /// AC-036 over HTTP: with <c>Hcm:Source=Postgres</c> the five data endpoints of
 /// the assistant answer from the seeded contract views of the local PostgreSQL
 /// (same response formats as the synthetic mode), proving the switch registers
-/// the Postgres adapters end to end instead of the synthetic/MySQL ones.
+/// the Postgres adapters end to end instead of the synthetic/dataset ones.
 /// The seeded presence rows key on the database's <c>CURRENT_DATE</c> - its UTC
 /// day - which the test host shares, so the presence query uses the UTC day.
 /// </summary>
@@ -74,7 +74,10 @@ public sealed class PostgresModeHttpContractTests
             var pedro = entries.EnumerateArray().Single(entry =>
                 entry.GetProperty("employee").GetProperty("id").GetString()
                     == "employee-demo-pedro");
-            Assert.Equal("vacation", pedro.GetProperty("state").GetString());
+            // SPEC-012 T3 (default3 aprobado): desde el20 Pedro no está de
+            // vacaciones (su ausencia terminó el19); ambos lados derivan
+            // not-arrived.
+            Assert.Equal("not-arrived", pedro.GetProperty("state").GetString());
         }
 
         using (var timeOff = await GetAsync("/timeoff"))

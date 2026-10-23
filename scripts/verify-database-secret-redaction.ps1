@@ -29,7 +29,7 @@ $previousEnvironment = @{
 
 $env:ASPNETCORE_ENVIRONMENT = "Development"
 $env:ASPNETCORE_URLS = "http://127.0.0.1:5101"
-$env:ConnectionStrings__TalentAssistant = "Server=127.0.0.1;Port=3306;Database=talentassistant_dev;User Id=talentassistant_sentinel;Password=$sentinel;"
+$env:ConnectionStrings__TalentAssistant = "Host=127.0.0.1;Port=5434;Database=talentassistant_dev;Username=talentassistant_sentinel;Password=$sentinel;"
 
 $process = $null
 $responseBody = ""

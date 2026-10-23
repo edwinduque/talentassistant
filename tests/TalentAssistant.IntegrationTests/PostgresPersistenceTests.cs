@@ -2,10 +2,10 @@
 
 namespace TalentAssistant.IntegrationTests;
 
-public sealed class MySqlPersistenceTests
+public sealed class PostgresPersistenceTests
 {
     [Fact]
-    public async Task AppliesMigrationsAndRoundTripsSyntheticDataOnMySql8411()
+    public async Task AppliesMigrationsAndRoundTripsSyntheticDataOnPostgres17()
     {
         var connectionString = Environment.GetEnvironmentVariable(
             "ConnectionStrings__TalentAssistantTests");
@@ -14,7 +14,7 @@ public sealed class MySqlPersistenceTests
             "Set ConnectionStrings__TalentAssistantTests to the dedicated talentassistant_tests database.");
 
         var options = new DbContextOptionsBuilder<PersistenceProbeContext>()
-            .UseMySQL(connectionString!)
+            .UseNpgsql(connectionString!)
             .Options;
 
         await using var context = new PersistenceProbeContext(options);
@@ -23,10 +23,10 @@ public sealed class MySqlPersistenceTests
         var connection = context.Database.GetDbConnection();
         await connection.OpenAsync();
         await using var versionCommand = connection.CreateCommand();
-        versionCommand.CommandText = "SELECT VERSION()";
+        versionCommand.CommandText = "SELECT version()";
         var serverVersion = Convert.ToString(await versionCommand.ExecuteScalarAsync());
 
-        Assert.StartsWith("8.4.11", serverVersion, StringComparison.Ordinal);
+        Assert.StartsWith("PostgreSQL 17", serverVersion, StringComparison.Ordinal);
         Assert.Empty(await context.Database.GetPendingMigrationsAsync());
 
         await using var transaction = await context.Database.BeginTransactionAsync();

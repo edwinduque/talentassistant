@@ -1,6 +1,6 @@
 # ADR-0008 — Localización de la interfaz y perfil de usuario
 
-- **Estado:** Propuesto (2026-10-17).
+- **Estado:** Propuesto (2026-10-17). Nota de herencia (2026-10-21): la persistencia de Identity corre ahora sobre PostgreSQL ([ADR-0013](ADR-0013-postgresql-persistence.md)).
 - **Fecha:** 2026-10-17.
 - **Aprobación de arquitectura:** pendiente de aprobación del usuario junto con SPEC-006.
 - **Especificación relacionada:** SPEC-006 — Perfil de usuario y localización de la interfaz.

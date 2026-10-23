@@ -1,6 +1,6 @@
 # SPEC-004 — Entorno local contenedorizado y semilla sintética
 
-- **Estado:** Diseño técnico aprobado para planificación de implementación (2026-10-15).
+- **Estado:** Diseño técnico aprobado para planificación de implementación (2026-10-15). Nota de herencia (2026-10-21): el servidor MySQL definido aquí fue sustituido por PostgreSQL ([ADR-0013](../../docs/architecture/adr/ADR-0013-postgresql-persistence.md)/[SPEC-013](../013-postgres-only-persistence/spec.md)); el perfil Docker Compose se conserva.
 - **Implementación:** T1, T2 y T3 committeadas; suite xUnit completa 12/12 con la base de pruebas dedicada.
 - **Requisitos relacionados:** FR-006, FR-010, FR-018, FR-020; NFR-004, NFR-005, NFR-008, NFR-017.
 - **Criterios relacionados:** AC-001, AC-002, AC-007, AC-008, AC-012..AC-015.

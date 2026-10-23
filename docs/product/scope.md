@@ -9,7 +9,7 @@
 - Fuente HCM sintética y reproducible para desarrollar el MVP sin conexión productiva.
 - Primera vertical aprobada en SPEC-002: mostrar empleados y la ubicación de sus oficinas (país y ciudad), explicar una incidencia de marcaje evaluada por la fuente, mostrar su evidencia y relacionar TimeOff cuando la fuente lo indique.
 - Contratos de integración sustituibles para que un adaptador real pueda reemplazar la fuente sintética sin reescribir los casos de uso.
-- La primera vertical de SPEC-002 conserva un fixture HCM sintético en memoria para host y pruebas. SPEC-004 está aprobada para planificar un perfil local opcional con una proyección técnica mínima y seed sintético en MySQL; aún no está implementado y no crea entidades ni módulos HCM completos.
+- La primera vertical de SPEC-002 conserva un fixture HCM sintético en memoria para host y pruebas. SPEC-004 definió el perfil local opcional con una proyección técnica mínima y seed sintético; su motor se sirve hoy sobre PostgreSQL (ADR-0013/SPEC-013) y no crea entidades ni módulos HCM completos.
 - Documentación, trazabilidad SDD y ejecución local.
 
 ### Excluido

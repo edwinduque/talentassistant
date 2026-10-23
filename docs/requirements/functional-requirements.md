@@ -27,7 +27,7 @@ Estado inicial: Propuesto. La aprobación del alcance convierte los requisitos s
 | FR-017 | Se podrá evaluar una arquitectura con Supervisor y agentes especializados frente a una alternativa de agente único. | Could |
 | FR-018 | La fuente HCM sintética podrá sustituirse por un adaptador real mediante un contrato estable, sin reescribir los casos de uso de Application. | Must |
 | FR-019 | Las explicaciones mostrarán la evidencia disponible, la procedencia del resultado y la información que la fuente marque para revisión. | Must |
-| FR-020 | En el entorno local, la fuente HCM sintética consultará desde MySQL fixtures de respuestas de asistencia cargados de forma reproducible; Application continuará consumiéndolos mediante su contrato, sin crear módulos HCM. | Must |
+| FR-020 | En el entorno local, la fuente HCM sintética consultará desde PostgreSQL (originalmente aprobado sobre MySQL en su momento; ADR-0013/SPEC-013) fixtures de respuestas de asistencia cargados de forma reproducible; Application continuará consumiéndolos mediante su contrato, sin crear módulos HCM. | Must |
 | FR-021 | El usuario podrá autenticarse en la aplicación local; la API exigirá autenticación en los endpoints de negocio y la sesión podrá cerrarse desde la interfaz. | Must |
 | FR-022 | El entorno local dispondrá de usuarios sintéticos creados de forma idempotente desde configuración externa, sin credenciales por defecto ni en el repositorio. | Must |
 | FR-023 | El usuario podrá gestionar su perfil local: nombre visible, idioma preferido y contraseña, con la contraseña actual exigida para el cambio. | Must |
@@ -41,7 +41,7 @@ Estado inicial: Propuesto. La aprobación del alcance convierte los requisitos s
 | FR-032 | La aplicación consultará el HCM real desde su PostgreSQL de solo lectura mediante los puertos existentes, con un interruptor único de fuente (`Hcm__Source=Sintética|Postgres`) que gobierna a la vez todos los puertos de datos, sin SQL dinámico y con el cambio de motor de base de datos contenido en un adaptador de Infrastructure. | Must |
 | FR-033 | En modo Postgres, si la base del HCM no está disponible, los endpoints de datos devolverán un error localizado de fuente no disponible; el sistema nunca volverá a datos sintéticos de forma silenciosa. | Must |
 
-FR-020 fue aprobado mediante SPEC-004 y está implementado y verificado (commits en `main`); el perfil local Compose sirve los fixtures desde MySQL.
+FR-020 fue aprobado mediante SPEC-004 y está implementado y verificado (commits en `main`); el perfil local Compose sirve los fixtures desde PostgreSQL (motor sustituido por ADR-0013/SPEC-013).
 
 FR-021 y FR-022 quedan aprobados para planificación mediante SPEC-005 y ADR-0007; su implementación está verificada en T1/T2 con la documentación pendiente en T3.
 

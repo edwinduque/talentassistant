@@ -1,6 +1,6 @@
 # SPEC-006 — Perfil de usuario y localización de la interfaz
 
-- **Estado:** Propuesto para aprobación de planificación (2026-10-17).
+- **Estado:** Propuesto para aprobación de planificación (2026-10-17). Nota de herencia (2026-10-21): la persistencia del perfil corre sobre PostgreSQL ([ADR-0013](../../docs/architecture/adr/ADR-0013-postgresql-persistence.md)).
 - **Implementación:** T1, T2 y T3 implementadas; recorrido de navegador verificado en ambos idiomas; pendiente verificación final del feature.
 - **Requisitos relacionados (propuestos):** FR-023, FR-024 y NFR-019. Relacionados existentes: FR-007, FR-009, FR-010, FR-021, FR-022; NFR-004, NFR-006, NFR-012, NFR-018.
 - **Criterios relacionados (propuestos):** AC-019, AC-020, AC-021.

@@ -1,6 +1,6 @@
 # Ejecución local
 
-Esta guía ofrece el perfil completo Docker Compose para API, Web y MySQL, además del perfil alternativo que ejecuta API/Web en el host. Ambos usan exclusivamente respuestas HCM sintéticas y exigen iniciar sesión (SPEC-005); el entorno no está preparado para exponerse a redes compartidas ni para un despliegue productivo.
+Esta guía ofrece el perfil completo Docker Compose para API, Web y PostgreSQL, además del perfil alternativo que ejecuta API/Web en el host. Ambos usan exclusivamente respuestas HCM sintéticas y exigen iniciar sesión (SPEC-005); el entorno no está preparado para exponerse a redes compartidas ni para un despliegue productivo.
 
 ## Requisitos
 
@@ -19,7 +19,7 @@ Copy-Item .env.example .env
 notepad .env
 ```
 
-Completa `MYSQL_PASSWORD` y `MYSQL_ROOT_PASSWORD` con valores sintéticos locales distintos; conserva `MYSQL_DATABASE=talentassistant_dev` y `MYSQL_USER=talentassistant_app`. Completa también `AUTH_SIGNING_KEY` y `AUTH_SEED_PASSWORD` según la sección «Autenticación local»; `docker compose config` rechaza valores vacíos. `.env` está excluido de Git y del contexto Docker; no lo compartas ni uses credenciales de producción. Si ya existe el volumen MySQL, conserva las contraseñas con las que se inicializó: editarlas en `.env` no cambia las credenciales almacenadas en ese volumen.
+Completa `APP_POSTGRES_ADMIN_PASSWORD` y `APP_POSTGRES_PASSWORD` con valores sintéticos locales distintos; conserva `APP_POSTGRES_DB=talentassistant_dev`. Completa también `AUTH_SIGNING_KEY` y `AUTH_SEED_PASSWORD` según la sección «Autenticación local»; `docker compose config` rechaza valores vacíos. `.env` está excluido de Git y del contexto Docker; no lo compartas ni uses credenciales de producción. Si ya existe el volumen propia de la aplicación, conserva las contraseñas con las que se inicializó: editarlas en `.env` no cambia las credenciales almacenadas en ese volumen.
 
 ### 2. Construir e iniciar los servicios
 
@@ -29,7 +29,7 @@ docker compose up --build -d --wait
 docker compose ps
 ```
 
-El primer build restaura las dependencias declaradas y requiere acceso a los registros indicados arriba. Compose espera a MySQL saludable, ejecuta `db-init` (migraciones y upsert transaccional del dataset sintético) y luego inicia API y Web. La API del perfil Compose lee desde MySQL; Web consume API mediante la red interna. El inicio y los puertos publicados quedan limitados a loopback: API `http://127.0.0.1:5101`, Web `http://127.0.0.1:5102` y MySQL `127.0.0.1:3306`.
+El primer build restaura las dependencias declaradas y requiere acceso a los registros indicados arriba. Compose espera al servicio propio `app-postgres` saludable, ejecuta `db-init` (migraciones y upsert transaccional del dataset sintético) y luego inicia API y Web. La API del perfil Compose lee desde PostgreSQL (base propia en el servicio `app-postgres`); Web consume API mediante la red interna. El inicio y los puertos publicados quedan limitados a loopback: API `http://127.0.0.1:5101`, Web `http://127.0.0.1:5102` y la base propia `127.0.0.1:5434` (la base del contrato HCM permanece en `127.0.0.1:5433`).
 
 ### 3. Comprobar API, dataset y Web
 
@@ -60,12 +60,12 @@ docker compose start
 docker compose down
 ```
 
-`stop`, `start` y `down` conservan el volumen nombrado `talentassistant_mysql_data`. **`docker compose down --volumes` es destructivo:** elimina el volumen y las bases locales de desarrollo e integración; úsalo solo cuando se decidió descartar esos datos. Cambiar `.env` no cambia las credenciales de un volumen ya inicializado.
+`stop`, `start` y `down` conservan el volumen nombrado `talentassistant_app_postgres_data`. **`docker compose down --volumes` es destructivo:** elimina el volumen y las bases locales de desarrollo e integración; úsalo solo cuando se decidió descartar esos datos. Cambiar `.env` no cambia las credenciales de un volumen ya inicializado. El volumen heredado `talentassistant_mysql_data` ya no pertenece al perfil: descártalo con `docker volume rm`.
 
 Para consultar logs sin mostrar valores de `.env`:
 
 ```powershell
-docker compose logs --tail 100 mysql api web
+docker compose logs --tail 100 app-postgres api web
 ```
 
 El perfil no incluye TLS y no debe exponerse a redes compartidas ni usarse como despliegue productivo.
@@ -84,7 +84,7 @@ Desde SPEC-005, Web y API exigen iniciar sesión. No existe ninguna credencial p
 
 ### Siembra de usuarios
 
-`db-init` aplica las migraciones (incluidas las tablas de Identity) y crea el usuario de siembra solo si no existe. Nunca sobreescribe la contraseña de un usuario ya existente. Para cambiar la contraseña, borra la fila del usuario o edítala por SQL en MySQL y vuelve a ejecutar la inicialización:
+`db-init` aplica las migraciones (incluidas las tablas de Identity) y crea el usuario de siembra solo si no existe. Nunca sobreescribe la contraseña de un usuario ya existente. Para cambiar la contraseña, borra la fila del usuario con SQL en PostgreSQL (por ejemplo, con `docker compose exec app-postgres psql -U talentassistant_admin -d talentassistant_dev`) y vuelve a ejecutar la inicialización:
 
 ```powershell
 docker compose run --rm db-init
@@ -117,37 +117,38 @@ El alcance de la localización de SPEC-006 es la interfaz: los títulos de error
 
 Tras actualizar a SPEC-007 hay que reemplazar el dataset por el payload bilingüe versión 2: ejecuta `docker compose run --rm db-init` (Compose lo ejecuta automáticamente en `up --build`).
 
-## Perfil host alternativo: configurar MySQL y ejecutar API/Web en Windows
+## Perfil host alternativo: configurar PostgreSQL y ejecutar API/Web en Windows
 
 Esta variante mantiene API y Web fuera de Docker. El perfil host/tests conserva la fuente HCM en memoria por defecto; no necesita ni ejecuta `db-init`.
 
 1. Copia `.env.example` a `.env` y completa los dos campos de contraseña vacíos con valores sintéticos distintos. Compose rechazará los valores vacíos.
-2. Mantén `MYSQL_USER=talentassistant_app`: el script inicial concede a ese usuario acceso a la base separada de integración. Asigna contraseñas locales distintas para `MYSQL_PASSWORD` y `MYSQL_ROOT_PASSWORD`; no uses contraseñas de producción.
-3. Arranca solo MySQL para el perfil host:
+2. Mantén el rol de aplicación `talentassistant_app`: el script inicial concede a ese rol acceso a las bases del servicio; asigna contraseñas locales distintas para `APP_POSTGRES_ADMIN_PASSWORD` y `APP_POSTGRES_PASSWORD`; no uses contraseñas de producción.
+3. Arranca solo la base propia para el perfil host:
 
    ```powershell
-   docker compose up -d --wait mysql
+   docker compose up -d --wait app-postgres
    docker compose ps
    ```
 
 4. El perfil host también exige autenticación (SPEC-005): la API necesita `Authentication__SigningKey` (>= 32 caracteres) y `Authentication__SeedPassword` como variables de entorno (`Authentication__*`) o en User Secrets antes de ejecutarse; sin la clave de firma, la API no arranca. El usuario local se crea con el inicializador `--initialize-local-data`, el mismo que ejecuta `db-init` en Compose.
 
-El Dockerfile MySQL construye la imagen local desde `mysql:8.4.11` fijada por digest. Compose publica el puerto únicamente en `127.0.0.1:3306` y conserva los datos en el volumen nombrado `talentassistant_mysql_data`. El script `docker/mysql/init/10-create-test-database.sql` crea `talentassistant_tests` y concede acceso al usuario local en el primer inicio de un volumen vacío.
+La base propia se sirve con la imagen oficial `postgres:17-alpine` y un script de bootstrap (`docker/postgres/init/10-app-databases.sh`) que crea las bases `talentassistant_tests` y el rol de aplicación en el primer inicio de un volumen vacío. Compose publica el puerto únicamente en `127.0.0.1:5434` y conserva los datos en el volumen nombrado `talentassistant_app_postgres_data`.
 
-Los scripts de `/docker-entrypoint-initdb.d` solo se ejecutan al inicializar un directorio de datos vacío. Si el volumen ya existía antes de añadir el script, crea la base y concede los permisos manualmente con una sesión autenticada de MySQL:
+Los scripts de `/docker-entrypoint-initdb.d` solo se ejecutan al inicializar un directorio de datos vacío. Si el volumen ya existía antes de añadir el script, crea la base y el propietario manualmente con una sesión autenticada de PostgreSQL:
 
 ```sql
-CREATE DATABASE IF NOT EXISTS `talentassistant_tests`
-    CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci;
-GRANT ALL PRIVILEGES ON `talentassistant_tests`.* TO 'talentassistant_app'@'%';
+CREATE DATABASE talentassistant_tests;
+ALTER DATABASE talentassistant_tests OWNER TO talentassistant_app;
+ALTER DATABASE talentassistant_dev OWNER TO talentassistant_app;
+ALTER SCHEMA public OWNER TO talentassistant_app;
 ```
 
 ## Configurar la API y aplicar migraciones
 
-La cadena de desarrollo se guarda fuera de Git mediante User Secrets. Ejecuta desde la raíz del repositorio y reemplaza el marcador por el valor local de `MYSQL_PASSWORD`:
+La cadena de desarrollo se guarda fuera de Git mediante User Secrets. Ejecuta desde la raíz del repositorio y reemplaza el marcador por el valor local de `APP_POSTGRES_PASSWORD`:
 
 ```powershell
-dotnet user-secrets set "ConnectionStrings:TalentAssistant" "Server=127.0.0.1;Port=3306;Database=talentassistant_dev;User Id=talentassistant_app;Password=<MYSQL_PASSWORD>;" --project src/TalentAssistant.Api/TalentAssistant.Api.csproj
+dotnet user-secrets set "ConnectionStrings:TalentAssistant" "Host=127.0.0.1;Port=5434;Database=talentassistant_dev;Username=talentassistant_app;Password=<APP_POSTGRES_PASSWORD>;" --project src/TalentAssistant.Api/TalentAssistant.Api.csproj
 dotnet tool restore
 $env:ASPNETCORE_ENVIRONMENT = "Development"
 dotnet ef database update --project src/TalentAssistant.Infrastructure/TalentAssistant.Infrastructure.csproj --startup-project src/TalentAssistant.Api/TalentAssistant.Api.csproj
@@ -157,7 +158,7 @@ El proyecto API tiene un `UserSecretsId`; `WebApplication.CreateBuilder` carga U
 
 ### Comprobación reproducible de AC-006
 
-Con MySQL saludable y el puerto local `5101` libre, ejecuta:
+Con el servicio propio `app-postgres` saludable y el puerto local `5101` libre, ejecuta:
 
 ```powershell
 .\scripts\verify-database-secret-redaction.ps1
@@ -165,10 +166,10 @@ Con MySQL saludable y el puerto local `5101` libre, ejecuta:
 
 El script genera un centinela sintético por ejecución, lo entrega al proceso API solo mediante una variable de entorno y consulta `/health/database`. Espera HTTP 503 con un error genérico ante el rechazo de autenticación, y comprueba que ni la respuesta ni la salida capturada contengan el centinela o un stack trace. La salida capturada temporal se elimina al terminar; el script nunca imprime el valor. No ejecuta xUnit, no mueve ensamblados y no modifica la política de Application Control.
 
-La aplicación mantiene sus migraciones explícitas; en el perfil host no se aplican automáticamente al arrancar la API. La migración `20261016001733_AddSyntheticAttendanceDataset` crea la tabla técnica que usa el perfil Compose. La generación de una migración de aplicación usa:
+La aplicación mantiene sus migraciones explícitas; en el perfil host no se aplican automáticamente al arrancar la API. La migración consolidada `InitialCreate` (base `Migrations/` de Infrastructure) crea la tabla técnica que usa el perfil Compose. La generación de una migración de aplicación usa:
 
 ```powershell
-dotnet ef migrations add <NombreMigracion> --project src/TalentAssistant.Infrastructure/TalentAssistant.Infrastructure.csproj --startup-project src/TalentAssistant.Api/TalentAssistant.Api.csproj --output-dir Persistence/Migrations
+dotnet ef migrations add <NombreMigracion> --project src/TalentAssistant.Infrastructure/TalentAssistant.Infrastructure.csproj --startup-project src/TalentAssistant.Api/TalentAssistant.Api.csproj
 ```
 
 ## Ejecutar la API
@@ -179,7 +180,7 @@ $env:ASPNETCORE_URLS = "http://127.0.0.1:5101"
 dotnet run --no-launch-profile --project src/TalentAssistant.Api/TalentAssistant.Api.csproj
 ```
 
-El endpoint mínimo es `GET http://127.0.0.1:5101/health`. `GET /health/database` comprueba la conexión y devuelve HTTP 503 genérico si MySQL no está disponible, sin exponer la cadena ni el error interno. No se configura CORS porque cualquier llamada Web→API se realizará desde el servidor.
+El endpoint mínimo es `GET http://127.0.0.1:5101/health`. `GET /health/database` comprueba la conexión y devuelve HTTP 503 genérico si la base no está disponible, sin exponer la cadena ni el error interno. No se configura CORS porque cualquier llamada Web→API se realizará desde el servidor.
 
 ## Ejecutar Blazor Web
 
@@ -192,7 +193,7 @@ $env:BackendApi__BaseUrl = "http://127.0.0.1:5101/"
 dotnet run --no-launch-profile --project src/TalentAssistant.Web/TalentAssistant.Web.csproj
 ```
 
-La página inicial consulta `GET /health` mediante `BackendApiClient`, registrado como cliente HTTP tipado del servidor. `BackendApi:BaseUrl` tiene un valor local de desarrollo y `BackendApi__BaseUrl` lo sobrescribe por entorno. Web no referencia Infrastructure ni se conecta directamente a MySQL.
+La página inicial consulta `GET /health` mediante `BackendApiClient`, registrado como cliente HTTP tipado del servidor. `BackendApi:BaseUrl` tiene un valor local de desarrollo y `BackendApi__BaseUrl` lo sobrescribe por entorno. Web no referencia Infrastructure ni se conecta directamente a PostgreSQL.
 
 ## Restaurar, compilar y probar
 
@@ -202,24 +203,28 @@ dotnet build TalentAssistant.sln --configuration Debug
 dotnet test tests/TalentAssistant.UnitTests/TalentAssistant.UnitTests.csproj
 ```
 
-Las pruebas unitarias no requieren MySQL. Las pruebas de integración usan exclusivamente la base `talentassistant_tests`; no usan EF Core InMemory. El modelo de prueba `PersistenceProbeContext` tiene su propia migración versionada en `tests/TalentAssistant.IntegrationTests/Persistence/Migrations/`, separada del esquema de la aplicación, y la prueba la aplica automáticamente con `MigrateAsync`.
+Las pruebas unitarias no requieren base de datos. Las pruebas de integración usan exclusivamente la base `talentassistant_tests`; no usan EF Core InMemory. El modelo de prueba `PersistenceProbeContext` tiene su propia migración versionada en `tests/TalentAssistant.IntegrationTests/Migrations/`, separada del esquema de la aplicación, y la prueba la aplica automáticamente con `MigrateAsync`.
 
 Configura la cadena de la base de pruebas y ejecuta la suite completa:
 
 ```powershell
-$env:ConnectionStrings__TalentAssistantTests = "Server=127.0.0.1;Port=3306;Database=talentassistant_tests;User Id=talentassistant_app;Password=<MYSQL_PASSWORD>;AllowPublicKeyRetrieval=true;"
+$env:ConnectionStrings__TalentAssistantTests = "Host=127.0.0.1;Port=5434;Database=talentassistant_tests;Username=talentassistant_app;Password=<APP_POSTGRES_PASSWORD>;"
 dotnet test TalentAssistant.sln --configuration Debug --no-restore
 ```
 
-`AllowPublicKeyRetrieval=true` permite completar la autenticación `caching_sha2_password` cuando MySQL acaba de reiniciar y la conexión loopback no negocia TLS; sin esa opción, el primer intento desde el host devuelve `Access denied for user ... (using password: YES)`. El puerto MySQL solo está publicado en `127.0.0.1`. La ejecución de ensamblados xUnit puede estar sujeta a las políticas del equipo; no se deben desactivar ni eludir.
+```powershell
+$env:HcmPostgres__ConnectionString = "Host=127.0.0.1;Port=5433;Database=talentassistant_hcm;Username=talentassistant_hcm_app;Password=<HCM_POSTGRES_APP_PASSWORD>;"
+```
+
+La autenticación de PostgreSQL usa SCRAM-SHA-256 por defecto: no necesita parámetros adicionales; el puerto solo está publicado en `127.0.0.1`. La ejecución de ensamblados xUnit puede estar sujeta a las políticas del equipo; no se deben desactivar ni eludir.
 
 La prueba crea su esquema en `talentassistant_tests` en la primera ejecución y hace rollback de los registros que inserta; no recibe la semilla demo de `talentassistant_dev`. Solo hace falta regenerar la migración si cambia el modelo de prueba, usando el propio proyecto de pruebas como startup project (EF Core localiza el DLL del contexto en la salida de ese proyecto; con la API como startup no lo encuentra):
 
 ```powershell
-dotnet ef migrations add <NombreMigracion> --project tests/TalentAssistant.IntegrationTests/TalentAssistant.IntegrationTests.csproj --startup-project tests/TalentAssistant.IntegrationTests/TalentAssistant.IntegrationTests.csproj --context PersistenceProbeContext --output-dir Persistence/Migrations
+dotnet ef migrations add <NombreMigracion> --project tests/TalentAssistant.IntegrationTests/TalentAssistant.IntegrationTests.csproj --startup-project tests/TalentAssistant.IntegrationTests/TalentAssistant.IntegrationTests.csproj --context PersistenceProbeContext
 ```
 
-Para detener únicamente MySQL en el perfil host, usa `docker compose stop mysql`; para volver a iniciarlo, `docker compose start mysql`. El flujo completo de persistencia y reset del perfil Compose está en la sección anterior.
+Para detener únicamente la base propia en el perfil host, usa `docker compose stop app-postgres`; para volver a iniciarla, `docker compose start app-postgres`. El flujo completo de persistencia y reset del perfil Compose está en la sección anterior.
 
 ## Conector HCM (PostgreSQL, solo consulta)
 
@@ -244,9 +249,45 @@ Para restablecer por completo la base de pruebas del contrato:
 docker compose rm -sf hcm-postgres && docker volume rm talentassistant_hcm_postgres_data && docker compose up -d hcm-postgres
 ```
 
+### Réplica local del shape real (SPEC-012)
+
+Desde SPEC-012, `hcm-postgres` sirve el contrato sobre una réplica local con la **forma real del HCM** (tablas `public.employee`, `timeoff_type`, `timeoff`, `working_day`, `working_day_assigment`, `time_check`, `time_check_delay`), regada con un seed dummy determinista; las vistas `hcm_contract.*` son la única capa que la aplicación conoce y los adaptadores no cambiaron.
+
+| Fichero | Qué contiene |
+|---|---|
+| `db/hcm-real/upstream.sql` | DDL del usuario **verbatim** (2026-10-20). No se ejecuta: es la fuente de verdad del shape cambiante. |
+| `db/hcm-real/schema.sql` | Adaptación ejecutable a PostgreSQL: identidades deterministas, `timestamp` (`time_check_date_utc` como `timestamptz`), `smallint`, `boolean`, `text`, `"job:title"` entrecomillado; añade 9 FK locales y 5 índices de apoyo (ambos documentados como añadidos locales en su cabecera). |
+| `db/hcm-real/seed.sql` | Semilla dummy determinista, 100 % ficticia y sin `random()`: todo procede de `generate_series`, aritmética de índice y constantes. Se ejecuta una sola vez por volumen; no es idempotente a propósito. |
+
+Orden del pipeline de init (`db/hcm-contract/local/01_init.sh`, con `ON_ERROR_STOP=1`): `/real/schema.sql` → `/real/seed.sql` → `local_tables.sql` (sustitución reducida) → `views.sql` → `local_seed.sql` (filas de sustitución) → `roles.sql` → contraseña del rol de aplicación desde el entorno → `grants.sql`. Al terminar imprime el marcador `hcm contract initialized`.
+
+**Cuando el usuario comparta un shape nuevo** (la información puede cambiar; misma revisión, sin atajos):
+
+1. Reemplaza `db/hcm-real/upstream.sql` por el nuevo DDL verbatim.
+2. Adapta `db/hcm-real/schema.sql` al nuevo shape conservando nombres de tablas y columnas.
+3. Revisa `db/hcm-contract/views.sql` **y** `db/hcm-real/seed.sql` en el MISMO cambio: las vistas y la semilla dependen del shape.
+4. Reinicializa el volumen con el comando de restablecimiento de la sección anterior (borra el volumen local de pruebas, sintético por definición) y comprueba el marcador de init, los conteos y la suite completa.
+
+Convenciones del shape (SPEC-012):
+
+| Convención | Detalle |
+|---|---|
+| `timeoff.date_end` es inclusivo | El contrato expone el exclusivo `ends_before = date_end + 1 día`. |
+| Vocabulario de `status_id` | `1` pendiente, `2` activo, `3` eliminado (confirmado por el usuario). |
+| `department` como unidad orgánica | La columna dobla como identificador de unidad orgánica del contrato (marcador de alcance abajo). |
+| `time_check.status_id` | Su mapeo por valor es un supuesto documentado en la cabecera del seed. |
+| Días en UTC | Los límites de día de las marcaciones se evalúan en UTC. |
+| Ausencias que cubren hoy | Horizonte rodante a +365 días para no degradar la paridad sin reinicializar. |
+| Determinismo | Por día civil UTC; el seed es one-shot (re-inicializar el volumen lo regenera). |
+
+Alcance y gaps documentados (no corregidos):
+
+- El catálogo servido está acotado a los nueve empleados de fixture mediante el marcador `department LIKE 'office-demo-%'`; ampliarlo es retirar ese filtro en la vista, una línea, más la evolución de las pruebas.
+- El shape real **no expone tabla de tareas ni tabla de hallazgos de regla evaluados**: las vistas de tareas e insights siguen leyendo la sustitución legada (`hcm.tasks`, `hcm.attendance_incidents`) hasta que el usuario comparta esos DDLs; la aplicación nunca deriva reglas del HCM.
+
 ### Cómo obtienen las pruebas la cadena de conexión
 
-La suite completa necesita dos cadenas por entorno: `ConnectionStrings__TalentAssistantTests` (MySQL, ya documentada arriba) y `HcmPostgres__ConnectionString` contra el servicio local. El patrón correcto obtiene la contraseña desde el entorno del contenedor **sin imprimirla en el repositorio ni en la conversación**:
+La suite completa necesita dos cadenas por entorno: `ConnectionStrings__TalentAssistantTests` (PostgreSQL, ya documentada arriba) y `HcmPostgres__ConnectionString` contra el servicio local. El patrón correcto obtiene la contraseña desde el entorno del contenedor **sin imprimirla en el repositorio ni en la conversación**:
 
 ```powershell
 $pgPass = docker compose exec -T hcm-postgres printenv HCM_POSTGRES_APP_PASSWORD

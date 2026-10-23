@@ -2,10 +2,10 @@
 
 #nullable disable
 
-namespace TalentAssistant.Infrastructure.Persistence.Migrations
+namespace TalentAssistant.Infrastructure.Migrations
 {
     /// <inheritdoc />
-    public partial class AddSyntheticAttendanceDataset : Migration
+    public partial class InitialCreate : Migration
     {
         /// <inheritdoc />
         protected override void Up(MigrationBuilder migrationBuilder)
@@ -14,15 +14,14 @@ namespace TalentAssistant.Infrastructure.Persistence.Migrations
                 name: "SyntheticAttendanceDatasets",
                 columns: table => new
                 {
-                    DatasetId = table.Column<string>(type: "varchar(64)", maxLength: 64, nullable: false),
-                    PayloadVersion = table.Column<int>(type: "int", nullable: false),
-                    PayloadJson = table.Column<string>(type: "longtext", nullable: false)
+                    DatasetId = table.Column<string>(type: "character varying(64)", maxLength: 64, nullable: false),
+                    PayloadVersion = table.Column<int>(type: "integer", nullable: false),
+                    PayloadJson = table.Column<string>(type: "text", nullable: false)
                 },
                 constraints: table =>
                 {
                     table.PrimaryKey("PK_SyntheticAttendanceDatasets", x => x.DatasetId);
-                })
-                .Annotation("MySQL:Charset", "utf8mb4");
+                });
         }
 
         /// <inheritdoc />

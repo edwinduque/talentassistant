@@ -92,10 +92,10 @@ La fuente debe devolver la evaluación del HCM (referencia/versión de regla, re
 - Domain no depende de Application, Infrastructure, API, Web, EF Core ni otros frameworks de persistencia.
 - Application depende de Domain y define los contratos que necesitan sus casos de uso; no accede directamente a DbContext ni depende de Infrastructure.
 - Application define puertos de lectura HCM y depende de modelos de transporte internos, no de SDK, API ni esquema de un proveedor concreto.
-- Infrastructure implementa los contratos de Application, contiene el adaptador sintético, y concentra DbContext, EF Core y los detalles del proveedor de MySQL cuando se requiera persistencia local.
+- Infrastructure implementa los contratos de Application, contiene el adaptador sintético, y concentra DbContext, EF Core y los detalles del proveedor de la persistencia (PostgreSQL, ADR-0013) cuando se requiera persistencia local.
 - API invoca casos de uso de Application. El punto de composición registra las implementaciones de Infrastructure; la API no contiene reglas de negocio.
-- Web se comunica con API mediante HTTP y contratos; no referencia Infrastructure ni accede directamente a DbContext o a MySQL.
-- Las pruebas unitarias de Domain y Application pueden ejecutarse sin MySQL. Las pruebas que necesitan EF Core y MySQL son pruebas de integración.
+- Web se comunica con API mediante HTTP y contratos; no referencia Infrastructure ni accede directamente a DbContext o a PostgreSQL.
+- Las pruebas unitarias de Domain y Application pueden ejecutarse sin base de datos. Las pruebas que necesitan EF Core y PostgreSQL son pruebas de integración.
 
 ### Servicio de IA futuro
 
@@ -179,16 +179,16 @@ La autorización se aplica en el backend en cada operación; no se delega al pro
 
 ## 7. Persistencia
 
-MySQL y Entity Framework Core están aprobados por ADR-0004. La selección para la fundación es EF Core `10.0.13` con el proveedor Oracle `MySql.EntityFrameworkCore` `10.0.9` y MySQL Server `8.4.11` LTS en desarrollo/pruebas. La combinación está respaldada por los metadatos estables de NuGet y la documentación del fabricante; la migración inicial y las operaciones contra el servidor exacto se verifican mediante la prueba de integración definida en SPEC-001, no se dan por ejecutadas.
+PostgreSQL y Entity Framework Core están aprobados por ADR-0013 (que sustituyó a ADR-0004/MySQL el 2026-10-21). La selección vigente es EF Core `10.0.13` con el proveedor `Npgsql.EntityFrameworkCore.PostgreSQL` `10.0.3` y PostgreSQL Server 17 en desarrollo/pruebas. La combinación está respaldada por los metadatos estables de NuGet; la migración regenerada y las operaciones contra el servidor exacto quedaron verificadas por la suite de integración (SPEC-013).
 
-En Windows, la aplicación .NET se ejecuta en el equipo y se conecta a `127.0.0.1:3306`, publicado por el servicio MySQL de `compose.yaml`. Solo MySQL se ejecuta en Docker durante la fundación. La etiqueta y el digest de la imagen, la gestión local de secretos, el volumen persistente y el ciclo de vida se especifican en SPEC-001. No se selecciona una versión de servidor para producción.
+En Windows, la aplicación .NET se ejecuta en el equipo y se conecta a `127.0.0.1:5434`, publicado por el servicio `app-postgres` (PostgreSQL 17) de `compose.yaml`; el conector HCM sostiene su propio servicio `hcm-postgres` en `127.0.0.1:5433`. Los servicios de datos se ejecutan en Docker. La gestión local de secretos, el volumen persistente y el ciclo de vida se especifican en SPEC-013. No se selecciona una versión de servidor para producción.
 
-La fuente sintética no convierte fixtures locales en el sistema de registro de empleados ni de TimeCheck. SPEC-002 usa un fixture determinista en memoria en Infrastructure; no agrega tablas HCM, migraciones ni cambia el uso aprobado de MySQL para otros casos.
+La fuente sintética no convierte fixtures locales en el sistema de registro de empleados ni de TimeCheck. SPEC-002 usa un fixture determinista en memoria en Infrastructure; no agrega tablas HCM, migraciones ni cambia el uso aprobado de PostgreSQL para otros casos.
 
 ## 8. Estrategia de pruebas
 
-- Pruebas unitarias del dominio y de Application con xUnit, ejecutables sin MySQL ni servicios externos.
-- Pruebas de integración con un servidor MySQL real `8.4.11` para conexión, operaciones de persistencia y migraciones.
+- Pruebas unitarias del dominio y de Application con xUnit, ejecutables sin base de datos ni servicios externos.
+- Pruebas de integración con un servidor PostgreSQL real 17 para conexión, operaciones de persistencia y migraciones.
 - Pruebas HTTP para el endpoint de salud y la llamada Web → API.
 - Pruebas de contrato entre frontend y API cuando aporten valor.
 - Pruebas de aceptación vinculadas con requisitos.

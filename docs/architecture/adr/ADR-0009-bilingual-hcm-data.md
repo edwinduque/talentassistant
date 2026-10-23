@@ -1,6 +1,6 @@
 # ADR-0009 — Datos sintéticos bilingües servidos por el idioma del usuario
 
-- **Estado:** Propuesto (2026-10-17).
+- **Estado:** Propuesto (2026-10-17). Nota de herencia (2026-10-21): ambas fuentes de datos (memoria y relacional) corren sobre PostgreSQL ([ADR-0013](ADR-0013-postgresql-persistence.md)).
 - **Fecha:** 2026-10-17.
 - **Aprobación de arquitectura:** pendiente de aprobación del usuario junto con SPEC-007.
 - **Especificación relacionada:** SPEC-007 — Datos sintéticos del HCM bilingües.

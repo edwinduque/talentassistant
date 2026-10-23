@@ -1,6 +1,6 @@
 # SPEC-005 — Autenticación local para Web y API
 
-- **Estado:** Propuesto para aprobación de planificación (2026-10-16).
+- **Estado:** Propuesto para aprobación de planificación (2026-10-16). Nota de herencia (2026-10-21): Identity persiste sobre PostgreSQL ([ADR-0013](../../docs/architecture/adr/ADR-0013-postgresql-persistence.md)); las menciones a MySQL describen la decisión en su momento.
 - **Implementación:** T1, T2 y T3 implementadas; suite 21/21 y smoke de navegador end-to-end verificados; pendiente el cierre/merge del feature.
 - **Requisitos relacionados (propuestos):** FR-021, FR-022 y NFR-018. Relacionados existentes: FR-007, FR-009, FR-010; NFR-001, NFR-004, NFR-006, NFR-007.
 - **Criterios relacionados (propuestos):** AC-016, AC-017, AC-018.

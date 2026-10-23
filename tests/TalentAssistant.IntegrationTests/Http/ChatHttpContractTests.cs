@@ -248,7 +248,7 @@ public sealed class ChatContractApiFactory : WebApplicationFactory<Program>
         new()
         {
             ["ConnectionStrings:TalentAssistant"] = TestsConnectionString(),
-            ["Attendance:Source"] = "MySql",
+            ["Attendance:Source"] = "Dataset",
             ["Authentication:SigningKey"] = SigningKey,
             ["Authentication:SeedUserName"] = SeedUserName,
             ["Authentication:SeedPassword"] = SeedPassword,

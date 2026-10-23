@@ -2,11 +2,12 @@
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
+using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 using TalentAssistant.Infrastructure.Persistence;
 
 #nullable disable
 
-namespace TalentAssistant.Infrastructure.Persistence.Migrations
+namespace TalentAssistant.Infrastructure.Migrations
 {
     [DbContext(typeof(TalentAssistantDbContext))]
     partial class TalentAssistantDbContextModelSnapshot : ModelSnapshot
@@ -16,20 +17,22 @@ namespace TalentAssistant.Infrastructure.Persistence.Migrations
 #pragma warning disable 612, 618
             modelBuilder
                 .HasAnnotation("ProductVersion", "10.0.13")
-                .HasAnnotation("Relational:MaxIdentifierLength", 64);
+                .HasAnnotation("Relational:MaxIdentifierLength", 63);
+
+            NpgsqlModelBuilderExtensions.UseIdentityByDefaultColumns(modelBuilder);
 
             modelBuilder.Entity("TalentAssistant.Infrastructure.Persistence.SyntheticAttendanceDataset", b =>
                 {
                     b.Property<string>("DatasetId")
                         .HasMaxLength(64)
-                        .HasColumnType("varchar(64)");
+                        .HasColumnType("character varying(64)");
 
                     b.Property<string>("PayloadJson")
                         .IsRequired()
-                        .HasColumnType("longtext");
+                        .HasColumnType("text");
 
                     b.Property<int>("PayloadVersion")
-                        .HasColumnType("int");
+                        .HasColumnType("integer");
 
                     b.HasKey("DatasetId");
 

@@ -48,7 +48,7 @@ El MVP puede ejecutar sus funcionalidades operativas sin claves de proveedores L
 
 ## AC-012 — Stack local contenedorizado (propuesto en SPEC-004)
 
-Desde un checkout limpio y con Docker Desktop disponible, el desarrollador puede construir y arrancar API, Web y MySQL usando sus Dockerfiles y Docker Compose; los servicios quedan saludables y la interfaz Web es accesible localmente.
+Desde un checkout limpio y con Docker Desktop disponible, el desarrollador puede construir y arrancar API, Web y la base de datos propia (PostgreSQL, ADR-0013/SPEC-013) usando sus Dockerfiles y Docker Compose; los servicios quedan saludables y la interfaz Web es accesible localmente.
 
 ## AC-013 — Semilla sintética reproducible (propuesto en SPEC-004)
 
@@ -162,6 +162,20 @@ Si la base del HCM no responde en modo Postgres, los endpoints devuelven el erro
 
 AC-036..AC-038 fueron propuestos por SPEC-011; T1/T2 aportan evidencia y T3 completa la documentación. Evidencia observada en la rama `feat/hcm-postgres-source`: suite completa en verde (127/127: 10 unitarias + 117 de integración) con las dos bases de prueba activas, compilación sin errores, paridad exacta entre el contrato sembrado y las fuentes sintéticas, y sondas de solo lectura (lectura de vistas permitida, escritura sobre la vista denegada, lectura de tablas físicas denegada). Queda pendiente la validación contra la base real del HCM (requisitos previos de SPEC-011 §10): rol de solo lectura sobre las vistas, credenciales locales, TLS con `Ssl Mode=VerifyFull` (desde el 2026-10-19 el arranque lo exige para hosts no-loopback; SEC-001) y la decisión de egreso §10, resuelta el 2026-10-19 (Groq para la fase de prueba de concepto, reabre antes de fase productiva).
 
+## AC-039 — Contrato intacto sobre el shape real (propuesto en SPEC-012)
+
+Con las vistas recableadas sobre el esquema real local, **cero cambios** en adaptadores, Application, Web y puertos, y la suite completa permanece verde (integración ≥132 con ambas bases)
+
+## AC-040 — Seed dummy robusto y determinista (propuesto en SPEC-012)
+
+El seed dummy cumple los volúmenes y casos límite de §6 con integridad referencial (FK) y es determinista (misma init → mismos conteos: `employees≥200`, `timeoff≥600`, `time_check≥3000`…)
+
+## AC-041 — Presencia derivada sobre el shape real (propuesto en SPEC-012)
+
+La presencia derivada (§5) reproduce los estados esperados para hoy: los empleados sin registros de hoy figuran como `not-arrived`, los que tienen entrada sin fin de jornada como `working`, los de jornada finalizada como `absent` y los con `timeoff` aprobado como `vacation`; las preguntas del banco responden igual
+
+AC-039..AC-041 fueron propuestos por SPEC-012 (aprobada el 2026-10-20) y quedan implementados en la rama `feat/hcm-real-schema-data`. Evidencia observada: compilación sin errores (0/0) y suite completa en verde (`SUITE_EXIT=0`) con integridad de integración 132/132 sobre ambas bases; volúmenes sembrados de 209 empleados, 7 `timeoff_type`, 620 `timeoff`, 7 `working_day`, 206 asignaciones, 18.651 `time_check` (~45 días incluyendo hoy) y 60 retrasos; huellas md5 por tabla idénticas tras dos reinicializaciones completas y 12 sondas de integridad (FK y enlaces) a cero; los nueve identificadores exactos del contrato servidos desde `public.employee`; mapa de presencia de hoy de 9 estados alineado con el fuente sintético corregido (`ends_before` 16/17/20 con duraciones derivadas 3/1/5); tareas=4 e insights=1 servidos desde la sustitución legada; el rol de aplicación no lee las tablas físicas (`permission denied for table employee`) ni escribe a través de las vistas (códigos `42501` o `55000`). AC-041 queda verificado sobre la vista; la pasada en vivo opcional de las siete preguntas con la clave sigue pendiente (opcional según el criterio).
+
 ## Condiciones generales
 
 Los criterios deberán verificarse con pruebas automatizadas cuando sea razonable y con pruebas de aceptación documentadas cuando la automatización no aporte suficiente valor.
@@ -211,5 +225,8 @@ Los identificadores de esta tabla pertenecen al catálogo general y no se reutil
 | AC-036 | FR-032, FR-033 | Modos Postgres y Sintético sin mezcla de orígenes; T1/T2 de la rama `feat/hcm-postgres-source`; SPEC-011. |
 | AC-037 | NFR-022, FR-032 | Grants de solo lectura, transacción `READ ONLY`, SQL fijo, TLS `VerifyFull` exigido en el arranque para hosts no-loopback (bucles exentos) y logs sin valores de personas; validación contra la base real pendiente; SPEC-011. |
 | AC-038 | FR-033 | Degradación localizada de fuente no disponible con la base apagada, sin fallback sintético; SPEC-011. |
+| AC-039 | FR-032, FR-033 | Contrato intacto sobre el esquema real local con la suite en verde; T3 de la rama `feat/hcm-real-schema-data`; SPEC-012. |
+| AC-040 | NFR-022 | Seed dummy con los volúmenes de §6, FK íntegras y determinismo entre reinicializaciones; T2 de la rama `feat/hcm-real-schema-data`; SPEC-012. |
+| AC-041 | FR-026, FR-029 | Presencia derivada con los estados de hoy correctos y el banco de preguntas intacto; T3 de la rama `feat/hcm-real-schema-data`; SPEC-012. |
 
 Los AC-003 a AC-006 no se consideran satisfechos por la estructura arquitectónica creada en SPEC-001. Cada caso de asistencia necesita requisitos, pruebas y verificación propios; Tasks no forma parte de la primera vertical. NFR-011 no tiene todavía un umbral medible y deberá concretarse cuando se definan dataset y entorno. NFR-012 se verifica en cada especificación de interfaz; estos criterios no inventan un umbral cuantitativo de contraste.

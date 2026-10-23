@@ -99,7 +99,11 @@ public sealed class SyntheticWorkforceSource : IHcmWorkforceSource
             [Today] = States(
                 ("employee-demo-juan", WorkingState),
                 ("employee-demo-herrera", WorkingState),
-                ("employee-demo-pedro", VacationState),
+                // Corrección del ancla temporal (SPEC-012 T3, default3
+                // aprobado): su ausencia fixture (15..19 inclusivo) expiró
+                // ayer, así que hoy ya no está de vacaciones; sin marcaciones
+                // de hoy, hoy no ha comenzado jornada.
+                ("employee-demo-pedro", NotArrivedState),
                 ("employee-demo-madrid", WorkingState),
                 ("employee-demo-tokyo-002", WorkingState),
                 ("employee-demo-mauricio", NotArrivedState),
@@ -270,7 +274,12 @@ public sealed class SyntheticWorkforceSource : IHcmWorkforceSource
                 L(language, "status.approved"),
                 new DateOnly(2026, 10, 15),
                 new DateOnly(2026, 10, 20),
-                "4",
+                // Corrección (SPEC-012 T3, default4 aprobado: duración =
+                // ends_before - starts_on): la ventana15..20 (exclusivo)
+                // cubre15,16,17,18,19 = CINCO días; el "4" original era
+                // internamente inconsistente (la misma clase de error que
+                // el "2" de Mauricio).
+                "5",
                 L(language, "unit.workday"),
                 L(language, "summary.pedro")),
             new HcmTimeOffRequest(
@@ -280,7 +289,11 @@ public sealed class SyntheticWorkforceSource : IHcmWorkforceSource
                 L(language, "status.rejected"),
                 new DateOnly(2026, 10, 16),
                 new DateOnly(2026, 10, 17),
-                "2",
+                // Corrección (SPEC-012 T3, default4 aprobado): la ventana
+                // 16..17 (exclusivo) cubre UN día; el "2" original era
+                // internamente inconsistente y la derivación del contrato
+                // produce1.
+                "1",
                 L(language, "unit.workday"),
                 L(language, "summary.mauricio"))
         ]);

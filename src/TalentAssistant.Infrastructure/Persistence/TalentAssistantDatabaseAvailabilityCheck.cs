@@ -5,9 +5,9 @@ using TalentAssistant.Application.Diagnostics;
 
 namespace TalentAssistant.Infrastructure.Persistence;
 
-public sealed class MySqlDatabaseAvailabilityCheck(
+public sealed class TalentAssistantDatabaseAvailabilityCheck(
     TalentAssistantDbContext context,
-    ILogger<MySqlDatabaseAvailabilityCheck> logger) : IDatabaseAvailabilityCheck
+    ILogger<TalentAssistantDatabaseAvailabilityCheck> logger) : IDatabaseAvailabilityCheck
 {
     public async Task<bool> IsAvailableAsync(CancellationToken cancellationToken)
     {

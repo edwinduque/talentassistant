@@ -31,7 +31,7 @@ public sealed class PersistenceProbeContextFactory
         }
 
         var options = new DbContextOptionsBuilder<PersistenceProbeContext>()
-            .UseMySQL(connectionString)
+            .UseNpgsql(connectionString)
             .Options;
 
         return new PersistenceProbeContext(options);

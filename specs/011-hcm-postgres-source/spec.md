@@ -1,6 +1,6 @@
 # SPEC-011 — Conector HCM real (PostgreSQL, solo consulta)
 
-- **Estado:** Aprobada para planificación (2026-10-19); implementada en la rama `feat/hcm-postgres-source`.
+- **Estado:** Aprobada para planificación (2026-10-19); implementada en la rama `feat/hcm-postgres-source`. Nota de herencia (2026-10-21): desde SPEC-013 todo el stack funciona sobre PostgreSQL y el dataset de asistencia ya no vive en MySQL; el conector de solo lectura no cambia.
 - **Implementación:** T1, T2 y T3 implementados en la rama `feat/hcm-postgres-source` (commits `065eecb`, `495c4b5`, `e920a33`; cierre documental T3 como commit pendiente). Evidencia: build sin errores y suite completa en verde (127/127: 10 unitarias + 117 de integración) con las dos bases de pruebas activas, paridad exacta entre el contrato sembrado y las fuentes sintéticas, y sondas de solo lectura (lectura de vistas permitida, escritura sobre la vista denegada, lectura de tablas físicas denegada). La validación contra la base real del HCM queda pendiente de los prerrequisitos de §10.
 - **Requisitos relacionados:** FR-032, FR-033 y NFR-022. Relacionados existentes: FR-026, FR-027, FR-029; NFR-001, NFR-002, NFR-004, NFR-021.
 - **Criterios relacionados:** AC-036, AC-037, AC-038.
