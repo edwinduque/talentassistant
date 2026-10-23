@@ -55,14 +55,16 @@ ALTER SCHEMA public OWNER TO talentassistant_prod;
 
 ```
 ASPNETCORE_ENVIRONMENT=Production
-ConnectionStrings__TalentAssistant=Host=127.0.0.1;Port=5432;Database=talentassistant_prod;Username=talentassistant_prod;Password=<tu-contraseña>;
+ConnectionStrings__TalentAssistant="Host=127.0.0.1;Port=5432;Database=talentassistant_prod;Username=talentassistant_prod;Password=<tu-contraseña>;"
 BackendApi__BaseUrl=http://127.0.0.1:5101/
-Authentication__SigningKey=<clave-JWT-de-producción-≥-32-caracteres>
-Authentication__SeedUserName=<usuario-demo-admin>
-Authentication__SeedPassword=<contraseña-inicial-demo; solo para primera siembra>
+Authentication__SigningKey="<clave-JWT-de-producción-≥-32-caracteres>"
+Authentication__SeedUserName=admin@talentassistant.local
+Authentication__SeedPassword="<contraseña-inicial-demo; solo para primera siembra>"
 Attendance__Source=Dataset
-Hcm__Source=            # vacío = sintético; 'Postgres' SOLO con la contraseña real en Ssl Mode=VerifyFull (SEC-001)
+Hcm__Source=
 ```
+
+**IMPORTANTE (lección del 2026-10-23):** los valores con `;` (la cadena de conexión) van **entre comillas**. El arranque del despliegue hace `source` del archivo con bash y, sin comillas, la cadena se corta en el primer punto y coma — la app arrancaría con base/clave vacías. systemd también respeta las comillas, así que la misma línea sirve para ambos caminos.
 
 Los puertos de escucha (`ASPNETCORE_URLS`) NO viven aquí: están fijados en cada plantilla de unidad systemd (`Environment=` por unidad en loopback). Si algún día se necesita cambiar un puerto, se edita la unidad + `daemon-reload`. Las credenciales reales NUNCA salen de la VPS y el pipeline únicamente las consume en el servidor; jamás las imprime.
 
