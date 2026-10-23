@@ -43,4 +43,4 @@ No se asignan cifras arbitrarias hasta disponer de un escenario de referencia.
 
 ## Asignación de integración continua
 
-NFR-009 se mantiene vigente para el MVP. Su implementación no pertenece a SPEC-001 y debe asignarse a una especificación posterior de CI antes de aceptar el MVP. El ID de esa especificación aún no está asignado; el requisito no se considera cumplido por compilaciones o pruebas locales.
+NFR-009 se mantiene vigente para el MVP. Su implementación quedó asignada a SPEC-014 (canalización de CI).

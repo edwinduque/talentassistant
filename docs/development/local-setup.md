@@ -339,6 +339,15 @@ curl -s http://127.0.0.1:5101/presence -H "Authorization: Bearer <TOKEN>"
 
 Sustituye `<TU_PASSWORD>` por la contraseña local de tu `.env`; nunca la versiones ni la compartas. Los valores de duración, estado y fechas los informa la fuente sintética: Talent Assistant no calcula nada.
 
+## Canalización de CI (SPEC-014)
+
+`.github/workflows/ci.yml` (creado en SPEC-014) ejecuta en cada PR y push a `main`:
+
+1. `build-test`: SDK 10.0.402 desde `global.json` → restore → build → suite completa contra los servicios PostgreSQL de la misma `compose.yaml` (credenciales sintéticas generadas por el propio run; nunca versionadas). Espera: 132/132 integración + 11/11 unitarias.
+2. `secret-scan`: gitleaks sobre todo el historial.
+
+Configuración de medidas de GitHub que el propietario debe activar con consentimiento (Settings, no scripts): **secret scanning + push protection** (código → seguridad), **branch protection de `main`** (PR + CI verde requeridos). Antes de hacer el repo público: el `.env` local nunca se versiona (ya excluido en `.gitignore`) y las credenciales del HCM real jamás se comparten (SPEC-011 §10). El despliegue a producción es la SPEC-015 posterior.
+
 ## Asistente conversacional
 
 Desde SPEC-009, la Web incluye la página `/assistant` (ES/EN, con sesión) y la API el endpoint `POST /chat`: el usuario escribe en lenguaje natural, el modelo pide herramientas de un catálogo fijo de cinco (`search_employees`, `presence`, `timeoff`, `tasks`, `attendance_insights`) y la API las ejecuta en proceso con la sesión e idioma del usuario, devolviendo `answer` junto a `toolsUsed` y `sources`. En preguntas de una persona, `search_employees` se llama siempre primero: con varios candidatos el asistente los lista (nombre y oficina) y pregunta cuál antes de responder; con uno solo continúa con la herramienta de datos. La búsqueda de personas es insensible a mayúsculas y acentos, y el asistente no escribe datos.

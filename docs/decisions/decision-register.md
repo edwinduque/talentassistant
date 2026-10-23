@@ -37,7 +37,7 @@ Las siguientes decisiones están aprobadas y deben guiar la implementación inic
 
 ## Aplazamientos vigentes
 
-- **CI (NFR-009 y AC-009):** la canalización no forma parte de SPEC-001 porque la fundación se verifica inicialmente con los comandos locales documentados. El requisito general sigue vigente y pendiente; debe asignarse a una especificación posterior antes de aceptar el MVP. No se considera cumplido ni se crea esa especificación en este cambio.
+- **CI (NFR-009 y AC-009):** ya no está aplazada: la canalización se asignó e implementó según SPEC-014 (`.github/workflows/ci.yml`: compilación, suite completa contra PostgreSQL y barrido de secretos). La verificación del run en vivo ya pasó en verde.
 - **Autenticación y despliegue de producción:** quedan fuera de SPEC-001. La autenticación ya existe en el perfil local según ADR-0007 (SPEC-005: identidad local con ASP.NET Core Identity y JWT); el despliegue de producción sigue fuera de alcance y no se autoriza exposición a redes compartidas ni uso de datos reales.
 - **Distribución del proveedor de persistencia:** ya no aplica. La licencia del proveedor de EF Core para PostgreSQL es permisiva (`PostgreSQL`), y el paquete MySQL/Oracle quedó fuera del stack con ADR-0013; el registro conserva esta línea como historial.
 
