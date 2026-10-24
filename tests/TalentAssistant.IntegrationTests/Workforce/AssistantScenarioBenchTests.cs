@@ -24,6 +24,10 @@ public sealed class AssistantScenarioBenchTests
     public const string Question4 = "Dime cuantos dias de vacaciones tiene Juan Perez.";
     public const string Question5 = "Dime cuando regresa Pedro Rojas.";
     public const string Question6 = "Dime que tareas tiene pendiente Mauricio Cardenas.";
+    public const string Question7 = "Quien es la proxima persona que cumple años";
+    public const string Question8 = "Que cargo tiene mauricio";
+    public const string Question9 = "Dime la fecha de contratacion de Mauricio Cardenas.";
+    public const string Question10 = "hay alguien con apellido que tenga z";
 
     [Fact]
     public async Task Question1AnswersWithEmployeesWorkingToday()
@@ -125,5 +129,57 @@ public sealed class AssistantScenarioBenchTests
         Assert.NotEmpty(pending);
         Assert.Contains(tasks, task => task.Status == "En curso");
         Assert.Contains(tasks, task => task.Status == "Completado");
+    }
+
+    [Fact]
+    public async Task Question7AnswersWithTheNextBirthdayFromTheSource()
+    {
+        Assert.Equal("Quien es la proxima persona que cumple años", Question7);
+
+        var birthdays = await Source.GetUpcomingBirthdaysAsync(
+            new UpcomingBirthdayQuery(Today));
+
+        Assert.NotEmpty(birthdays);
+        Assert.All(birthdays, birthday =>
+            Assert.True(birthday.NextBirthdayOn >= Today));
+        Assert.Single(birthdays.Select(birthday => birthday.NextBirthdayOn).Distinct());
+    }
+
+    [Fact]
+    public async Task Question8AnswersMauricioJobTitleFromTheSource()
+    {
+        Assert.Equal("Que cargo tiene mauricio", Question8);
+
+        var matches = await Source.SearchEmployeesAsync(
+            new EmployeeSearchQuery(Name: "mauricio"));
+
+        var mauricio = Assert.Single(matches);
+        Assert.Equal("Mauricio Cardenas", mauricio.DisplayName);
+        Assert.Equal("Técnico de nómina", mauricio.JobTitle);
+    }
+
+    [Fact]
+    public async Task Question9AnswersMauricioHireDateFromTheSource()
+    {
+        Assert.Equal("Dime la fecha de contratacion de Mauricio Cardenas.", Question9);
+
+        var matches = await Source.SearchEmployeesAsync(
+            new EmployeeSearchQuery(Name: "Mauricio"));
+
+        var mauricio = Assert.Single(matches);
+        Assert.Equal(new DateOnly(2018, 9, 17), mauricio.HireDate);
+    }
+
+    [Fact]
+    public async Task Question10FindsTheEmployeeWhoseSurnameContainsZ()
+    {
+        Assert.Equal("hay alguien con apellido que tenga z", Question10);
+
+        var matches = await Source.SearchEmployeesAsync(
+            new EmployeeSearchQuery(SurnameContains: "z"));
+
+        var employee = Assert.Single(matches);
+        Assert.Equal("Juan Pérez", employee.DisplayName);
+        Assert.Equal("Pérez", employee.LastName);
     }
 }

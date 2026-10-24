@@ -3,14 +3,18 @@ using TalentAssistant.Application.Attendance;
 namespace TalentAssistant.Application.Workforce;
 
 /// <summary>
-/// Employee search by display name (case-insensitive contains) and/or office.
-/// An empty query returns the whole directory; multiple name matches return the
+/// Employee search by display name, surname fragment, and/or office.
+/// An empty query returns the whole directory; multiple matches return the
 /// list instead of choosing silently (SPEC-008 §3).
 /// </summary>
 public sealed record EmployeeSearchQuery(
     string? Name = null,
     string? OfficeId = null,
-    string Language = "es");
+    string Language = "es",
+    string? SurnameContains = null);
+
+/// <summary>Find the next calendar birthday on or after the caller's local date.</summary>
+public sealed record UpcomingBirthdayQuery(DateOnly AsOfDate, string Language = "es");
 
 /// <summary>Presence snapshot for a single local date in a supported UI language.</summary>
 public sealed record PresenceQuery(DateOnly Date, string Language = "es");
@@ -46,11 +50,23 @@ public sealed record HcmTask(
     DateOnly? DueOn,
     string? Summary);
 
-/// <summary>Directory entry; display names are data from the source.</summary>
+/// <summary>Directory entry with only employee fields approved for assistant search.</summary>
 public sealed record HcmEmployeeDirectoryEntry(
     string Id,
     string DisplayName,
-    IReadOnlyList<string> OfficeIds);
+    IReadOnlyList<string> OfficeIds,
+    string? JobTitle = null,
+    string? LastName = null,
+    DateOnly? HireDate = null);
+
+/// <summary>
+/// The next birthday occurrence supplied by the HCM source. The birth year is
+/// intentionally never part of this assistant-facing result.
+/// </summary>
+public sealed record HcmUpcomingBirthday(
+    string EmployeeId,
+    string DisplayName,
+    DateOnly NextBirthdayOn);
 
 /// <summary>
 /// Presence state supplied by the source (values such as working,

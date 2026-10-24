@@ -369,9 +369,9 @@ La API usa `AI__BaseUrl=https://api.groq.com/openai/v1` (fijada en la sección `
 - Los fallos del proveedor se traducen a razones legibles por máquina y se muestran con mensajes localizados en la interfaz: límite de tasa (`RateLimited`) responde HTTP 429 y el resto de fallos HTTP 503.
 - Los argumentos opcionales de las herramientas pueden viajar como `null` (el proveedor valida los argumentos contra el JSON Schema); el ejecutor los normaliza a ausentes.
 
-### Pasada en vivo de las siete preguntas
+### Pasada en vivo de las once preguntas
 
-Con la API local en marcha y `AI_API_KEY` configurada, el script reparte las siete preguntas de referencia —las seis de SPEC-008 más la ambigua «Dime cuantos dias de vacaciones tiene Juan.»— contra `POST /chat` y comprueba que cada respuesta contiene el hecho del fixture y cita la herramienta esperada:
+Con la API local en marcha y `AI_API_KEY` configurada, el script reparte las once preguntas de referencia —las diez de SPEC-008 más la ambigua «Dime cuantos dias de vacaciones tiene Juan.»— contra `POST /chat` y comprueba que cada respuesta contiene el hecho del fixture y cita la herramienta esperada. Las nuevas consultas cubren cargo, fecha de contratación, búsqueda por apellido y próximo cumpleaños; el sueldo y los datos bancarios permanecen restringidos:
 
 ```powershell
 powershell -NoProfile -File scripts\verify-assistant-questions.ps1 -PaceSeconds 9
@@ -380,16 +380,16 @@ powershell -NoProfile -File scripts\verify-assistant-questions.ps1 -PaceSeconds 
 | Opción | Efecto |
 |---|---|
 | `-PaceSeconds <n>` | Espera n segundos entre preguntas. El nivel gratuito de Groq limita las ráfagas: sin ritmo, una pasada completa alcanza HTTP 429 en un punto previsible; con ritmo cabe dentro de la ventana de tasa. |
-| `-Only <n>` | Ejecuta solo una pregunta (1..7). |
+| `-Only <n>` | Ejecuta solo una pregunta (1..11). |
 | `-ApiBaseUrl <url>` | URL de la API; por defecto `http://127.0.0.1:5101`. |
 
-Códigos de salida: `0` las siete preguntas verdes; `1` fallo de aserción (respuesta sin el hecho esperado o sin la herramienta citada); `3` proveedor no disponible o sin configurar (HTTP 429/503 con la razón indicada en la salida). El script lee el usuario y la contraseña de `.env` y nunca imprime credenciales.
+Códigos de salida: `0` las once preguntas verdes; `1` fallo de aserción (respuesta sin el hecho esperado o sin la herramienta citada); `3` proveedor no disponible o sin configurar (HTTP 429/503 con la razón indicada en la salida). El script lee el usuario y la contraseña de `.env` y nunca imprime credenciales.
 
 ### Qué responde y qué rechaza
 
-Desde SPEC-010, la primera instrucción del system prompt fija el ámbito del asistente: es un asistente interno de RR. HH./HCM que responde únicamente con los datos que devuelven sus herramientas; a una petición ajena —programación, conocimiento general, traducciones, recetas o escritura creativa— responde con un rechazo breve y amable en el idioma del usuario que recuerda su función y le ofrece ayudar con temas del equipo, sin invocar herramientas y sin entregar el contenido pedido; y si las herramientas no devuelven el dato —un salario o un empleado inexistente, por ejemplo—, lo declara explícitamente como información no disponible en lugar de inventarlo. No hay clasificador de intención ni paquetes nuevos: son reglas de instrucción del prompt.
+Desde SPEC-010, la primera instrucción del system prompt fija el ámbito del asistente: es un asistente interno de RR. HH./HCM que responde únicamente con los datos que devuelven sus herramientas; a una petición ajena —programación, conocimiento general, traducciones, recetas o escritura creativa— responde con un rechazo breve y amable en el idioma del usuario que recuerda su función y le ofrece ayudar con temas del equipo, sin invocar herramientas y sin entregar el contenido pedido. Sueldo y datos bancarios están restringidos; las herramientas no los exponen y, si se preguntan, el asistente declara que la información no está disponible. Los atributos nuevos no se incorporan al payload sin aprobación explícita. No hay clasificador de intención ni paquetes nuevos: son reglas de instrucción del prompt.
 
-El banco adversarial que evalúa este comportamiento se ejecuta contra la API local con la clave configurada, con el mismo patrón que el script de las siete preguntas:
+El banco adversarial que evalúa este comportamiento se ejecuta contra la API local con la clave configurada, con el mismo patrón que el script de las once preguntas:
 
 ```powershell
 powershell -NoProfile -File scripts\verify-assistant-guardrails.ps1 -PaceSeconds 9
@@ -397,10 +397,10 @@ powershell -NoProfile -File scripts\verify-assistant-guardrails.ps1 -PaceSeconds
 
 | Opción | Efecto |
 |---|---|
-| `-PaceSeconds <n>` | Espera n segundos entre casos, por el mismo motivo de tasa que en el script de las siete preguntas. |
-| `-Only <n>` | Ejecuta solo un caso del banco (1..5). |
+| `-PaceSeconds <n>` | Espera n segundos entre casos, por el mismo motivo de tasa que en el script de las once preguntas. |
+| `-Only <n>` | Ejecuta solo un caso del banco (1..6). |
 
-Los códigos de salida son idénticos a los del script de las siete preguntas: `0` los cinco casos verdes, `1` fallo de aserción y `3` proveedor no disponible o sin configurar. El script lee el usuario y la contraseña de `.env` y nunca imprime credenciales.
+Los códigos de salida son idénticos a los del script de las once preguntas: `0` los seis casos verdes, `1` fallo de aserción y `3` proveedor no disponible o sin configurar. El script lee el usuario y la contraseña de `.env` y nunca imprime credenciales.
 
 Las aserciones se apoyan en **marcadores estables de comportamiento, no en frases literales**: familias de marcadores de rechazo/redirección y de no disponibilidad, más la ausencia de artefactos de código, de cifras de salario y de empleados fabricados. Los patrones del script son ASCII con escapes `\uXXXX` para los acentos, de modo que no dependen de la codificación de la consola.
 

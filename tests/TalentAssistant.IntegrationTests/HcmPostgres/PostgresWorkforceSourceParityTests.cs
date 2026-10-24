@@ -38,7 +38,42 @@ public sealed class PostgresWorkforceSourceParityTests : PostgresSourceTestBase
             Assert.Equal(expected.DisplayName, entry.DisplayName);
             Assert.Single(entry.OfficeIds);
             Assert.Equal(expected.OfficeIds, entry.OfficeIds);
+            Assert.Equal(expected.JobTitle, entry.JobTitle);
+            Assert.Equal(expected.LastName, entry.LastName);
+            Assert.Equal(expected.HireDate, entry.HireDate);
         }
+    }
+
+    [Fact]
+    public async Task SurnameFragmentSearchMatchesAcrossSources()
+    {
+        var query = new EmployeeSearchQuery(SurnameContains: "z");
+
+        var synthetic = await Synthetic.SearchEmployeesAsync(query);
+        var postgres = await Workforce.SearchEmployeesAsync(query);
+
+        var expected = Assert.Single(synthetic);
+        var employee = Assert.Single(postgres);
+        Assert.Equal(expected.Id, employee.Id);
+        Assert.Equal(expected.DisplayName, employee.DisplayName);
+        Assert.Equal("employee-demo-juan", employee.Id);
+        Assert.Equal("Pérez", employee.LastName);
+        Assert.Equal(expected.HireDate, employee.HireDate);
+    }
+
+    [Fact]
+    public async Task UpcomingBirthdayMatchesSyntheticSourceWithoutExposingBirthYear()
+    {
+        var query = new UpcomingBirthdayQuery(new DateOnly(2026, 10, 23));
+
+        var synthetic = await Synthetic.GetUpcomingBirthdaysAsync(query);
+        var postgres = await Workforce.GetUpcomingBirthdaysAsync(query);
+
+        Assert.Equal(synthetic, postgres);
+        var next = Assert.Single(postgres);
+        Assert.Equal("employee-demo-mauricio", next.EmployeeId);
+        Assert.Equal("Mauricio Cardenas", next.DisplayName);
+        Assert.Equal(new DateOnly(2026, 11, 30), next.NextBirthdayOn);
     }
 
     [Theory]

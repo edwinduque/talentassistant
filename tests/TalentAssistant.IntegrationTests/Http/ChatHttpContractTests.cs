@@ -123,6 +123,11 @@ public sealed class ChatHttpContractTests : IClassFixture<ChatContractApiFactory
         foreach (var employee in root.EnumerateArray())
         {
             Assert.Equal(JsonValueKind.Object, employee.ValueKind);
+            Assert.Equal(
+                new[] { "displayName", "id", "officeIds" },
+                employee.EnumerateObject()
+                    .Select(property => property.Name)
+                    .Order(StringComparer.Ordinal));
             Assert.True(employee.TryGetProperty("id", out _), "Each entry must expose 'id'.");
             Assert.True(employee.TryGetProperty("displayName", out var displayName), "Each entry must expose 'displayName'.");
             Assert.True(employee.TryGetProperty("officeIds", out var officeIds), "Each entry must expose 'officeIds'.");

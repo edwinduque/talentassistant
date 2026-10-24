@@ -24,6 +24,12 @@ public sealed class SyntheticWorkforceSource : IHcmWorkforceSource
     public const string AbsentState = "absent";
 
     private sealed record DemoEmployee(string Id, string DisplayName, string OfficeId);
+    private sealed record EmployeeProfile(
+        string? JobTitle,
+        string? LastName,
+        DateOnly? HireDate,
+        int? BirthdayMonth,
+        int? BirthdayDay);
 
     // Proper nouns are data and stay identical across languages (SPEC-007 §6).
     // Juan Herrera exists only to share the first name "Juan" with Juan Pérez
@@ -36,6 +42,31 @@ public sealed class SyntheticWorkforceSource : IHcmWorkforceSource
             new("employee-demo-mauricio", "Mauricio Cardenas", "office-demo-madrid"),
             new("employee-demo-herrera", "Juan Herrera", "office-demo-tokyo")
         ]);
+
+    // Explicit synthetic HCM fields approved for assistant employee search and
+    // the upcoming-birthday query. No other employee columns are projected.
+    private static readonly IReadOnlyDictionary<string, EmployeeProfile> EmployeeProfiles =
+        new Dictionary<string, EmployeeProfile>(StringComparer.Ordinal)
+        {
+            ["employee-demo-juan"] = new(
+                "Responsable de equipo", "Pérez", new DateOnly(2019, 2, 11), 4, 12),
+            ["employee-demo-pedro"] = new(
+                "Especialista de soporte", "Rojas", new DateOnly(2020, 6, 1), 7, 23),
+            ["employee-demo-mauricio"] = new(
+                "Técnico de nómina", "Cardenas", new DateOnly(2018, 9, 17), 11, 30),
+            ["employee-demo-herrera"] = new(
+                "Analista de jornada", "Herrera", new DateOnly(2021, 3, 22), 2, 18),
+            ["employee-demo-madrid"] = new(
+                "Operario de planta", "sintético 001", new DateOnly(2022, 1, 10), null, null),
+            ["employee-demo-tokyo-002"] = new(
+                "Operario de planta", "sintético 005", new DateOnly(2022, 5, 16), 5, 9),
+            ["employee-demo-madrid-004"] = new(
+                null, "sintético 004", new DateOnly(2023, 4, 3), 9, 27),
+            ["employee-demo-tokyo"] = new(
+                "Mozo de almacén", "sintético 002", new DateOnly(2023, 8, 21), 12, 2),
+            ["employee-demo-madrid-002"] = new(
+                null, "sintético 003", new DateOnly(2024, 11, 5), 3, 14)
+        };
 
     // Presentation texts for the workforce capabilities (SPEC-008 §6).
     private static readonly IReadOnlyDictionary<string, (string Es, string En)> WorkforceTexts =
@@ -161,6 +192,14 @@ public sealed class SyntheticWorkforceSource : IHcmWorkforceSource
                 NameMatching.Matches(employee.DisplayName, query.Name));
         }
 
+        var surnameContains = query.SurnameContains;
+        if (!string.IsNullOrWhiteSpace(surnameContains))
+        {
+            employees = employees.Where(employee =>
+                !string.IsNullOrWhiteSpace(employee.LastName)
+                && NameMatching.Matches(employee.LastName, surnameContains));
+        }
+
         if (!string.IsNullOrWhiteSpace(query.OfficeId))
         {
             employees = employees.Where(employee =>
@@ -169,6 +208,45 @@ public sealed class SyntheticWorkforceSource : IHcmWorkforceSource
         }
 
         return Task.FromResult<IReadOnlyList<HcmEmployeeDirectoryEntry>>(employees.ToArray());
+    }
+
+    public Task<IReadOnlyList<HcmUpcomingBirthday>> GetUpcomingBirthdaysAsync(
+        UpcomingBirthdayQuery query,
+        CancellationToken cancellationToken = default)
+    {
+        ArgumentNullException.ThrowIfNull(query);
+        cancellationToken.ThrowIfCancellationRequested();
+
+        var candidates = DirectoryFor(query.Language)
+            .Where(employee => EmployeeProfiles.TryGetValue(employee.Id, out var profile)
+                && profile.BirthdayMonth.HasValue
+                && profile.BirthdayDay.HasValue)
+            .Select(employee =>
+            {
+                var profile = EmployeeProfiles[employee.Id];
+                return new HcmUpcomingBirthday(
+                    employee.Id,
+                    employee.DisplayName,
+                    NextBirthday(
+                        query.AsOfDate,
+                        profile.BirthdayMonth!.Value,
+                        profile.BirthdayDay!.Value));
+            })
+            .OrderBy(employee => employee.NextBirthdayOn)
+            .ToArray();
+
+        if (candidates.Length == 0)
+        {
+            return Task.FromResult<IReadOnlyList<HcmUpcomingBirthday>>(
+                Array.Empty<HcmUpcomingBirthday>());
+        }
+
+        var nearestDate = candidates[0].NextBirthdayOn;
+        return Task.FromResult<IReadOnlyList<HcmUpcomingBirthday>>(
+            candidates
+                .Where(employee => employee.NextBirthdayOn == nearestDate)
+                .OrderBy(employee => employee.EmployeeId, StringComparer.Ordinal)
+                .ToArray());
     }
 
     public Task<HcmPresenceSnapshot> GetPresenceAsync(
@@ -210,18 +288,53 @@ public sealed class SyntheticWorkforceSource : IHcmWorkforceSource
     private static IReadOnlyList<HcmEmployeeDirectoryEntry> BuildDirectory(string language)
     {
         var fromCatalog = SyntheticHcmAttendanceSource.FixturesFor(language)
-            .Select(insight => new HcmEmployeeDirectoryEntry(
-                insight.Employee.Id,
-                insight.Employee.DisplayName,
-                insight.Employee.OfficeIds))
+            .Select(insight =>
+            {
+                EmployeeProfiles.TryGetValue(insight.Employee.Id, out var profile);
+                return new HcmEmployeeDirectoryEntry(
+                    insight.Employee.Id,
+                    insight.Employee.DisplayName,
+                    insight.Employee.OfficeIds,
+                    profile?.JobTitle,
+                    profile?.LastName,
+                    profile?.HireDate);
+            })
             .DistinctBy(employee => employee.Id);
 
-        var demoEmployees = DemoEmployees.Select(employee => new HcmEmployeeDirectoryEntry(
-            employee.Id,
-            employee.DisplayName,
-            Array.AsReadOnly([employee.OfficeId])));
+        var demoEmployees = DemoEmployees.Select(employee =>
+        {
+            var profile = EmployeeProfiles[employee.Id];
+            return new HcmEmployeeDirectoryEntry(
+                employee.Id,
+                employee.DisplayName,
+                Array.AsReadOnly([employee.OfficeId]),
+                profile.JobTitle,
+                profile.LastName,
+                profile.HireDate);
+        });
 
         return Array.AsReadOnly([.. fromCatalog, .. demoEmployees]);
+    }
+
+    private static DateOnly NextBirthday(DateOnly asOfDate, int month, int day)
+    {
+        for (var year = asOfDate.Year; year <= asOfDate.Year + 8; year++)
+        {
+            // A February 29 birthday occurs only on February 29; no substitute
+            // date is inferred for non-leap years.
+            if (month == 2 && day == 29 && !DateTime.IsLeapYear(year))
+            {
+                continue;
+            }
+
+            var candidate = new DateOnly(year, month, day);
+            if (candidate >= asOfDate)
+            {
+                return candidate;
+            }
+        }
+
+        throw new InvalidOperationException("No upcoming birthday could be found.");
     }
 
     private static IReadOnlyDictionary<string, HcmEmployeeReference> BuildReferences(string language)

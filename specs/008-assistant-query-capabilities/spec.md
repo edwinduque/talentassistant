@@ -30,13 +30,17 @@ Reanclar el proyecto en su norte —un asistente para responsables de RR. HH. qu
 ### Fuera de alcance
 
 - El chat, los modelos de lenguaje, la selección de proveedor y los agentes: SPEC posterior una vez aprobado el proveedor (FR-012, FR-016, FR-017 y sus límites siguen vigentes).
-- Saldos, calendarios, cálculo de días hábiles o cualquier regla del HCM: la fuente informa; Talent Assistant no calcula.
+- Saldos, calendarios, cálculo de días hábiles o reglas del HCM no quedan habilitados por defecto: la fuente informa; Talent Assistant no calcula. La consulta aprobada de próximo cumpleaños devuelve el resultado ya ordenado por la fuente.
 - Gestión de ausencias o tareas (crear, aprobar, modificar): el HCM conserva sus procesos.
 - Roles y permisos más allá de «usuario autenticado», notificaciones y conectores HCM reales.
 
 ## 3. Requisitos y límites arquitectónicos
 
 - El HCM sigue siendo el sistema de verdad: los estados de presencia, los tipos y estados de TimeOff y los estados de tareas llegan como valores de la fuente; Talent Assistant no deriva ni infiere reglas (consistente con FR-008 y SPEC-002).
+- El directorio puede exponer `job_title` desde la columna de HCM confirmada `"job:title"`; ningún otro campo de empleado se promueve automáticamente.
+- El directorio puede exponer `last_name` y `hire_date` para las consultas aprobadas; un filtro `SurnameContains` busca en el apellido de origen y devuelve todas las coincidencias.
+- La fuente devuelve el próximo cumpleaños usando la fecha local de consulta, incluyendo hoy y devolviendo todos los empates. Solo se envían al asistente la identidad mínima y la fecha de la próxima ocurrencia, nunca el año de nacimiento; un nacimiento el 29 de febrero solo ocurre en años bisiestos, sin fecha sustituta inferida.
+- Sueldo y datos bancarios son restringidos. Las herramientas y sus DTOs usan una lista explícita de atributos aprobados; los campos nuevos o no aprobados permanecen fuera del payload del modelo.
 - Las capacidades se exponen como operaciones tipadas detrás de `IHcmWorkforceSource` (nombre propuesto), sin romper el puerto existente de asistencia; Application no depende de Infrastructure ni de la interfaz (NFR-001/NFR-002).
 - Los endpoints nuevos exigen sesión (política de autorización vigente); serán las herramientas que el asistente invocará, con autorización siempre en el backend.
 - Los datos siguen siendo sintéticos, bilingües (es/en, según el usuario) y deterministas; `talentassistant_tests` no recibe la semilla.
@@ -52,6 +56,10 @@ Las siguientes preguntas literales guían los criterios y el banco de pruebas:
 4. «Dime cuantos dias de vacaciones tiene Juan Perez.» → búsqueda de empleado por nombre y consulta de sus solicitudes de TimeOff; respuesta: duración y unidad de la solicitud vigente según la fuente.
 5. «Dime cuando regresa Pedro Rojas.» → búsqueda por nombre y consulta de TimeOff; respuesta: fecha de fin de la ausencia vigente.
 6. «Dime que tareas tiene pendiente Mauricio Cardenas.» → búsqueda por nombre y consulta de tareas; respuesta: tareas con estado que la fuente marca como pendientes.
+7. «Quien es la proxima persona que cumple años» → consulta `upcoming_birthday`; respuesta: empleado(s) con la fecha de cumpleaños siguiente, según la fuente HCM.
+8. «Que cargo tiene mauricio» → búsqueda de empleados; respuesta: cargo que informa el HCM para Mauricio Cardenas.
+9. «fecha de contratacion» → buscar un empleado por nombre y responder la fecha de contratación informada por el HCM.
+10. «hay alguien con apellido que tenga z» → búsqueda `surname_contains="z"`; respuesta con todas las coincidencias del apellido en el HCM.
 
 Cada escenario se automatiza en pruebas contra los fixtures, con la misma forma que usará el asistente (búsqueda → herramienta → respuesta), de modo que el banco sirva de evaluación antes y después de incorporar IA.
 
@@ -69,12 +77,13 @@ Cada escenario se automatiza en pruebas contra los fixtures, con la misma forma 
 
 ## 6. Contratos propuestos (Application)
 
-- `HcmEmployeeDirectoryEntry`: `Id`, `DisplayName`, `OfficeIds`.
+- `HcmEmployeeDirectoryEntry`: `Id`, `DisplayName`, `OfficeIds`, `JobTitle`, `LastName` y `HireDate` opcionales.
+- `UpcomingBirthdayQuery`: `AsOfDate`, `Language`; `HcmUpcomingBirthday`: `EmployeeId`, `DisplayName`, `NextBirthdayOn`.
 - `HcmEmployeePresence`: `Employee` (referencia), `State` (valor de la fuente, p. ej. `working`, `not-arrived`, `vacation`, `absent`), `Summary` opcional de la fuente.
 - `HcmPresenceSnapshot`: `Date` y colección de `HcmEmployeePresence`.
 - `HcmTimeOffRequest`: `Reference`, `EmployeeId`, `Type`, `Status`, `StartsOn`, `EndsBefore`, `Duration`, `DurationUnit`, `Summary`.
 - `HcmTask`: `Reference`, `EmployeeId`, `Title`, `Status`, `DueOn` opcional, `Summary`.
-- Consultas: `EmployeeSearchQuery(Name?, OfficeId?)`; `PresenceQuery(Date)`; `EmployeeDataQuery(EmployeeId? | Name?)`.
+- Consultas: `EmployeeSearchQuery(Name?, OfficeId?, SurnameContains?)`; `PresenceQuery(Date)`; `EmployeeDataQuery(EmployeeId? | Name?)`.
 
 ## 7. Criterios de aceptación propuestos
 
@@ -83,7 +92,11 @@ Cada escenario se automatiza en pruebas contra los fixtures, con la misma forma 
 | AC-025 | La consulta de presencia para una fecha devuelve cada empleado con el estado informado por la fuente; «trabajando», «no ha llegado» y «de vacaciones» responden las preguntas 1–3 con los fixtures. | Pruebas de escenario 1–3 contra la API. |
 | AC-026 | La búsqueda por nombre localiza a Juan Pérez y Pedro Rojas **y es insensible a acentos («Juan Perez» sin acento localiza a Juan Pérez); una búsqueda corta compartida («Juan») devuelve a los dos Juans sin elegir en silencio**; sus respuestas de TimeOff informan días y fecha de regreso tal como los declara la fuente, sin cálculos de Talent Assistant. *(Enmienda 2026-10-18.)* | Pruebas de escenario 4–5, prueba de acentos y de doble «Juan», y verificación de que no hay lógica de cálculo. |
 | AC-027 | Las tareas de Mauricio Cardenas se consultan por nombre y la fuente determina qué significa «pendiente»; FR-004 queda implementado. | Pruebas de escenario 6 y trazabilidad FR-004. |
-| AC-028 | El banco de preguntas automatizado cubre las seis preguntas literales, la suite completa permanece verde, el home muestra «Presencia de hoy», la página de asistencia ya no pide id manual y todo el contenido nuevo existe en español e inglés. | Suite completa, recorrido de navegador y revisión de la poda. |
+| AC-028 | El banco de preguntas automatizado cubre las diez preguntas de referencia, la suite completa permanece verde, el home muestra «Presencia de hoy», la página de asistencia ya no pide id manual y todo el contenido nuevo existe en español e inglés. | Suite completa, recorrido de navegador y revisión de la poda. |
+| AC-046 | `search_employees` devuelve el cargo desde `"job:title"` y solo los campos de directorio aprobados en AC-049/AC-050; no añade atributos no aprobados. | Prueba del payload del asistente y paridad sintética/Postgres. |
+| AC-047 | `upcoming_birthday` devuelve todos los empleados empatados en la fecha más cercana, incluida hoy; la fecha se determina en la fuente y no se expone el año de nacimiento. | Pruebas deterministas con fecha fija, paridad sintética/Postgres y prueba del payload del asistente. |
+| AC-049 | `search_employees` devuelve `HireDate` según la fuente HCM para un empleado, sin cambiar el contrato HTTP de `GET /employees`. | Pruebas del payload del asistente y paridad sintética/Postgres. |
+| AC-050 | `search_employees` admite `surname_contains`, filtra el apellido de la fuente (no el nombre completo) y devuelve todas las coincidencias, sin selección silenciosa. | Pruebas de filtro por apellido en ambas fuentes y del tool call del asistente. |
 
 ## 8. Diseño propuesto para planificar
 
@@ -92,7 +105,7 @@ Cada escenario se automatiza en pruebas contra los fixtures, con la misma forma 
 3. Endpoints de la API: `/employees`, `/presence`, `/timeoff`, `/tasks`, con sesión obligatoria y errores controlados coherentes con los existentes.
 4. Los fixtures añaden empleados de demostración (Juan Pérez, Pedro Rojas, Mauricio Cardenas y Juan Herrera —segundo «Juan» para desambigüación—) más presencia de hoy, solicitudes de TimeOff y tareas, en los dos idiomas.
 5. Web: panel de presencia en el home y retiro del campo de id en asistencia.
-6. Banco de escenarios automatizados con las seis preguntas; visión/README/estado actual reanclados.
+6. Banco de escenarios automatizados con las diez preguntas de referencia; visión/README/estado actual reanclados.
 
 Supuestos explícitos para aprobación: la demostración usa nombres propios ficticios claramente sintéticos; «presencia de hoy» usa la fecha del entorno local como en los fixtures; el chat llega en una especificación posterior con proveedor aprobado; no se prometen saldos de vacaciones más allá de lo que informe la fuente.
 
@@ -106,7 +119,15 @@ Supuestos explícitos para aprobación: la demostración usa nombres propios fic
 
 ## 10. Estado y aprobación
 
-SPEC-008 y ADR-0010 quedan propuestos a la espera de aprobación para planificación; la aprobación no autoriza cambios de código hasta autorizar tareas.
+SPEC-008 y ADR-0010 fueron aprobados para planificación y su implementación original está verificada; la enmienda del 2026-10-23 amplía el alcance según la aprobación explícita del usuario.
+
+### Enmienda aprobada por el usuario (2026-10-23)
+
+El usuario pidió responder «Quien es la proxima persona que cumple años» y «Que cargo tiene mauricio», confirmó que el primer incremento cubre esos dos casos y confirmó usar la columna HCM `"job:title"` para el cargo. También indicó: «si. los datos restringidos deberian ser el sueldo, la cuenta bancaria por ejemplo». Esta enmienda permite solo esos campos aprobados, mantiene sueldo y datos bancarios fuera de las herramientas y exige aprobación explícita para promover otros atributos.
+
+### Enmienda aprobada por el usuario: contratación y apellidos (2026-10-23)
+
+El usuario añadió que el asistente debe tener acceso a «fecha de contratacion» y reportó la pregunta literal «hay alguien con apellido que tenga z». Se aprueba proyectar `hire_date` y `last_name` mediante `search_employees`, con un filtro opcional `surname_contains`. El sueldo, los datos bancarios y los demás campos no aprobados siguen excluidos.
 
 ## 11. Verificación de T3
 
@@ -119,7 +140,7 @@ T3 documenta y reancla la narrativa de producto; sus artefactos:
 - `README.md`: estado actual reanclado a SPEC-008 con el banco y el resultado de la suite.
 - `docs/development/local-setup.md`: sección «Consultas del asistente (API)» con los cuatro endpoints, obtención de token y ejemplo de curl.
 
-Banco de escenarios (S4): `tests/TalentAssistant.IntegrationTests/Workforce/AssistantScenarioBenchTests.cs` automatiza las seis preguntas literales del usuario (§4) como pruebas deterministas sobre los fixtures, sin IA ni red externa:
+Banco de escenarios (S4): `tests/TalentAssistant.IntegrationTests/Workforce/AssistantScenarioBenchTests.cs` automatiza las diez preguntas de referencia (§4) como pruebas deterministas sobre los fixtures, sin IA ni red externa. Las enmiendas 2026-10-23 agregan cargo, próximo cumpleaños, contratación y búsqueda por apellido a las seis preguntas originales.
 
 1. «Dime cuales empleados ya estan trabajando.»
 2. «Dime que empleados no han llegado aun.»

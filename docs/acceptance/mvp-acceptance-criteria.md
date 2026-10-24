@@ -116,11 +116,11 @@ Las tareas de Mauricio Cardenas se consultan por nombre y la fuente determina qu
 
 ## AC-028 — Banco de preguntas y verificación (propuesto en SPEC-008)
 
-El banco de preguntas automatizado cubre las seis preguntas literales, la suite completa permanece verde, el home muestra «Presencia de hoy», la página de asistencia ya no pide id manual y todo el contenido nuevo existe en español e inglés. El banco no depende de IA ni de red externa y sirve de referencia para la evaluación futura del asistente.
+El banco de preguntas automatizado cubre las diez preguntas de referencia, la suite completa permanece verde, el home muestra «Presencia de hoy», la página de asistencia ya no pide id manual y todo el contenido nuevo existe en español e inglés. El banco no depende de IA ni de red externa y sirve de referencia para la evaluación futura del asistente.
 
 ## AC-029 — Banco de preguntas del chat (propuesto en SPEC-009)
 
-Las seis preguntas de SPEC-008, formuladas en el chat, producen respuestas que contienen los valores esperados de los fixtures y citan la herramienta usada.
+Las diez preguntas de SPEC-008, formuladas en el chat, producen respuestas que contienen los valores esperados de los fixtures y citan la herramienta usada.
 
 ## AC-030 — Catálogo fijo, sesión y sin escrituras (propuesto en SPEC-009)
 
@@ -140,7 +140,7 @@ Las preguntas 1, 2 y 5 del banco producen respuestas sin artefactos de código n
 
 ## AC-034 — Datos no disponibles sin fabricar (propuesto en SPEC-010)
 
-Las preguntas 3 y 4 no llevan a ningún dato fabricado: sin cifras de salario y sin el empleado inventado, con la declaración explícita de información no disponible.
+Las preguntas 3 y 4 no llevan a ningún dato fabricado: sin cifras de salario ni cuentas bancarias y sin el empleado inventado, con la declaración explícita de información no disponible.
 
 ## AC-035 — Regresión de las siete preguntas (propuesto en SPEC-010)
 
@@ -150,7 +150,7 @@ AC-033..AC-035 fueron propuestos por SPEC-010; T1/T2 aportan evidencia y T3 comp
 
 ## AC-036 — Modos de fuente sin mezcla (propuesto en SPEC-011)
 
-Con `Hcm__Source=Postgres`, las cinco capacidades del asistente responden con los datos de la PostgreSQL local sembrada en el esquema del contrato (mismos formatos de antes), y con `Sintética` responden con los fixtures — nunca se mezclan orígenes en una misma respuesta.
+Con `Hcm__Source=Postgres`, las seis capacidades del asistente responden con los datos de la PostgreSQL local sembrada en el esquema del contrato (mismos formatos de antes), y con `Sintética` responden con los fixtures — nunca se mezclan orígenes en una misma respuesta.
 
 ## AC-037 — Contrato de solo lectura verificable (propuesto en SPEC-011)
 
@@ -192,6 +192,26 @@ La landing, el login, las pantallas operativas (`/overview`, `/assistant`, `/pro
 
 La navegación y la interfaz Web ya no incluyen `/attendance-insights`: el componente fue retirado y la ruta dejó de servir la página sin exponerla de forma anónima, mientras que `GET /attendance/insights` y la herramienta `attendance_insights` del asistente siguen operativos con token. La página `/profile` presenta su contenido con el lenguaje visual unificado (cabecera de identidad con iniciales, tarjetas en rejilla responsive, modos claro/oscuro) conservando formularios, endpoints, campos, mensajes localizados ES/EN y estados de error y éxito sin cambios de comportamiento.
 
+## AC-046 — Cargo del empleado en el asistente (enmienda de SPEC-008/009)
+
+La consulta «Que cargo tiene mauricio» devuelve el valor de `"job:title"` desde la fuente HCM. El payload de `search_employees` contiene únicamente identificador, nombre, oficinas, cargo, apellido y fecha de contratación (campos aprobados en AC-049/AC-050); no contiene sueldo, cuenta bancaria ni otros atributos no aprobados.
+
+## AC-047 — Próximo cumpleaños desde la fuente HCM (enmienda de SPEC-008/009)
+
+La consulta «Quien es la proxima persona que cumple años» devuelve todos los empleados empatados en la fecha más próxima, incluida hoy, y la fecha del próximo cumpleaños calculada por la fuente a partir del mes y día. El payload no contiene la fecha de nacimiento original ni su año.
+
+## AC-048 — Exclusión de sueldo y datos bancarios (enmienda de SPEC-010)
+
+El catálogo fijo y los payloads del asistente no exponen sueldo ni datos bancarios; si se solicitan, las instrucciones del asistente los clasifican como restringidos y la respuesta declara que la información no está disponible, sin inventar valores. Los atributos nuevos no se habilitan sin aprobación explícita.
+
+## AC-049 — Fecha de contratación desde el HCM (enmienda de SPEC-008/009)
+
+Al consultar la fecha de contratación de un empleado, `search_employees` devuelve el `HireDate` informado por la fuente HCM, sin exponer campos adicionales ni cambiar la respuesta HTTP existente de `GET /employees`.
+
+## AC-050 — Búsqueda por fragmento de apellido (enmienda de SPEC-008/009)
+
+La pregunta literal «hay alguien con apellido que tenga z» activa `search_employees` con el filtro de apellido; la búsqueda consulta `last_name` en la fuente y devuelve todos los empleados coincidentes sin elegir uno en silencio.
+
 ## Condiciones generales
 
 Los criterios deberán verificarse con pruebas automatizadas cuando sea razonable y con pruebas de aceptación documentadas cuando la automatización no aporte suficiente valor.
@@ -230,13 +250,13 @@ Los identificadores de esta tabla pertenecen al catálogo general y no se reutil
 | AC-025 | FR-026, FR-006 | Presencia por fecha con estados informados por la fuente; SPEC-008. |
 | AC-026 | FR-027, FR-008 | TimeOff por empleado con valores literales de la fuente, sin cálculos; SPEC-008. Enmienda SPEC-008 (2026-10-18): búsqueda insensible a acentos y doble «Juan» sin selección silenciosa. |
 | AC-027 | FR-004, FR-027 | Tareas por empleado; FR-004 queda activo; SPEC-008. |
-| AC-028 | FR-011, NFR-015 | Banco de las seis preguntas literales como pruebas automatizadas; SPEC-008. |
-| AC-029 | FR-029 | Banco de las seis preguntas en el chat con valores del fixture y herramienta citada; SPEC-009. |
+| AC-028 | FR-011, NFR-015 | Banco de las diez preguntas de referencia como pruebas automatizadas; SPEC-008. |
+| AC-029 | FR-029 | Banco de las diez preguntas en el chat con valores del fixture y herramienta citada; SPEC-009. |
 | AC-030 | FR-029, FR-030 | Catálogo fijo con sesión e idioma del usuario y sin escrituras; SPEC-009. |
 | AC-031 | FR-030, NFR-021 | Degradación controlada, secretos solo en `.env`, límites activos y E2E del chat en ES y EN; SPEC-009. |
 | AC-032 | FR-027, FR-029 | Desambigüación de nombres en el chat; SPEC-009. Enmienda 2026-10-18. |
 | AC-033 | FR-031, FR-029 | Rechazo localizado de peticiones ajenas con `toolsUsed` vacío y conversación continúa operativa; SPEC-010. |
-| AC-034 | FR-031, FR-029 | Datos no disponibles declarados explícitamente, sin cifras de salario ni empleados inventados; SPEC-010. |
+| AC-034 | FR-031, FR-029 | Datos no disponibles declarados explícitamente, sin cifras de salario, datos bancarios ni empleados inventados; SPEC-010. |
 | AC-035 | FR-029 | Las siete preguntas de referencia siguen verdes y la suite completa permanece en verde tras el cambio; SPEC-010. |
 | AC-036 | FR-032, FR-033 | Modos Postgres y Sintético sin mezcla de orígenes; T1/T2 de la rama `feat/hcm-postgres-source`; SPEC-011. |
 | AC-037 | NFR-022, FR-032 | Grants de solo lectura, transacción `READ ONLY`, SQL fijo, TLS `VerifyFull` exigido en el arranque para hosts no-loopback (bucles exentos) y logs sin valores de personas; validación contra la base real pendiente; SPEC-011. |
@@ -248,5 +268,10 @@ Los identificadores de esta tabla pertenecen al catálogo general y no se reutil
 | AC-043 | FR-021, FR-034 | `/overview` protegido, `/login` público y destino por defecto tras login; SPEC-017. |
 | AC-044 | NFR-012, NFR-019, NFR-023 | Identidad visual común en login y pantallas operativas, sin alterar localización ni comportamiento; SPEC-018. |
 | AC-045 | FR-035, NFR-023 | Página de asistencia retirada de la Web con API y asistente intactos; perfil rediseñado sobre los tokens compartidos sin cambios funcionales; SPEC-019. |
+| AC-046 | FR-036, FR-026, FR-029 | Cargo del empleado incluido mediante el campo HCM confirmado y payload limitado a la lista aprobada; SPEC-008/009, enmienda 2026-10-23. |
+| AC-047 | FR-036, FR-029 | Próximo cumpleaños ordenado en la fuente HCM, con fecha inclusiva y sin año de nacimiento en el payload; SPEC-008/009, enmienda 2026-10-23. |
+| AC-048 | FR-031, FR-036, FR-029 | Sueldo y datos bancarios excluidos de herramientas y respuestas; sin habilitar atributos no aprobados; SPEC-010, enmienda 2026-10-23. |
+| AC-049 | FR-037, FR-029 | La herramienta expone la fecha de contratación aprobada desde HCM y el endpoint `GET /employees` mantiene su forma original; SPEC-008/009. |
+| AC-050 | FR-037, FR-029 | Búsqueda por `last_name` con filtro `surname_contains`, incluyendo todos los candidatos y sin selección silenciosa; SPEC-008/009. |
 
 Los AC-003 a AC-006 no se consideran satisfechos por la estructura arquitectónica creada en SPEC-001. Cada caso de asistencia necesita requisitos, pruebas y verificación propios; Tasks no forma parte de la primera vertical. NFR-011 no tiene todavía un umbral medible y deberá concretarse cuando se definan dataset y entorno. NFR-012 se verifica en cada especificación de interfaz; estos criterios no inventan un umbral cuantitativo de contraste.

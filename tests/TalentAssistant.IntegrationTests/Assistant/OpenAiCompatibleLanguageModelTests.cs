@@ -76,7 +76,12 @@ public sealed class OpenAiCompatibleLanguageModelTests
         Assert.Equal(
             new[]
             {
-                "search_employees", "presence", "timeoff", "tasks", "attendance_insights"
+                "search_employees",
+                "presence",
+                "timeoff",
+                "tasks",
+                "attendance_insights",
+                "upcoming_birthday"
             },
             names!);
         Assert.All(tools, tool =>

@@ -16,11 +16,11 @@ Añadir una página de chat donde el responsable de RR. HH. pregunte en lenguaje
 
 ### Incluido
 
-- Endpoint `POST /chat` autenticado en la API con bucle de herramientas: el modelo recibe un catálogo fijo de herramientas (los endpoints de SPEC-008 y los insights de SPEC-002), la API los ejecuta en proceso con el contexto del usuario y devuelve la respuesta junto a la traza de herramientas usadas.
+- Endpoint `POST /chat` autenticado en la API con bucle de herramientas: el modelo recibe un catálogo fijo de herramientas (los endpoints de SPEC-008, `upcoming_birthday` y los insights de SPEC-002), la API los ejecuta en proceso con el contexto del usuario y devuelve la respuesta junto a la traza de herramientas usadas.
 - Cliente LLM genérico sobre HTTP compatible con OpenAI (`/chat/completions` con `tools`) sin SDK ni paquetes nuevos, configurado para Groq en `.env`; intercambiable por un Ollama local cambiando configuración.
 - Página `/assistant` en la Web, localizada ES/EN, protegida por sesión, con historial de la conversación, estado de carga y las fuentes/ferramientas empleadas.
 - Límites operativos: tiempo de espera, número de rondas de herramientas y longitud de respuesta; errores del proveedor (sin clave, sin red, límite de tasa) traducidos a mensajes localizados controlados.
-- Evaluación: las seis preguntas de SPEC-008 como criterios de aceptación del chat; la lógica de bucle se prueba con un transporte LLM falso y determinista; la pasada en vivo queda documentada y solo se ejecuta con la clave presente.
+- Evaluación: las diez preguntas de SPEC-008 como criterios de aceptación del chat; la lógica de bucle se prueba con un transporte LLM falso y determinista; la pasada en vivo queda documentada y solo se ejecuta con la clave presente.
 - Documentación: guía (clave y modelo en `.env`, flujo, coste/límites del nivel gratuito), README, catálogos y registro de decisiones.
 
 ### Fuera de alcance
@@ -38,6 +38,7 @@ Añadir una página de chat donde el responsable de RR. HH. pregunte en lenguaje
 - El catálogo de herramientas es fijo y cerrado en el backend; el modelo no lo amplía ni decide permisos.
 - Clave del proveedor y configuración solo en `.env`/User Secrets; nunca en el repositorio ni en imágenes (NFR-004).
 - La respuesta debe distinguir los datos devueltos por las herramientas de cualquier texto del modelo: si las herramientas no traen el dato, el asistente lo dice (sin inventar).
+- El modelo solo recibe atributos proyectados explícitamente por los DTOs de las herramientas; sueldo y datos bancarios están restringidos, y campos no aprobados no se añaden al payload.
 - Sin escrituras y sin acciones más allá de llamar herramientas de lectura.
 
 ## 4. Flujo local esperado
@@ -47,7 +48,9 @@ Añadir una página de chat donde el responsable de RR. HH. pregunte en lenguaje
 3. Para una pregunta de persona, el modelo llama primero a `search_employees(name="Juan")`: con un único candidato continúa con `timeoff`, y con varios (p. ej. Juan Pérez y Juan Herrera) devuelve una pregunta con los candidatos antes de consultar datos. *(Enmienda 2026-10-18.)*
 4. El modelo redacta la respuesta a partir de los datos reales; la traza de herramientas viaja con la respuesta.
 5. Si el proveedor falla o agota el tiempo, la interfaz muestra un mensaje localizado controlado; la aplicación sigue funcionando sin IA.
-6. Las seis preguntas de SPEC-008 producen respuestas que contienen los valores de los fixtures (criterio de aceptación automatizado donde sea posible).
+6. Las diez preguntas de SPEC-008 producen respuestas que contienen los valores de los fixtures (criterio de aceptación automatizado donde sea posible).
+7. Para «Quien es la proxima persona que cumple años», el modelo llama a `upcoming_birthday` y redacta a partir del resultado, sin calcular desde fechas de nacimiento.
+8. Para «Que cargo tiene mauricio», el modelo busca a la persona y responde con el `JobTitle` devuelto por `search_employees`.
 
 ## 5. Componentes candidatos
 
@@ -63,13 +66,13 @@ Añadir una página de chat donde el responsable de RR. HH. pregunte en lenguaje
 
 ## 6. Herramientas del catálogo (v1)
 
-`search_employees` (nombre/oficina), `presence` (fecha), `timeoff` (empleado), `tasks` (empleado), `attendance_insights` (rango). Todas delegan en los casos de uso existentes; ninguna consulta la base de datos de forma nueva.
+`search_employees` (nombre/oficina/apellido y campos de directorio aprobados), `presence` (fecha), `timeoff` (empleado), `tasks` (empleado), `attendance_insights` (rango), `upcoming_birthday` (sin argumentos; resultado de la fuente HCM). El catálogo permanece cerrado; ninguna herramienta devuelve sueldo, datos bancarios ni atributos no aprobados.
 
 ## 7. Criterios de aceptación propuestos
 
 | ID | Criterio verificable propuesto | Evidencia futura |
 |---|---|---|
-| AC-029 | Las seis preguntas de SPEC-008, formuladas en el chat, producen respuestas que contienen los valores esperados de los fixtures y citan la herramienta usada. | Pruebas del bucle con transporte falso y pasada en vivo documentada con la clave presente. |
+| AC-029 | Las diez preguntas de SPEC-008, formuladas en el chat, producen respuestas que contienen los valores esperados de los fixtures y citan la herramienta usada. | Pruebas del bucle con transporte falso y pasada en vivo documentada con la clave presente. |
 | AC-030 | El modelo solo invoca el catálogo fijo, las invocaciones usan la sesión e idioma del usuario, no hay escrituras y una pregunta sin datos recibe una respuesta de «sin información» del propio asistente. | Pruebas unitarias del orquestador y revisión del catálogo. |
 | AC-031 | Sin clave o sin red la aplicación degrada con mensajes localizados controlados; secretos solo en `.env`; límites de tiempo/rondas activos; suite completa en verde y recorrido de navegador del chat en ES y EN. | Pruebas de degradación, inspección y E2E de navegador. |
 | AC-032 | Una pregunta por una persona con nombre compartido («Juan») recibe una respuesta del asistente que lista los candidatos y pregunta cuál antes de responder; tras la elección responde con el dato del fixture, y un nombre sin acento («Juan Perez») resuelve al empleado correcto. *(Enmienda 2026-10-18.)* | Pasada en vivo con la pregunta ambigua y su turno de elección, más pruebas deterministas del matcher sin acentos. |
@@ -91,7 +94,7 @@ Supuestos explícitos para aprobación: respuesta no streaming; el usuario asume
 1. Añadir FR-029, FR-030 y NFR-021 y AC-029..AC-031 con trazabilidad.
 2. Aceptación de ADR-0011 y actualización del registro de decisiones y de la sección de estado de la visión (SPEC-008 añadió que el chat espera especificación y proveedor: esto la es).
 3. Rama `feat/conversational-assistant` desde `main` y plan ODD: T1 (orquestador, cliente LLM y herramientas con pruebas del bucle), T2 (página de chat ES/EN y E2E en vivo con la clave), T3 (documentación, degradación y verificación final).
-4. Verificación: suite completa, pruebas del bucle deterministas, pasada en vivo de las seis preguntas con la clave presente y verificador independiente.
+4. Verificación: suite completa, pruebas del bucle deterministas, pasada en vivo de las diez preguntas con la clave presente y verificador independiente.
 5. Cierre con matriz y commits por work unit.
 
 ## 10. Estado y aprobación
@@ -104,3 +107,11 @@ SPEC-009 y ADR-0011 fueron aprobados para planificación el 2026-10-17; la enmie
 - Suite completa 70/70 (5 unit + 65 integración) y build 0 errores/0 avisos.
 
 Commits: `8861456`, `ef9750e`, `ab6d2bc`, `902e25a`, `4de7672`, `d1ce2e4`, `fb71938`.
+
+## 11. Enmienda aprobada por el usuario (2026-10-23)
+
+El usuario aprobó ampliar el asistente para responder «Quien es la proxima persona que cumple años» y «Que cargo tiene mauricio». La herramienta `upcoming_birthday` devuelve la fecha y empleado(s) más próximos determinados por la fuente; `search_employees` incluye el cargo confirmado desde `"job:title"`. El resultado no incluye el año de nacimiento. Sueldo y datos bancarios quedan restringidos; todo campo nuevo requiere aprobación antes de añadirse al payload.
+
+## 12. Enmienda: fecha de contratación y búsqueda por apellido (2026-10-23)
+
+Se añaden `HireDate`, `LastName` y el filtro opcional `surname_contains` a la proyección aprobada de `search_employees`. La búsqueda por apellido usa el valor `last_name` del HCM y devuelve todos los candidatos; el asistente no debe inferir el apellido desde otra parte del nombre ni elegir en silencio. El corpus de SPEC-008 pasa a diez preguntas de referencia, más la pregunta ambigua de AC-032.

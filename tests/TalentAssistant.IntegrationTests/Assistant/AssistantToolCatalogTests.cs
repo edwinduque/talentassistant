@@ -5,20 +5,28 @@ namespace TalentAssistant.IntegrationTests.Assistant;
 
 /// <summary>
 /// The tool catalog is a fixed, closed registry (SPEC-009 §6, SPEC-008 §6):
-/// these five names are the contract the model sees and the bench questions
+/// these names are the contract the model sees and the bench questions
 /// depend on. Adding or renaming a tool must fail here first.
 /// </summary>
 public sealed class AssistantToolCatalogTests
 {
     [Fact]
-    public void CatalogExposesExactlyTheFiveFixedToolNames()
+    public void CatalogExposesExactlyTheFixedToolNames()
     {
         var names = ChatOrchestrator.ToolCatalog
             .Select(tool => tool.Name)
             .ToArray();
 
         Assert.Equal(
-            new[] { "search_employees", "presence", "timeoff", "tasks", "attendance_insights" },
+            new[]
+            {
+                "search_employees",
+                "presence",
+                "timeoff",
+                "tasks",
+                "attendance_insights",
+                "upcoming_birthday"
+            },
             names);
     }
 
@@ -62,5 +70,20 @@ public sealed class AssistantToolCatalogTests
                     type.EnumerateArray().Select(entry => entry.GetString()));
             });
         });
+    }
+
+    [Fact]
+    public void EmployeeSearchSchemaDeclaresSurnameFragmentFilter()
+    {
+        var searchEmployees = ChatOrchestrator.ToolCatalog
+            .Single(tool => tool.Name == "search_employees");
+
+        using var schema = JsonDocument.Parse(searchEmployees.ParametersJson);
+        var properties = schema.RootElement.GetProperty("properties");
+        Assert.True(properties.TryGetProperty("surname_contains", out var surnameContains));
+        Assert.Contains(
+            "null",
+            surnameContains.GetProperty("type").EnumerateArray()
+                .Select(entry => entry.GetString()));
     }
 }

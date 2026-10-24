@@ -27,6 +27,30 @@ public sealed class SyntheticWorkforceSourceTests
     }
 
     [Fact]
+    public async Task SurnameFragmentSearchFindsTheMatchingSurnameCaseInsensitively()
+    {
+        var lower = await Source.SearchEmployeesAsync(
+            new EmployeeSearchQuery(SurnameContains: "z"));
+        var upper = await Source.SearchEmployeesAsync(
+            new EmployeeSearchQuery(SurnameContains: "Z"));
+
+        var employee = Assert.Single(lower);
+        Assert.Equal("employee-demo-juan", employee.Id);
+        Assert.Equal("Pérez", employee.LastName);
+        Assert.Equal(lower.Select(entry => entry.Id), upper.Select(entry => entry.Id));
+    }
+
+    [Fact]
+    public async Task EmployeeDirectoryReportsTheSourceHireDate()
+    {
+        var matches = await Source.SearchEmployeesAsync(
+            new EmployeeSearchQuery(Name: "Mauricio"));
+
+        var mauricio = Assert.Single(matches);
+        Assert.Equal(new DateOnly(2018, 9, 17), mauricio.HireDate);
+    }
+
+    [Fact]
     public async Task UnaccentedNameFoldsToTheAccentedDisplayName()
     {
         // SPEC-008 S1 as amended 2026-10-18 (AC-026): «Juan Perez» without the
@@ -75,6 +99,24 @@ public sealed class SyntheticWorkforceSourceTests
         // Demo employees are proper nouns: identical in both languages.
         Assert.Contains(spanish, employee => employee.DisplayName == "Mauricio Cardenas");
         Assert.Contains(english, employee => employee.DisplayName == "Mauricio Cardenas");
+    }
+
+    [Fact]
+    public async Task UpcomingBirthdayReturnsTheNearestCalendarOccurrenceFromTheSource()
+    {
+        var birthdays = await Source.GetUpcomingBirthdaysAsync(
+            new UpcomingBirthdayQuery(new DateOnly(2026, 10, 23)));
+
+        var next = Assert.Single(birthdays);
+        Assert.Equal("employee-demo-mauricio", next.EmployeeId);
+        Assert.Equal("Mauricio Cardenas", next.DisplayName);
+        Assert.Equal(new DateOnly(2026, 11, 30), next.NextBirthdayOn);
+
+        var birthdayToday = await Source.GetUpcomingBirthdaysAsync(
+            new UpcomingBirthdayQuery(new DateOnly(2026, 11, 30)));
+        var today = Assert.Single(birthdayToday);
+        Assert.Equal("employee-demo-mauricio", today.EmployeeId);
+        Assert.Equal(new DateOnly(2026, 11, 30), today.NextBirthdayOn);
     }
 
     [Fact]

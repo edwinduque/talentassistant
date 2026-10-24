@@ -1,7 +1,7 @@
-# Live check for SPEC-009 AC-029/AC-032: the six reference questions from
-# SPEC-008 section 4 plus the seventh disambiguation probe must reach
+# Live check for SPEC-009 AC-029/AC-032: the ten reference questions from
+# SPEC-008 section 4 plus the eleventh disambiguation probe must reach
 # POST /chat and come back with a non-empty answer that cites the expected
-# tool; the seventh must list both candidate Juans and ask which one.
+# tool; the eleventh must list both candidate Juans and ask which one.
 # Requires the local API plus a real AI_API_KEY in .env (parent task runs
 # the live pass; without the key the script exits with a clear
 # "AI key/quota missing" message).
@@ -16,7 +16,7 @@ param(
     # a paced full pass stays inside the window).
     [int]$PaceSeconds = 0,
 
-    # 1-based index to run a single reference question (0 = run all seven).
+    # 1-based index to run a single reference question (0 = run all eleven).
     [int]$Only = 0
 )
 
@@ -67,6 +67,36 @@ function Split-Response {
     return @{ Status = [int]$match.Groups[1].Value; Body = $Raw.Substring(0, $match.Index).TrimEnd() }
 }
 
+$today = [DateTime]::Today
+$birthdayFixtures = @(
+    @{ NamePattern = 'Juan P\u00E9rez'; Month = 4; Day = 12 },
+    @{ NamePattern = 'Pedro Rojas'; Month = 7; Day = 23 },
+    @{ NamePattern = 'Mauricio Cardenas'; Month = 11; Day = 30 },
+    @{ NamePattern = 'Juan Herrera'; Month = 2; Day = 18 },
+    @{ NamePattern = '(Empleado sint\u00E9tico 005|Synthetic employee 005)'; Month = 5; Day = 9 },
+    @{ NamePattern = '(Empleado sint\u00E9tico 004|Synthetic employee 004)'; Month = 9; Day = 27 },
+    @{ NamePattern = '(Empleado sint\u00E9tico 002|Synthetic employee 002)'; Month = 12; Day = 2 },
+    @{ NamePattern = '(Empleado sint\u00E9tico 003|Synthetic employee 003)'; Month = 3; Day = 14 }
+)
+$nextBirthday = $birthdayFixtures | ForEach-Object {
+    $candidate = Get-Date -Year $today.Year -Month $_.Month -Day $_.Day -Hour 0 -Minute 0 -Second 0
+    if ($candidate.Date -lt $today.Date) {
+        $candidate = $candidate.AddYears(1)
+    }
+    [PSCustomObject]@{ NamePattern = $_.NamePattern; Date = $candidate }
+} | Sort-Object Date | Select-Object -First 1
+$monthPatterns = @(
+    '', '(enero|january)', '(febrero|february)', '(marzo|march)',
+    '(abril|april)', '(mayo|may)', '(junio|june)', '(julio|july)',
+    '(agosto|august)', '(septiembre|september)', '(octubre|october)',
+    '(noviembre|november)', '(diciembre|december)'
+)
+$birthdayMonthPattern = $monthPatterns[$nextBirthday.Date.Month]
+$birthdayIsoDate = $nextBirthday.Date.ToString('yyyy-MM-dd')
+$birthdayDayPattern = '\b0?' + $nextBirthday.Date.Day + '\b'
+$birthdayDatePattern = '(?i)(' + $birthdayIsoDate + '|' + $birthdayDayPattern + '.*' + $birthdayMonthPattern + '|' + $birthdayMonthPattern + '.*' + $birthdayDayPattern + ')'
+$birthdayAnswerPattern = '(?is)(?=.*' + $nextBirthday.NamePattern + ')(?=.*' + $birthdayDatePattern + ')'
+
 $questions = @(
     @{ Text = "Dime cuales empleados ya estan trabajando."; Tools = @("presence"); Answer = 'Juan' },
     @{ Text = "Dime que empleados no han llegado aun."; Tools = @("presence"); Answer = 'Mauricio' },
@@ -74,6 +104,10 @@ $questions = @(
     @{ Text = "Dime cuantos dias de vacaciones tiene Juan Perez."; Tools = @("timeoff"); Answer = '\b3\b' },
     @{ Text = "Dime cuando regresa Pedro Rojas."; Tools = @("timeoff"); Answer = '(20.*octubre|2026-10-20)' },
     @{ Text = "Dime que tareas tiene pendiente Mauricio Cardenas."; Tools = @("tasks"); Answer = '(n\wmina|payroll)' },
+    @{ Text = "Quien es la proxima persona que cumple anos"; Tools = @("upcoming_birthday"); Answer = $birthdayAnswerPattern },
+    @{ Text = "Que cargo tiene Mauricio Cardenas?"; Tools = @("search_employees"); Answer = '(T\w+ de n\wmina|payroll technician)' },
+    @{ Text = "Dime la fecha de contratacion de Mauricio Cardenas."; Tools = @("search_employees"); Answer = '2018' },
+    @{ Text = "hay alguien con apellido que tenga z"; Tools = @("search_employees"); Answer = 'Juan P\w+rez' },
     @{ Text = "Dime cuantos dias de vacaciones tiene Juan."; Tools = @("search_employees", "timeoff"); Answer = '(?i)(?s)(?=.*(cu\wl|which))(?=.*(Juan P\w+rez.*Juan Herrera|Juan Herrera.*Juan P\w+rez))' }
 )
 
@@ -192,5 +226,5 @@ if ($failures -gt 0) {
 }
 
 Write-Output ""
-Write-Output "PASS: all seven reference questions returned a non-empty answer citing the expected tool."
+Write-Output "PASS: all eleven reference questions returned a non-empty answer citing the expected tool."
 exit 0

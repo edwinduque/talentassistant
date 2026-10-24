@@ -1,3 +1,4 @@
+using System.Text.Json;
 using TalentAssistant.Application.Assistant;
 using TalentAssistant.Application.Attendance;
 using TalentAssistant.Application.Workforce;
@@ -45,6 +46,143 @@ public sealed class ChatOrchestratorTests
             message => message.Role == "tool");
         Assert.Contains("Juan Pérez", toolMessage.Content);
         Assert.Equal("call-1", toolMessage.ToolCallId);
+    }
+
+    [Fact]
+    public async Task EmployeeSearchToolReturnsOnlyApprovedDirectoryFields()
+    {
+        var model = new ScriptedLanguageModel();
+        model.Enqueue(new AssistantCompletion(
+            Content: null,
+            ToolCalls:
+            [
+                new AssistantToolCall("call-1", "search_employees", """{"name":"Mauricio"}""")
+            ]));
+        model.Enqueue(new AssistantCompletion("Mauricio Cardenas es Técnico de nómina.", []));
+        var orchestrator = CreateOrchestrator(model);
+
+        await orchestrator.ExecuteAsync(
+            new ChatQuery("¿Qué cargo tiene Mauricio?", History: [], Language: "es"));
+
+        var toolMessage = Assert.Single(
+            model.Requests[1].Messages,
+            message => message.Role == "tool");
+        using var payload = JsonDocument.Parse(toolMessage.Content);
+        var employee = Assert.Single(payload.RootElement.EnumerateArray().ToArray());
+        var fields = employee.EnumerateObject()
+            .Select(property => property.Name)
+            .Order(StringComparer.Ordinal)
+            .ToArray();
+
+        Assert.Equal(
+            ["DisplayName", "HireDate", "Id", "JobTitle", "LastName", "OfficeIds"],
+            fields);
+        Assert.Equal("Técnico de nómina", employee.GetProperty("JobTitle").GetString());
+        Assert.Equal("Cardenas", employee.GetProperty("LastName").GetString());
+        Assert.Equal("2018-09-17", employee.GetProperty("HireDate").GetString());
+        Assert.DoesNotContain("salary", toolMessage.Content, StringComparison.OrdinalIgnoreCase);
+        Assert.DoesNotContain("bankAccount", toolMessage.Content, StringComparison.OrdinalIgnoreCase);
+        Assert.DoesNotContain("iban", toolMessage.Content, StringComparison.OrdinalIgnoreCase);
+    }
+
+    [Fact]
+    public async Task SurnameSearchToolFindsEmployeesBySurnameFragment()
+    {
+        var model = new ScriptedLanguageModel();
+        model.Enqueue(new AssistantCompletion(
+            Content: null,
+            ToolCalls:
+            [
+                new AssistantToolCall("call-1", "search_employees", """{"surname_contains":"z"}""")
+            ]));
+        model.Enqueue(new AssistantCompletion("Juan Pérez tiene una z en el apellido.", []));
+        var orchestrator = CreateOrchestrator(model);
+
+        var result = await orchestrator.ExecuteAsync(
+            new ChatQuery(
+                "hay alguien con apellido que tenga z",
+                History: [],
+                Language: "es"));
+
+        Assert.True(result.Completed);
+        Assert.Equal(["search_employees"], result.ToolsUsed);
+
+        var toolMessage = Assert.Single(
+            model.Requests[1].Messages,
+            message => message.Role == "tool");
+        using var payload = JsonDocument.Parse(toolMessage.Content);
+        var employee = Assert.Single(payload.RootElement.EnumerateArray().ToArray());
+        Assert.Equal("Juan Pérez", employee.GetProperty("DisplayName").GetString());
+        Assert.Equal("Pérez", employee.GetProperty("LastName").GetString());
+    }
+
+    [Fact]
+    public async Task UpcomingBirthdayToolReturnsOnlyTheNextBirthdayAndEmployeeIdentity()
+    {
+        var model = new ScriptedLanguageModel();
+        model.Enqueue(new AssistantCompletion(
+            Content: null,
+            ToolCalls:
+            [
+                new AssistantToolCall("call-1", "upcoming_birthday", "{}")
+            ]));
+        model.Enqueue(new AssistantCompletion("El resultado se recibió de la fuente HCM.", []));
+        var orchestrator = CreateOrchestrator(model);
+
+        var result = await orchestrator.ExecuteAsync(
+            new ChatQuery(
+                "Quien es la proxima persona que cumple años",
+                History: [],
+                Language: "es"));
+
+        Assert.True(result.Completed);
+        Assert.Equal(["upcoming_birthday"], result.ToolsUsed);
+
+        var toolMessage = Assert.Single(
+            model.Requests[1].Messages,
+            message => message.Role == "tool");
+        using var payload = JsonDocument.Parse(toolMessage.Content);
+        var employees = payload.RootElement.EnumerateArray().ToArray();
+        var employee = Assert.Single(employees);
+        var fields = employee.EnumerateObject()
+            .Select(property => property.Name)
+            .Order(StringComparer.Ordinal)
+            .ToArray();
+        var today = DateOnly.FromDateTime(DateTime.Today);
+        var expected = new[]
+            {
+                (DisplayName: "Juan Pérez", Month: 4, Day: 12),
+                (DisplayName: "Pedro Rojas", Month: 7, Day: 23),
+                (DisplayName: "Mauricio Cardenas", Month: 11, Day: 30),
+                (DisplayName: "Juan Herrera", Month: 2, Day: 18),
+                (DisplayName: "Empleado sintético 001", Month: 0, Day: 0),
+                (DisplayName: "Empleado sintético 005", Month: 5, Day: 9),
+                (DisplayName: "Empleado sintético 004", Month: 9, Day: 27),
+                (DisplayName: "Empleado sintético 002", Month: 12, Day: 2),
+                (DisplayName: "Empleado sintético 003", Month: 3, Day: 14)
+            }
+            .Where(birthday => birthday.Month > 0)
+            .Select(birthday =>
+            {
+                var nextBirthday = new DateOnly(today.Year, birthday.Month, birthday.Day);
+                if (nextBirthday < today)
+                {
+                    nextBirthday = nextBirthday.AddYears(1);
+                }
+
+                return (birthday.DisplayName, NextBirthdayOn: nextBirthday);
+            })
+            .OrderBy(birthday => birthday.NextBirthdayOn)
+            .First();
+
+        Assert.Equal(["DisplayName", "EmployeeId", "NextBirthdayOn"], fields);
+        Assert.Equal(expected.DisplayName, employee.GetProperty("DisplayName").GetString());
+        Assert.Equal(
+            expected.NextBirthdayOn.ToString("yyyy-MM-dd"),
+            employee.GetProperty("NextBirthdayOn").GetString());
+        Assert.DoesNotContain("BirthdayDate", toolMessage.Content, StringComparison.OrdinalIgnoreCase);
+        Assert.DoesNotContain("salary", toolMessage.Content, StringComparison.OrdinalIgnoreCase);
+        Assert.DoesNotContain("bankAccount", toolMessage.Content, StringComparison.OrdinalIgnoreCase);
     }
 
     [Fact]
@@ -214,6 +352,10 @@ public sealed class ChatOrchestratorTests
         Assert.Contains("decline politely", system.Content);
         Assert.Contains("never invent employees, dates or facts", system.Content);
         Assert.Contains("information is not available", system.Content);
+        Assert.Contains("salary", system.Content, StringComparison.OrdinalIgnoreCase);
+        Assert.Contains("bank account", system.Content, StringComparison.OrdinalIgnoreCase);
+        Assert.Contains("hire-date questions", system.Content);
+        Assert.Contains("surname_contains", system.Content);
     }
 
     [Fact]
@@ -260,6 +402,7 @@ public sealed class ChatOrchestratorTests
         return new ChatOrchestrator(
             model,
             new SearchEmployees(workforce),
+            new GetUpcomingBirthdays(workforce),
             new GetEmployeePresence(workforce),
             new GetEmployeeTimeOff(workforce),
             new GetEmployeeTasks(workforce),

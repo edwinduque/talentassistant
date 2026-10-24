@@ -14,9 +14,9 @@ namespace TalentAssistant.Infrastructure.HcmPostgres;
 /// contract views (no search-path dependency, values only ever bound as
 /// Npgsql parameters); each operation opens one connection, runs inside a
 /// READ ONLY transaction with the configured command timeout, commits and
-/// closes. The office filter runs in SQL; the name filter folds accents in C#
-/// through <see cref="NameMatching"/>, the same matcher the synthetic source
-/// uses, so a name query resolves the same employees in both modes. Any
+/// closes. The office filter runs in SQL; name and surname filters use the same
+/// accent-insensitive matcher as the synthetic source so searches resolve the
+/// same employees in both modes. Any
 /// Npgsql failure surfaces as <see cref="HcmSourceUnavailableException"/>:
 /// no retries, no fallback to synthetic data, and no logged values.
 /// </summary>
@@ -33,9 +33,55 @@ public sealed class PostgresWorkforceSource(
     private const string ReadOnlyTransactionSql = "SET TRANSACTION READ ONLY";
 
     private const string SearchEmployeesSql = """
-        SELECT employee_id, display_name, office_ids
+        SELECT employee_id, display_name, office_ids, job_title, last_name, hire_date
         FROM hcm_contract.talentassistant_employees
         WHERE @office_id IS NULL OR office_ids && ARRAY[@office_id]
+        ORDER BY employee_id
+        """;
+
+    private const string UpcomingBirthdaysSql = """
+        WITH candidates AS (
+            SELECT
+                employees.employee_id,
+                employees.display_name,
+                next_birthday.next_birthday_on
+            FROM hcm_contract.talentassistant_employees AS employees
+            CROSS JOIN LATERAL (
+                SELECT dates.next_birthday_on
+                FROM (
+                    SELECT CASE
+                        WHEN employees.birthday_month = 2
+                         AND employees.birthday_day = 29
+                         AND NOT (
+                             years.candidate_year % 400 = 0
+                             OR (years.candidate_year % 4 = 0
+                                 AND years.candidate_year % 100 <> 0))
+                        THEN NULL::date
+                        ELSE make_date(
+                            years.candidate_year,
+                            employees.birthday_month,
+                            employees.birthday_day)
+                    END AS next_birthday_on
+                    FROM generate_series(
+                        EXTRACT(YEAR FROM @as_of_date)::integer,
+                        EXTRACT(YEAR FROM @as_of_date)::integer + 8)
+                        AS years(candidate_year)
+                ) AS dates
+                WHERE dates.next_birthday_on >= @as_of_date
+                ORDER BY dates.next_birthday_on
+                LIMIT 1
+            ) AS next_birthday
+        ), ranked AS (
+            SELECT
+                employee_id,
+                display_name,
+                next_birthday_on,
+                MIN(next_birthday_on) OVER () AS earliest_birthday
+            FROM candidates
+        )
+        SELECT employee_id, display_name, next_birthday_on
+        FROM ranked
+        WHERE next_birthday_on = earliest_birthday
         ORDER BY employee_id
         """;
 
@@ -93,12 +139,20 @@ public sealed class PostgresWorkforceSource(
                     var employee = new HcmEmployeeDirectoryEntry(
                         reader.GetString(0),
                         reader.GetString(1),
-                        reader.GetFieldValue<string[]>(2));
+                        reader.GetFieldValue<string[]>(2),
+                        reader.IsDBNull(3) ? null : reader.GetString(3),
+                        reader.IsDBNull(4) ? null : reader.GetString(4),
+                        reader.IsDBNull(5) ? null : reader.GetFieldValue<DateOnly>(5));
 
-                    // The name filter runs in C# with the shared matcher; the
-                    // office filter above runs in SQL (both decided for T2).
-                    if (string.IsNullOrWhiteSpace(query.Name)
-                        || NameMatching.Matches(employee.DisplayName, query.Name))
+                    // Name and surname-fragment filters run in C# with the shared
+                    // matcher; the office filter above runs in SQL.
+                    var nameMatches = string.IsNullOrWhiteSpace(query.Name)
+                        || NameMatching.Matches(employee.DisplayName, query.Name);
+                    var surnameContains = query.SurnameContains;
+                    var surnameMatches = string.IsNullOrWhiteSpace(surnameContains)
+                        || (!string.IsNullOrWhiteSpace(employee.LastName)
+                            && NameMatching.Matches(employee.LastName, surnameContains));
+                    if (nameMatches && surnameMatches)
                     {
                         employees.Add(employee);
                     }
@@ -107,6 +161,46 @@ public sealed class PostgresWorkforceSource(
 
             await transaction.CommitAsync(cancellationToken);
             return employees;
+        }
+        catch (NpgsqlException exception)
+        {
+            throw new HcmSourceUnavailableException(UnavailableMessage, exception);
+        }
+    }
+
+    public async Task<IReadOnlyList<HcmUpcomingBirthday>> GetUpcomingBirthdaysAsync(
+        UpcomingBirthdayQuery query,
+        CancellationToken cancellationToken = default)
+    {
+        ArgumentNullException.ThrowIfNull(query);
+        cancellationToken.ThrowIfCancellationRequested();
+
+        try
+        {
+            await using var connection = await dataSource.OpenConnectionAsync(cancellationToken);
+            await using var transaction = await BeginReadOnlyTransactionAsync(
+                connection,
+                cancellationToken);
+            await using var command = CreateCommand(
+                connection,
+                transaction,
+                UpcomingBirthdaysSql);
+            AddParameter(command, "as_of_date", NpgsqlDbType.Date, query.AsOfDate);
+
+            var birthdays = new List<HcmUpcomingBirthday>();
+            await using (var reader = await command.ExecuteReaderAsync(cancellationToken))
+            {
+                while (await reader.ReadAsync(cancellationToken))
+                {
+                    birthdays.Add(new HcmUpcomingBirthday(
+                        reader.GetString(0),
+                        reader.GetString(1),
+                        reader.GetFieldValue<DateOnly>(2)));
+                }
+            }
+
+            await transaction.CommitAsync(cancellationToken);
+            return birthdays;
         }
         catch (NpgsqlException exception)
         {

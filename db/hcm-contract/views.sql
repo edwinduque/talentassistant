@@ -34,9 +34,20 @@
 
 CREATE SCHEMA IF NOT EXISTS hcm_contract;
 
--- 1) Directorio (solo fixtures; display name = name + last_name).
+-- 1) Directorio (solo fixtures; display name = name + last_name). Job title,
+--    surname, hire date and birthday month/day are explicit approved
+--    projections; birth year and every other employee column remain outside
+--    the contract.
 CREATE OR REPLACE VIEW hcm_contract.talentassistant_employees AS
-SELECT aliases.employee_id, aliases.display_name, aliases.office_ids
+SELECT
+    aliases.employee_id,
+    aliases.display_name,
+    aliases.office_ids,
+    aliases.job_title,
+    aliases.birthday_month,
+    aliases.birthday_day,
+    aliases.last_name,
+    aliases.hire_date
 FROM (
     SELECT
         CASE
@@ -51,7 +62,12 @@ FROM (
             WHEN e.name || ' ' || e.last_name = 'Empleado sintético 003' THEN 'employee-demo-madrid-002'
         END AS employee_id,
         e.name || ' ' || e.last_name AS display_name,
-        ARRAY[e.department]::text[] AS office_ids
+        ARRAY[e.department]::text[] AS office_ids,
+        e."job:title" AS job_title,
+        EXTRACT(MONTH FROM e.birthday_date)::integer AS birthday_month,
+        EXTRACT(DAY FROM e.birthday_date)::integer AS birthday_day,
+        e.last_name AS last_name,
+        e.hire_date::date AS hire_date
     FROM public.employee AS e
     WHERE e.department LIKE 'office-demo-%'
       AND e.deleted_on IS NULL

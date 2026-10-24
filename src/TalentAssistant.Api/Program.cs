@@ -86,6 +86,7 @@ builder.Services.AddIdentityInfrastructure(
         builder.Configuration["Authentication:SeedPassword"]));
 builder.Services.AddScoped<GetAttendanceInsights>();
 builder.Services.AddScoped<SearchEmployees>();
+builder.Services.AddScoped<GetUpcomingBirthdays>();
 builder.Services.AddScoped<GetEmployeePresence>();
 builder.Services.AddScoped<GetEmployeeTimeOff>();
 builder.Services.AddScoped<GetEmployeeTasks>();
@@ -484,7 +485,14 @@ app.MapGet("/employees", async (
         var employees = await searchEmployees.ExecuteAsync(
             new EmployeeSearchQuery(name, officeId, language),
             cancellationToken);
-        return Results.Ok(employees);
+        // Keep the existing HTTP directory contract unchanged: the assistant
+        // may receive the approved job title, but this endpoint does not expose it.
+        return Results.Ok(employees.Select(employee => new
+        {
+            employee.Id,
+            employee.DisplayName,
+            employee.OfficeIds
+        }));
     }
     catch (HcmSourceUnavailableException)
     {

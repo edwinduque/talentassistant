@@ -12,6 +12,18 @@ public sealed class SearchEmployees(IHcmWorkforceSource workforceSource)
     }
 }
 
+public sealed class GetUpcomingBirthdays(IHcmWorkforceSource workforceSource)
+{
+    public async Task<IReadOnlyList<HcmUpcomingBirthday>> ExecuteAsync(
+        UpcomingBirthdayQuery query,
+        CancellationToken cancellationToken = default)
+    {
+        ArgumentNullException.ThrowIfNull(query);
+
+        return await workforceSource.GetUpcomingBirthdaysAsync(query, cancellationToken);
+    }
+}
+
 public sealed class GetEmployeePresence(IHcmWorkforceSource workforceSource)
 {
     public async Task<HcmPresenceSnapshot> ExecuteAsync(

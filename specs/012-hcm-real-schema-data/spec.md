@@ -98,7 +98,7 @@ Más casos límite obligatorios: empleados de demostración del banco (Juan Pér
 ## 10. Supuestos y confirmaciones abiertas
 
 1. **`status_id` — CONFIRMADO por el usuario (2026-10-20)**: «el status es: 1 pendiente, 2 activo, 3 eliminado». Se aplica en el seed y en las vistas: empleado activo = `2` (pendientes = `1`, eliminados = `3` además de `deleted_on`), `timeoff` activo/aprobado = `2` (base de la regla §5.1), `time_check` y `time_check_delay` usan el mismo vocabulario en el seed (supuesto del generador documentado en su código para revisión en T2).
-2. **`'job:title'`**: en su paste aparece con comillas simples (artefacto del pegado); se tratará como columna con ese nombre exacto entrecomillado (confirmar si es `job_title`).
+2. **`'job:title'` — CONFIRMADO por el usuario (2026-10-23)**: el nombre exacto entrecomillado `"job:title"` corresponde al cargo del empleado y puede proyectarse como `job_title` en el contrato de lectura.
 3. Las FK no aparecen en su DDL; se añaden localmente para integridad (si el HCM real no las tiene, no cambia el contrato de vistas).
 4. Los estados derivados de §5 son la única semántica nueva; cualquier corrección suya se aplica antes de T3.
 5. La existencia de `timeoff` con `date_end` vacío se trata como “hasta nuevo aviso” (cubre la fecha si `status_id` es aprobado).
@@ -121,4 +121,4 @@ Evidencia verificada (2026-10-20): una inicialización limpia auto-carga schema+
 
 Correcciones de fixture aprobadas y aplicadas (2026-10-20): presencia de hoy de Pedro `vacation → not-arrived` (ancla temporal expirada), duración de Mauricio `2 → 1` y de Pedro `4 → 5` (regla derivada `ends_before − starts_on`), con dos aserciones duras de prueba y la expectación de seguridad del INSERT hostil reconciliada (`42501` o `55000`).
 
-Gaps conocidos (documentados, no corregidos): el shape real no expone tabla de tareas ni tabla de hallazgos de regla evaluados, por lo que esas dos vistas del contrato siguen leyendo la sustitución legada hasta que el usuario comparta sus DDLs; el catálogo servido está acotado a los nueve empleados de fixture (`department LIKE 'office-demo-%'`), y ampliarlo es un cambio de una línea en la vista más la evolución de las pruebas. Las confirmaciones abiertas de §10 siguen abiertas: el nombre exacto de la columna de job title pendiente de confirmación del usuario, las FK añadidas localmente y el `date_end` nulo cubierto como «hasta nuevo aviso».
+Gaps conocidos (documentados, no corregidos): el shape real no expone tabla de tareas ni tabla de hallazgos de regla evaluados, por lo que esas dos vistas del contrato siguen leyendo la sustitución legada hasta que el usuario comparta sus DDLs; el catálogo servido está acotado a los nueve empleados de fixture (`department LIKE 'office-demo-%'`), y ampliarlo es un cambio de una línea en la vista más la evolución de las pruebas. Siguen abiertas las decisiones de las FK añadidas localmente y el `date_end` nulo cubierto como «hasta nuevo aviso».

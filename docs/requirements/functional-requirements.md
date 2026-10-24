@@ -42,6 +42,8 @@ Estado inicial: Propuesto. La aprobación del alcance convierte los requisitos s
 | FR-033 | En modo Postgres, si la base del HCM no está disponible, los endpoints de datos devolverán un error localizado de fuente no disponible; el sistema nunca volverá a datos sintéticos de forma silenciosa. | Must |
 | FR-034 | La interfaz Web ofrecerá en `/` una landing pública que explique Talent Assistant y permita navegar a sus secciones informativas y al login; las páginas funcionales seguirán protegidas por autenticación. | Must |
 | FR-035 | La interfaz Web retirará la página `/attendance-insights` y su enlace de navegación; la información de asistencia seguirá disponible mediante el asistente (herramienta `attendance_insights`) y el endpoint `GET /attendance/insights`, que conservan su contrato y autorización. | Must |
+| FR-036 | El asistente consultará solo atributos del HCM aprobados explícitamente por sus herramientas: en esta enmienda, cargo y próximo cumpleaños. El sueldo y los datos bancarios son restringidos; campos no aprobados no se enviarán al modelo ni se presentarán como datos disponibles. | Must |
+| FR-037 | El asistente podrá consultar la fecha de contratación y buscar empleados por fragmento de apellido mediante campos explícitos de la fuente HCM; los resultados serán los informados por el HCM y no ampliarán el contrato HTTP existente de `/employees`. | Must |
 
 FR-020 fue aprobado mediante SPEC-004 y está implementado y verificado (commits en `main`); el perfil local Compose sirve los fixtures desde PostgreSQL (motor sustituido por ADR-0013/SPEC-013).
 
@@ -62,6 +64,10 @@ FR-032 y FR-033 fueron aprobados mediante SPEC-011 y ADR-0012 y están implement
 FR-034 fue aprobado mediante SPEC-017; su landing pública usa información del proyecto y datos sintéticos, conserva el acceso al login en `/login` y mantiene autenticado el resumen operativo en `/overview`.
 
 FR-035 fue aprobado mediante SPEC-019; el retiro se limita a la interfaz Web (página, navegación y cliente HTTP específico), sin tocar el endpoint, el caso de uso, las fuentes ni la herramienta del asistente.
+
+FR-036 fue aprobado mediante la enmienda 2026-10-23 de SPEC-008/009/010: el asistente puede consultar el cargo y el próximo cumpleaños; sueldo y datos bancarios quedan restringidos, y los campos no aprobados se excluyen del payload del modelo.
+
+FR-037 fue aprobado mediante la enmienda 2026-10-23 de SPEC-008/009: el asistente puede consultar `hire_date` y filtrar por `last_name`; el contrato HTTP de `GET /employees` conserva su forma original.
 
 ## Reglas de negocio iniciales
 

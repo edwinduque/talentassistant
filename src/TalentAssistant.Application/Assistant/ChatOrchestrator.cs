@@ -35,6 +35,7 @@ public sealed record ChatResult(
 public sealed class ChatOrchestrator(
     IAssistantLanguageModel languageModel,
     SearchEmployees searchEmployees,
+    GetUpcomingBirthdays getUpcomingBirthdays,
     GetEmployeePresence getEmployeePresence,
     GetEmployeeTimeOff getEmployeeTimeOff,
     GetEmployeeTasks getEmployeeTasks,
@@ -42,16 +43,16 @@ public sealed class ChatOrchestrator(
     AssistantOrchestratorOptions options)
 {
     /// <summary>
-    /// The closed v1 catalog (SPEC-008 §6): search_employees, presence,
-    /// timeoff, tasks and attendance_insights. The model cannot extend it.
+    /// The closed catalog (SPEC-009 §6): search_employees, presence, timeoff,
+    /// tasks, attendance_insights and upcoming_birthday. The model cannot extend it.
     /// </summary>
     public static IReadOnlyList<AssistantToolDefinition> ToolCatalog { get; } =
         Array.AsReadOnly<AssistantToolDefinition>(
         [
             new(
                 "search_employees",
-                "Search the employee directory by display name and/or office id.",
-                """{"type":"object","properties":{"name":{"type":["string","null"]},"office":{"type":["string","null"]}},"required":[]}"""),
+                "Search by display name, surname fragment, and/or office id; results include approved surname, hire date, and job title fields.",
+                """{"type":"object","properties":{"name":{"type":["string","null"]},"office":{"type":["string","null"]},"surname_contains":{"type":["string","null"],"description":"Substring in the employee's surname"}},"required":[]}"""),
             new(
                 "presence",
                 "Get the presence snapshot for a local date (yyyy-MM-dd, defaults to today).",
@@ -67,7 +68,11 @@ public sealed class ChatOrchestrator(
             new(
                 "attendance_insights",
                 "Get attendance insights for a date range (from inclusive, to exclusive, both yyyy-MM-dd).",
-                """{"type":"object","properties":{"from":{"type":["string","null"],"description":"Inclusive start date as yyyy-MM-dd"},"to":{"type":["string","null"],"description":"Exclusive end date as yyyy-MM-dd"}},"required":["from","to"]}""")
+                """{"type":"object","properties":{"from":{"type":["string","null"],"description":"Inclusive start date as yyyy-MM-dd"},"to":{"type":["string","null"],"description":"Exclusive end date as yyyy-MM-dd"}},"required":["from","to"]}"""),
+            new(
+                "upcoming_birthday",
+                "Get employees with the next upcoming birthday and date from the HCM source; ties are included and birth year is omitted.",
+                """{"type":"object","properties":{},"required":[]}""")
         ]);
 
     // Names for the requested language in system-prompt instructions (SPEC-009 S1).
@@ -179,11 +184,15 @@ public sealed class ChatOrchestrator(
             + " to people and team data, then offer to help with an HR/HCM question instead; never provide the"
             + " unrelated content.",
             "Call a tool and wait for its result before answering.",
+            "Salary and bank account details are restricted: never disclose or infer them, and say the information is unavailable if asked.",
             "For questions about a specific person, first call search_employees with the name from the question;"
             + " if it matches several employees, list the matching candidates (display name and office) and ask"
             + " which one you mean before answering; never pick one silently.",
+            "For hire-date questions, use the employee's name with search_employees and report the returned HireDate;"
+            + " for surname-fragment questions, use search_employees with surname_contains and report all matches.",
             "For leave or return-date questions use timeoff; use presence only for who is present, absent"
-            + " or on leave right now.");
+            + " or on leave right now.",
+            "For the next upcoming birthday, call upcoming_birthday; use the source-provided result and do not calculate it from employee birth data.");
     }
 
     private async Task<string> ExecuteToolAsync(
@@ -198,75 +207,86 @@ public sealed class ChatOrchestrator(
             switch (toolCall.Name)
             {
                 case "search_employees":
-                {
-                    var employees = await searchEmployees.ExecuteAsync(
-                        new EmployeeSearchQuery(
-                            arguments.GetString("name"),
-                            arguments.GetString("office"),
-                            language),
-                        cancellationToken);
-                    return JsonSerializer.Serialize(employees, ToolResultSerializerOptions);
-                }
+                    {
+                        var employees = await searchEmployees.ExecuteAsync(
+                            new EmployeeSearchQuery(
+                                Name: arguments.GetString("name"),
+                                OfficeId: arguments.GetString("office"),
+                                Language: language,
+                                SurnameContains: arguments.GetString("surname_contains")),
+                            cancellationToken);
+                        return JsonSerializer.Serialize(employees, ToolResultSerializerOptions);
+                    }
+
+                case "upcoming_birthday":
+                    {
+                        var birthdays = await getUpcomingBirthdays.ExecuteAsync(
+                            new UpcomingBirthdayQuery(
+                                DateOnly.FromDateTime(DateTime.Today),
+                                language),
+                            cancellationToken);
+                        return JsonSerializer.Serialize(birthdays, ToolResultSerializerOptions);
+                    }
 
                 case "presence":
-                {
-                    var rawDate = arguments.GetString("date");
-                    if (!TryParseDate(rawDate, out var date))
                     {
-                        // A missing date means today; only a malformed value errors.
-                        if (!string.IsNullOrWhiteSpace(rawDate))
+                        var rawDate = arguments.GetString("date");
+                        if (!TryParseDate(rawDate, out var date))
                         {
-                            return ToolError(
-                                $"Invalid date '{rawDate}': provide the date as yyyy-MM-dd.");
+                            // A missing date means today; only a malformed value errors.
+                            if (!string.IsNullOrWhiteSpace(rawDate))
+                            {
+                                return ToolError(
+                                    $"Invalid date '{rawDate}': provide the date as yyyy-MM-dd.");
+                            }
+
+                            date = DateOnly.FromDateTime(DateTime.Today);
                         }
 
-                        date = DateOnly.FromDateTime(DateTime.Today);
+                        var snapshot = await getEmployeePresence.ExecuteAsync(
+                            new PresenceQuery(date, language),
+                            cancellationToken);
+                        return JsonSerializer.Serialize(snapshot, ToolResultSerializerOptions);
                     }
-
-                    var snapshot = await getEmployeePresence.ExecuteAsync(
-                        new PresenceQuery(date, language),
-                        cancellationToken);
-                    return JsonSerializer.Serialize(snapshot, ToolResultSerializerOptions);
-                }
 
                 case "timeoff":
-                {
-                    var requests = await getEmployeeTimeOff.ExecuteAsync(
-                        new EmployeeDataQuery(
-                            arguments.GetString("employee_id"),
-                            arguments.GetString("name"),
-                            language),
-                        cancellationToken);
-                    return JsonSerializer.Serialize(requests, ToolResultSerializerOptions);
-                }
-
-                case "tasks":
-                {
-                    var tasks = await getEmployeeTasks.ExecuteAsync(
-                        new EmployeeDataQuery(
-                            arguments.GetString("employee_id"),
-                            arguments.GetString("name"),
-                            language),
-                        cancellationToken);
-                    return JsonSerializer.Serialize(tasks, ToolResultSerializerOptions);
-                }
-
-                case "attendance_insights":
-                {
-                    var rawFrom = arguments.GetString("from");
-                    var rawTo = arguments.GetString("to");
-                    if (!TryParseDate(rawFrom, out var from)
-                        || !TryParseDate(rawTo, out var to))
                     {
-                        return ToolError(
-                            $"Invalid date range '{rawFrom}'..'{rawTo}': provide from and to as yyyy-MM-dd.");
+                        var requests = await getEmployeeTimeOff.ExecuteAsync(
+                            new EmployeeDataQuery(
+                                arguments.GetString("employee_id"),
+                                arguments.GetString("name"),
+                                language),
+                            cancellationToken);
+                        return JsonSerializer.Serialize(requests, ToolResultSerializerOptions);
                     }
 
-                    var insights = await getAttendanceInsights.ExecuteAsync(
-                        new AttendanceInsightQuery(from, to, null, language),
-                        cancellationToken);
-                    return JsonSerializer.Serialize(insights, ToolResultSerializerOptions);
-                }
+                case "tasks":
+                    {
+                        var tasks = await getEmployeeTasks.ExecuteAsync(
+                            new EmployeeDataQuery(
+                                arguments.GetString("employee_id"),
+                                arguments.GetString("name"),
+                                language),
+                            cancellationToken);
+                        return JsonSerializer.Serialize(tasks, ToolResultSerializerOptions);
+                    }
+
+                case "attendance_insights":
+                    {
+                        var rawFrom = arguments.GetString("from");
+                        var rawTo = arguments.GetString("to");
+                        if (!TryParseDate(rawFrom, out var from)
+                            || !TryParseDate(rawTo, out var to))
+                        {
+                            return ToolError(
+                                $"Invalid date range '{rawFrom}'..'{rawTo}': provide from and to as yyyy-MM-dd.");
+                        }
+
+                        var insights = await getAttendanceInsights.ExecuteAsync(
+                            new AttendanceInsightQuery(from, to, null, language),
+                            cancellationToken);
+                        return JsonSerializer.Serialize(insights, ToolResultSerializerOptions);
+                    }
 
                 default:
                     return ToolError(
