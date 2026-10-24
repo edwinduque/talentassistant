@@ -1,0 +1,148 @@
+/* SPEC-019: profile presentation on the shared design tokens (SPEC-018).
+   Forms, actions and error/success behavior are unchanged; global app.css
+   owns the card shell, buttons and focus styles. */
+
+.profile-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(min(100%, 24rem), 1fr));
+    gap: 1.5rem;
+    align-items: start;
+    max-width: 66rem;
+}
+
+.profile-card {
+    /* The global .status-card shell is a horizontal flex row (overview cards);
+       the profile cards stack a header band above their body instead. */
+    flex-direction: column;
+    align-items: stretch;
+    gap: 0;
+    min-height: 0;
+    overflow: hidden;
+}
+
+.profile-card-header {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    padding: clamp(1.1rem, 2.4vw, 1.5rem);
+    border-bottom: 1px solid var(--border);
+    background: var(--surface-soft);
+}
+
+.profile-card-header--identity {
+    border-bottom-color: color-mix(in srgb, var(--brand-highlight) 35%, var(--brand-deep));
+    background: var(--brand-deep);
+    color: var(--brand-on-deep);
+}
+
+.profile-card-header--identity .profile-card-heading h2 {
+    color: var(--brand-on-deep);
+}
+
+.profile-avatar {
+    display: inline-grid;
+    width: 3rem;
+    flex-shrink: 0;
+    aspect-ratio: 1;
+    place-items: center;
+    border-radius: 999px;
+    background: var(--brand-highlight);
+    color: var(--brand-deep);
+    font-size: 1.05rem;
+    font-weight: 760;
+    letter-spacing: 0.02em;
+}
+
+.profile-card-heading {
+    display: grid;
+    gap: 0.25rem;
+    min-width: 0;
+}
+
+.profile-card-heading h2 {
+    margin: 0;
+    font-size: 1.15rem;
+    font-weight: 720;
+    letter-spacing: -0.025em;
+}
+
+.profile-username {
+    margin: 0;
+    color: var(--muted);
+    font-size: 0.9rem;
+    overflow-wrap: anywhere;
+}
+
+.profile-card-header--identity .profile-username {
+    color: color-mix(in srgb, var(--brand-on-deep) 78%, transparent);
+}
+
+.profile-card-body {
+    display: grid;
+    padding: clamp(1.25rem, 3vw, 2rem);
+}
+
+.profile-form {
+    display: grid;
+    gap: 1.25rem;
+    max-width: 34rem;
+}
+
+.profile-field {
+    display: grid;
+    gap: 0.35rem;
+}
+
+.profile-field label {
+    font-weight: 650;
+}
+
+.profile-control {
+    box-sizing: border-box;
+    width: 100%;
+    min-height: 2.75rem;
+    padding: 0.5rem 0.75rem;
+    border: 1px solid var(--border);
+    border-radius: var(--control-radius);
+    background: var(--field-surface);
+    color: var(--ink);
+    font: inherit;
+    transition: border-color 0.15s ease, background-color 0.15s ease;
+}
+
+.profile-control:hover {
+    border-color: color-mix(in srgb, var(--accent) 45%, var(--border));
+}
+
+.profile-message {
+    margin: 0;
+    font-weight: 650;
+}
+
+.profile-message--error {
+    color: var(--danger);
+}
+
+.profile-message--success {
+    color: var(--success);
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .profile-control {
+        transition: none;
+    }
+}
+
+/* Routes.razor FocusOnNavigate focuses the page h1 after each navigation
+   (accessibility announcement); the UA default ring reads as a stray box
+   around the heading. The landing suppresses it the same way (SPEC-017). */
+.profile-page .overview-heading h1:focus,
+.profile-page .overview-heading h1:focus-visible {
+    outline: none;
+}
+
+@media (forced-colors: active) {
+    .profile-avatar {
+        border: 1px solid CanvasText;
+    }
+}

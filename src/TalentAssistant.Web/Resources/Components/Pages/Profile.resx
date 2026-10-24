@@ -39,6 +39,9 @@
   <data name="ChangePasswordHeading" xml:space="preserve">
     <value>Cambiar contraseña</value>
   </data>
+  <data name="SecurityEyebrow" xml:space="preserve">
+    <value>Seguridad</value>
+  </data>
   <data name="PasswordPolicyHint" xml:space="preserve">
     <value>La contraseña nueva debe tener al menos 6 caracteres e incluir mayúsculas, minúsculas, números y caracteres no alfanuméricos.</value>
   </data>
