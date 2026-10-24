@@ -50,7 +50,17 @@ public sealed class PublicLandingRouteTests : IDisposable
 
         Assert.Equal(HttpStatusCode.Redirect, response.StatusCode);
         Assert.Equal("/login", response.Headers.Location?.AbsolutePath);
+    }
 
+    [Fact]
+    public async Task Attendance_page_is_removed_and_its_route_stays_non_public()
+    {
+        // SPEC-019: the component itself must be gone from the Web assembly.
+        var pageType = typeof(LoginLayout).Assembly.GetType(
+            "TalentAssistant.Web.Components.Pages.AttendanceInsights");
+        Assert.Null(pageType);
+
+        // The retired route must not serve the page to anonymous visitors.
         var attendance = await client.GetAsync("/attendance-insights");
 
         Assert.Equal(HttpStatusCode.Redirect, attendance.StatusCode);
@@ -66,11 +76,11 @@ public sealed class PublicLandingRouteTests : IDisposable
         Assert.Equal(HttpStatusCode.OK, response.StatusCode);
         Assert.Contains("name=\"ReturnUrl\" value=\"/overview\"", html);
 
-        var requestedPage = await client.GetAsync("/login?ReturnUrl=%2Fattendance-insights");
+        var requestedPage = await client.GetAsync("/login?ReturnUrl=%2Fassistant");
         var requestedPageHtml = WebUtility.HtmlDecode(await requestedPage.Content.ReadAsStringAsync());
 
         Assert.Equal(HttpStatusCode.OK, requestedPage.StatusCode);
-        Assert.Contains("name=\"ReturnUrl\" value=\"/attendance-insights\"", requestedPageHtml);
+        Assert.Contains("name=\"ReturnUrl\" value=\"/assistant\"", requestedPageHtml);
     }
 
     [Fact]

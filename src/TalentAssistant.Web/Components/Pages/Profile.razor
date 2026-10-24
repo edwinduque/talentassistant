@@ -10,84 +10,6 @@
 <PageTitle>@Local["PageTitle"]</PageTitle>
 
 <div class="profile-page">
-    <style>
-        .profile-card {
-            max-width: 34rem;
-            margin-bottom: 1.5rem;
-        }
-
-        .profile-card-content {
-            padding: 2rem;
-        }
-
-        .profile-form {
-            display: grid;
-            gap: 1.25rem;
-        }
-
-        .profile-field {
-            display: grid;
-            gap: 0.35rem;
-        }
-
-        .profile-field label {
-            font-weight: 600;
-        }
-
-        .profile-control {
-            box-sizing: border-box;
-            width: 100%;
-            min-height: 2.75rem;
-            padding: 0.5rem 0.75rem;
-            border: 1px solid var(--border);
-            border-radius: var(--control-radius);
-            background: var(--field-surface);
-            color: var(--ink);
-            font: inherit;
-        }
-
-        .profile-control:focus-visible {
-            outline: 3px solid var(--focus);
-            outline-offset: 2px;
-        }
-
-        .profile-hint {
-            margin: 0;
-            color: var(--muted);
-        }
-
-        .profile-message {
-            margin: 0;
-            font-weight: 600;
-        }
-
-        .profile-message--error {
-            color: var(--danger);
-        }
-
-        .profile-message--success {
-            color: var(--success);
-        }
-
-        .profile-action button {
-            min-height: 2.75rem;
-            padding: 0.5rem 1.5rem;
-            border: 1px solid var(--action-background);
-            border-radius: var(--control-radius);
-            background: var(--action-background);
-            color: var(--action-foreground);
-            font: inherit;
-            font-weight: 650;
-            cursor: pointer;
-        }
-
-        .profile-action button:hover {
-            border-color: var(--action-hover-background);
-            background: var(--action-hover-background);
-            color: var(--action-hover-foreground);
-        }
-    </style>
-
     <header class="overview-heading">
         <p class="eyebrow">@CommonLocal["AppName"]</p>
         <h1>@Local["Title"]</h1>
@@ -98,103 +20,116 @@
     {
         <p class="profile-message profile-message--error" role="alert">@Local["ProfileLoadFailed"]</p>
     }
-    else if (_profile is not null)
-    {
-        <p class="profile-hint">@Local["UserNameHint", _profile.UserName]</p>
-    }
 
-    <section class="status-card profile-card" aria-labelledby="profile-display-name-heading">
-        <div class="status-rail" aria-hidden="true"></div>
-        <div class="status-card-content profile-card-content">
-            <h2 id="profile-display-name-heading">@Local["DisplayNameHeading"]</h2>
-            <form action="/session/profile" method="post" class="profile-form">
-                <input type="hidden" name="ReturnUrl" value="@_returnUrl" />
-                <div class="profile-field">
-                    <label for="profile-full-name">@Local["FullNameLabel"]</label>
-                    <input id="profile-full-name"
-                           class="profile-control"
-                           type="text"
-                           name="FullName"
-                           value="@_fullName"
-                           maxlength="100"
-                           autocomplete="name" />
-                </div>
-                <div class="profile-field">
-                    <label for="profile-language">@CommonLocal["Language"]</label>
-                    <select id="profile-language"
-                            class="profile-control"
-                            name="PreferredLanguage"
-                            aria-label="@CommonLocal["Language"]">
-                        <option value="es" selected="@(_preferredLanguage == "es")">@CommonLocal["LanguageEs"]</option>
-                        <option value="en" selected="@(_preferredLanguage == "en")">@CommonLocal["LanguageEn"]</option>
-                    </select>
-                </div>
-
-                @if (_profileError)
+    <div class="profile-grid">
+        <section class="status-card profile-card" aria-labelledby="profile-display-name-heading">
+            <div class="profile-card-header profile-card-header--identity">
+                @if (!string.IsNullOrEmpty(_initials))
                 {
-                    <p class="profile-message profile-message--error" role="alert">@Local["ProfileSaveFailed"]</p>
+                    <span class="profile-avatar" aria-hidden="true">@_initials</span>
                 }
-
-                <div class="profile-action">
-                    <button type="submit">@CommonLocal["Save"]</button>
+                <div class="profile-card-heading">
+                    <h2 id="profile-display-name-heading">@Local["DisplayNameHeading"]</h2>
+                    @if (_profile is not null)
+                    {
+                        <p class="profile-username">@Local["UserNameHint", _profile.UserName]</p>
+                    }
                 </div>
-            </form>
-        </div>
-    </section>
+            </div>
+            <div class="profile-card-body">
+                <form action="/session/profile" method="post" class="profile-form">
+                    <input type="hidden" name="ReturnUrl" value="@_returnUrl" />
+                    <div class="profile-field">
+                        <label for="profile-full-name">@Local["FullNameLabel"]</label>
+                        <input id="profile-full-name"
+                               class="profile-control"
+                               type="text"
+                               name="FullName"
+                               value="@_fullName"
+                               maxlength="100"
+                               autocomplete="name" />
+                    </div>
+                    <div class="profile-field">
+                        <label for="profile-language">@CommonLocal["Language"]</label>
+                        <select id="profile-language"
+                                class="profile-control"
+                                name="PreferredLanguage"
+                                aria-label="@CommonLocal["Language"]">
+                            <option value="es" selected="@(_preferredLanguage == "es")">@CommonLocal["LanguageEs"]</option>
+                            <option value="en" selected="@(_preferredLanguage == "en")">@CommonLocal["LanguageEn"]</option>
+                        </select>
+                    </div>
 
-    <section class="status-card profile-card" aria-labelledby="profile-password-heading">
-        <div class="status-rail" aria-hidden="true"></div>
-        <div class="status-card-content profile-card-content">
-            <h2 id="profile-password-heading">@Local["ChangePasswordHeading"]</h2>
-            <p class="profile-hint" id="profile-password-help">@Local["PasswordPolicyHint"]</p>
-            <form action="/session/password" method="post" class="profile-form">
-                <input type="hidden" name="ReturnUrl" value="@_returnUrl" />
-                <div class="profile-field">
-                    <label for="profile-current-password">@Local["CurrentPasswordLabel"]</label>
-                    <input id="profile-current-password"
-                           class="profile-control"
-                           type="password"
-                           name="CurrentPassword"
-                           autocomplete="current-password"
-                           required />
-                </div>
-                <div class="profile-field">
-                    <label for="profile-new-password">@Local["NewPasswordLabel"]</label>
-                    <input id="profile-new-password"
-                           class="profile-control"
-                           type="password"
-                           name="NewPassword"
-                           autocomplete="new-password"
-                           aria-describedby="profile-password-help"
-                           required />
-                </div>
-                <div class="profile-field">
-                    <label for="profile-confirm-password">@Local["ConfirmPasswordLabel"]</label>
-                    <input id="profile-confirm-password"
-                           class="profile-control"
-                           type="password"
-                           name="ConfirmPassword"
-                           autocomplete="new-password"
-                           aria-describedby="profile-password-help"
-                           required />
-                </div>
+                    @if (_profileError)
+                    {
+                        <p class="profile-message profile-message--error" role="alert">@Local["ProfileSaveFailed"]</p>
+                    }
 
-                @if (_passwordChanged)
-                {
-                    <p class="profile-message profile-message--success" role="status">@Local["PasswordChanged"]</p>
-                }
+                    <div class="profile-action">
+                        <button type="submit">@CommonLocal["Save"]</button>
+                    </div>
+                </form>
+            </div>
+        </section>
 
-                @if (_passwordError is not null)
-                {
-                    <p class="profile-message profile-message--error" role="alert">@Local[_passwordError]</p>
-                }
-
-                <div class="profile-action">
-                    <button type="submit">@Local["ChangePasswordButton"]</button>
+        <section class="status-card profile-card" aria-labelledby="profile-password-heading">
+            <div class="profile-card-header">
+                <div class="profile-card-heading">
+                    <p class="eyebrow">@Local["SecurityEyebrow"]</p>
+                    <h2 id="profile-password-heading">@Local["ChangePasswordHeading"]</h2>
+                    <p class="profile-username" id="profile-password-help">@Local["PasswordPolicyHint"]</p>
                 </div>
-            </form>
-        </div>
-    </section>
+            </div>
+            <div class="profile-card-body">
+                <form action="/session/password" method="post" class="profile-form">
+                    <input type="hidden" name="ReturnUrl" value="@_returnUrl" />
+                    <div class="profile-field">
+                        <label for="profile-current-password">@Local["CurrentPasswordLabel"]</label>
+                        <input id="profile-current-password"
+                               class="profile-control"
+                               type="password"
+                               name="CurrentPassword"
+                               autocomplete="current-password"
+                               required />
+                    </div>
+                    <div class="profile-field">
+                        <label for="profile-new-password">@Local["NewPasswordLabel"]</label>
+                        <input id="profile-new-password"
+                               class="profile-control"
+                               type="password"
+                               name="NewPassword"
+                               autocomplete="new-password"
+                               aria-describedby="profile-password-help"
+                               required />
+                    </div>
+                    <div class="profile-field">
+                        <label for="profile-confirm-password">@Local["ConfirmPasswordLabel"]</label>
+                        <input id="profile-confirm-password"
+                               class="profile-control"
+                               type="password"
+                               name="ConfirmPassword"
+                               autocomplete="new-password"
+                               aria-describedby="profile-password-help"
+                               required />
+                    </div>
+
+                    @if (_passwordChanged)
+                    {
+                        <p class="profile-message profile-message--success" role="status">@Local["PasswordChanged"]</p>
+                    }
+
+                    @if (_passwordError is not null)
+                    {
+                        <p class="profile-message profile-message--error" role="alert">@Local[_passwordError]</p>
+                    }
+
+                    <div class="profile-action">
+                        <button type="submit">@Local["ChangePasswordButton"]</button>
+                    </div>
+                </form>
+            </div>
+        </section>
+    </div>
 </div>
 
 @code {
@@ -206,6 +141,7 @@
     private bool _profileError;
     private bool _passwordChanged;
     private string? _passwordError;
+    private string _initials = string.Empty;
 
     protected override async Task OnInitializedAsync()
     {
@@ -238,10 +174,28 @@
         }
 
         _fullName = _profile.FullName;
+        _initials = GetInitials(_fullName, _profile.UserName);
         if (SessionCulture.IsSupported(_profile.PreferredLanguage))
         {
             _preferredLanguage = _profile.PreferredLanguage;
         }
+    }
+
+    // Presentation-only initials for the identity header: first letter of the
+    // two first name words, or the first two letters when only one word exists.
+    private static string GetInitials(string fullName, string userName)
+    {
+        var source = string.IsNullOrWhiteSpace(fullName) ? userName : fullName;
+        var parts = source.Split(' ', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
+        if (parts.Length == 0)
+        {
+            return string.Empty;
+        }
+
+        var letters = parts.Length >= 2
+            ? $"{parts[0][0]}{parts[1][0]}"
+            : parts[0].Substring(0, Math.Min(2, parts[0].Length));
+        return letters.ToUpperInvariant();
     }
 
     // Maps the ?passwordError= query flag to a resource key.

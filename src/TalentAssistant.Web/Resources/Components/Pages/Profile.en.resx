@@ -39,6 +39,9 @@
   <data name="ChangePasswordHeading" xml:space="preserve">
     <value>Change password</value>
   </data>
+  <data name="SecurityEyebrow" xml:space="preserve">
+    <value>Security</value>
+  </data>
   <data name="PasswordPolicyHint" xml:space="preserve">
     <value>The new password must be at least 6 characters long and include uppercase, lowercase, digits, and non-alphanumeric characters.</value>
   </data>

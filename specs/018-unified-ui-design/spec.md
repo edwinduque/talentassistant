@@ -1,6 +1,6 @@
 # SPEC-018 — Identidad visual unificada de la interfaz
 
-- **Estado:** Implementación completada; suite completa de integración parcial por configuración local de bases de prueba (2026-10-23).
+- **Estado:** Implementación completada; suite completa de integración parcial por configuración local de bases de prueba (2026-10-23). Nota de herencia (2026-10-23): `/attendance-insights` fue retirada por [SPEC-019](../019-retire-attendance-modernize-profile/spec.md).
 - **Requisito:** NFR-023.
 - **Solicitud del usuario (verbatim):** “Tengo un nuevo requerimiento. Con sdd tratemos en tener un diseño unificado, en el login y en las pantallas se ve otro diseño. podemos adaptar esas pantallas a un diseño similar a la landing page”
 

@@ -66,7 +66,7 @@ AC-012..AC-015 fueron aprobados como alcance de SPEC-004 el 2026-10-15. Siguen p
 
 ## AC-016 — Autenticación de sesión (propuesto en SPEC-005)
 
-Dado el stack local arrancado con el usuario sembrado, cuando el desarrollador abre la interfaz sin sesión entonces es redirigido a `/login`; con credenciales correctas accede a las páginas protegidas, ve los insights como antes y puede cerrar la sesión. Sin sesión válida, la API responde HTTP 401 controlado en `/attendance/insights`, mientras que `/health` y `/health/database` siguen públicas.
+Dado el stack local arrancado con el usuario sembrado, cuando el desarrollador abre la interfaz sin sesión entonces es redirigido a `/login`; con credenciales correctas accede a las páginas protegidas, ve los insights como antes y puede cerrar la sesión. Sin sesión válida, la API responde HTTP 401 controlado en `/attendance/insights`, mientras que `/health` y `/health/database` siguen públicas. Nota (SPEC-019): la página `/attendance-insights` se retiró de la interfaz Web (FR-035); los insights siguen disponibles en el asistente y en `GET /attendance/insights`, que conserva su 401 sin token.
 
 ## AC-017 — Seguridad de credenciales locales (propuesto en SPEC-005)
 
@@ -84,7 +84,7 @@ La persona sin sesión puede cambiar el idioma del login entre español e inglé
 
 ## AC-020 — Perfil de usuario (propuesto en SPEC-006)
 
-El usuario autenticado gestiona su perfil: el nombre visible aparece en el layout, el idioma elegido localiza home, asistencia y textos de navegación/error, y el cambio de contraseña exige la actual y respeta la política de Identity.
+El usuario autenticado gestiona su perfil: el nombre visible aparece en el layout, el idioma elegido localiza home, asistencia y textos de navegación/error, y el cambio de contraseña exige la actual y respeta la política de Identity. Nota (SPEC-019): la localización de la página de asistencia cesó con su retiro; home, perfil, asistente y textos de navegación/error conservan ambos idiomas.
 
 ## AC-021 — Localización sin cambiar datos ni contratos (propuesto en SPEC-006)
 
@@ -186,7 +186,11 @@ El resumen operativo se presenta en `/overview` y continúa protegido: una perso
 
 ## AC-044 — Identidad visual unificada (propuesto en SPEC-018)
 
-La landing, el login, las pantallas operativas (`/overview`, `/attendance-insights`, `/assistant`, `/profile` y `/admin/users`), las páginas de error y el diálogo de reconexión comparten la paleta, tipografía, superficies, controles y acciones del lenguaje visual de la landing. La interfaz conserva su contenido localizado, jerarquía propia y comportamiento existente; se mantiene usable en escritorio y móvil, con navegación por teclado, foco visible y modos claro/oscuro y de alto contraste.
+La landing, el login, las pantallas operativas (`/overview`, `/assistant`, `/profile` y `/admin/users`), las páginas de error y el diálogo de reconexión comparten la paleta, tipografía, superficies, controles y acciones del lenguaje visual de la landing. La interfaz conserva su contenido localizado, jerarquía propia y comportamiento existente; se mantiene usable en escritorio y móvil, con navegación por teclado, foco visible y modos claro/oscuro y de alto contraste.
+
+## AC-045 — Retiro de la página de asistencia y perfil modernizado (propuesto en SPEC-019)
+
+La navegación y la interfaz Web ya no incluyen `/attendance-insights`: el componente fue retirado y la ruta dejó de servir la página sin exponerla de forma anónima, mientras que `GET /attendance/insights` y la herramienta `attendance_insights` del asistente siguen operativos con token. La página `/profile` presenta su contenido con el lenguaje visual unificado (cabecera de identidad con iniciales, tarjetas en rejilla responsive, modos claro/oscuro) conservando formularios, endpoints, campos, mensajes localizados ES/EN y estados de error y éxito sin cambios de comportamiento.
 
 ## Condiciones generales
 
@@ -243,5 +247,6 @@ Los identificadores de esta tabla pertenecen al catálogo general y no se reutil
 | AC-042 | FR-024, NFR-012 | Landing pública localizada en español e inglés, con enlaces a secciones y login; SPEC-017. |
 | AC-043 | FR-021, FR-034 | `/overview` protegido, `/login` público y destino por defecto tras login; SPEC-017. |
 | AC-044 | NFR-012, NFR-019, NFR-023 | Identidad visual común en login y pantallas operativas, sin alterar localización ni comportamiento; SPEC-018. |
+| AC-045 | FR-035, NFR-023 | Página de asistencia retirada de la Web con API y asistente intactos; perfil rediseñado sobre los tokens compartidos sin cambios funcionales; SPEC-019. |
 
 Los AC-003 a AC-006 no se consideran satisfechos por la estructura arquitectónica creada en SPEC-001. Cada caso de asistencia necesita requisitos, pruebas y verificación propios; Tasks no forma parte de la primera vertical. NFR-011 no tiene todavía un umbral medible y deberá concretarse cuando se definan dataset y entorno. NFR-012 se verifica en cada especificación de interfaz; estos criterios no inventan un umbral cuantitativo de contraste.

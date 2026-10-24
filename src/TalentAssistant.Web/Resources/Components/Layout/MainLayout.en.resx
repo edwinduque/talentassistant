@@ -24,9 +24,6 @@
   <data name="NavOverview" xml:space="preserve">
     <value>Overview</value>
   </data>
-  <data name="NavAttendance" xml:space="preserve">
-    <value>Attendance insights</value>
-  </data>
   <data name="NavAssistant" xml:space="preserve">
     <value>Assistant</value>
   </data>
