@@ -37,13 +37,14 @@ Estado inicial: Propuesto. La aprobación del alcance convierte los requisitos s
 | FR-027 | El usuario podrá consultar las solicitudes de TimeOff y las tareas declaradas por el HCM para un empleado, por identificador o por nombre. | Must |
 | FR-029 | El usuario podrá conversar con un asistente en lenguaje natural que responderá con datos del backend mediante un catálogo fijo de herramientas ejecutadas con la sesión e idioma del usuario, sin escrituras. | Must |
 | FR-030 | El asistente conversacional aplicará límites de tiempo de espera, de rondas y de longitud de respuesta; los errores del proveedor se traducirán a mensajes localizados y la aplicación funcionará sin IA. | Must |
-| FR-031 | El asistente conversacional operará únicamente en el ámbito de RR. HH./HCM y solo con los datos que devuelvan sus herramientas; a las peticiones ajenas —programación, conocimiento general, traducciones, recetas o escritura creativa— responderá con un rechazo localizado que recuerda su función y redirige al ámbito del equipo, nunca con código ni conocimiento general; si las herramientas no devuelven el dato, declarará la información no disponible en lugar de inventarla. | Must |
+| FR-031 | El asistente conversacional operará únicamente en el ámbito de RR. HH./HCM y usará datos de sus herramientas para hechos sobre empleados y organización; a las peticiones ajenas —programación, conocimiento general, traducciones, recetas o escritura creativa genérica— responderá con un rechazo localizado. La redacción de borradores de ofertas laborales es una excepción permitida, basada solo en requisitos proporcionados por el usuario. Si las herramientas no devuelven un dato factual, declarará la información no disponible en lugar de inventarla. | Must |
 | FR-032 | La aplicación consultará el HCM real desde su PostgreSQL de solo lectura mediante los puertos existentes, con un interruptor único de fuente (`Hcm__Source=Sintética|Postgres`) que gobierna a la vez todos los puertos de datos, sin SQL dinámico y con el cambio de motor de base de datos contenido en un adaptador de Infrastructure. | Must |
 | FR-033 | En modo Postgres, si la base del HCM no está disponible, los endpoints de datos devolverán un error localizado de fuente no disponible; el sistema nunca volverá a datos sintéticos de forma silenciosa. | Must |
 | FR-034 | La interfaz Web ofrecerá en `/` una landing pública que explique Talent Assistant y permita navegar a sus secciones informativas y al login; las páginas funcionales seguirán protegidas por autenticación. | Must |
 | FR-035 | La interfaz Web retirará la página `/attendance-insights` y su enlace de navegación; la información de asistencia seguirá disponible mediante el asistente (herramienta `attendance_insights`) y el endpoint `GET /attendance/insights`, que conservan su contrato y autorización. | Must |
-| FR-036 | El asistente consultará solo atributos del HCM aprobados explícitamente por sus herramientas: en esta enmienda, cargo y próximo cumpleaños. El sueldo y los datos bancarios son restringidos; campos no aprobados no se enviarán al modelo ni se presentarán como datos disponibles. | Must |
+| FR-036 | El asistente consultará solo atributos del HCM aprobados explícitamente por sus herramientas: en esta enmienda, cargo y próximo cumpleaños. El sueldo de empleados y los datos bancarios son restringidos; un salario proporcionado por RR. HH. como término de una oferta laboral puede aparecer únicamente en ese borrador. Los campos no aprobados no se enviarán al modelo ni se presentarán como datos disponibles. | Must |
 | FR-037 | El asistente podrá consultar la fecha de contratación y buscar empleados por fragmento de apellido mediante campos explícitos de la fuente HCM; los resultados serán los informados por el HCM y no ampliarán el contrato HTTP existente de `/employees`. | Must |
+| FR-038 | El asistente podrá redactar en el chat un borrador de oferta laboral con requisitos provistos por RR. HH., pedir una aclaración breve si falta un dato esencial y no guardar ni publicar el texto. Cuando se solicite, apuntará a unos 500 caracteres y no inventará condiciones no proporcionadas. | Must |
 
 FR-020 fue aprobado mediante SPEC-004 y está implementado y verificado (commits en `main`); el perfil local Compose sirve los fixtures desde PostgreSQL (motor sustituido por ADR-0013/SPEC-013).
 
@@ -65,9 +66,12 @@ FR-034 fue aprobado mediante SPEC-017; su landing pública usa información del 
 
 FR-035 fue aprobado mediante SPEC-019; el retiro se limita a la interfaz Web (página, navegación y cliente HTTP específico), sin tocar el endpoint, el caso de uso, las fuentes ni la herramienta del asistente.
 
-FR-036 fue aprobado mediante la enmienda 2026-10-23 de SPEC-008/009/010: el asistente puede consultar el cargo y el próximo cumpleaños; sueldo y datos bancarios quedan restringidos, y los campos no aprobados se excluyen del payload del modelo.
+FR-036 fue aprobado mediante las enmiendas 2026-10-23 y 2026-10-24 de SPEC-008/009/010: el asistente puede consultar cargo, cumpleaños, contratación y apellido; el sueldo de empleados y datos bancarios siguen restringidos, y un salario solo puede repetirse si RR. HH. lo proporciona como término de una oferta en borrador.
 
 FR-037 fue aprobado mediante la enmienda 2026-10-23 de SPEC-008/009: el asistente puede consultar `hire_date` y filtrar por `last_name`; el contrato HTTP de `GET /employees` conserva su forma original.
+
+FR-038 fue aprobado mediante la enmienda 2026-10-24 de SPEC-009/010: se permite redactar ofertas laborales en el chat como texto efímero, basado en los requisitos escritos por RR. HH., sin guardar ni publicar.
+
 
 ## Reglas de negocio iniciales
 

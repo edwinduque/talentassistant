@@ -202,7 +202,7 @@ La consulta «Quien es la proxima persona que cumple años» devuelve todos los 
 
 ## AC-048 — Exclusión de sueldo y datos bancarios (enmienda de SPEC-010)
 
-El catálogo fijo y los payloads del asistente no exponen sueldo ni datos bancarios; si se solicitan, las instrucciones del asistente los clasifican como restringidos y la respuesta declara que la información no está disponible, sin inventar valores. Los atributos nuevos no se habilitan sin aprobación explícita.
+El catálogo fijo y los payloads del asistente no exponen sueldos de empleados ni datos bancarios; si se solicitan, las instrucciones del asistente los clasifican como restringidos y la respuesta declara que la información no está disponible, sin inventar valores. Un salario explícitamente proporcionado por RR. HH. puede aparecer solo como término de un borrador de oferta (AC-051/052); otros atributos requieren aprobación explícita.
 
 ## AC-049 — Fecha de contratación desde el HCM (enmienda de SPEC-008/009)
 
@@ -211,6 +211,14 @@ Al consultar la fecha de contratación de un empleado, `search_employees` devuel
 ## AC-050 — Búsqueda por fragmento de apellido (enmienda de SPEC-008/009)
 
 La pregunta literal «hay alguien con apellido que tenga z» activa `search_employees` con el filtro de apellido; la búsqueda consulta `last_name` en la fuente y devuelve todos los empleados coincidentes sin elegir uno en silencio.
+
+## AC-051 — Borrador de oferta laboral en el chat (enmienda de SPEC-009)
+
+Ante la petición «Por ejemplo: quiero que crees una oferta de vigilante para la ciudad de Bogotá, horarios rotativos, salario 2.500.000 pesos colombianos y la ia me de un texto de aproximadamente unos 500 caracteres con ese requerimiento», el asistente entrega un borrador solo en el chat, usa los requisitos proporcionados, no invoca herramientas y no lo guarda ni publica. Si falta un dato esencial, hace una pregunta breve; no inventa condiciones opcionales.
+
+## AC-052 — Salario de oferta frente a compensación restringida (enmienda de SPEC-010)
+
+El asistente puede repetir en un borrador el salario que RR. HH. proporcionó como término de la oferta; no revela ni infiere el sueldo de empleados ni datos bancarios.
 
 ## Condiciones generales
 
@@ -273,5 +281,7 @@ Los identificadores de esta tabla pertenecen al catálogo general y no se reutil
 | AC-048 | FR-031, FR-036, FR-029 | Sueldo y datos bancarios excluidos de herramientas y respuestas; sin habilitar atributos no aprobados; SPEC-010, enmienda 2026-10-23. |
 | AC-049 | FR-037, FR-029 | La herramienta expone la fecha de contratación aprobada desde HCM y el endpoint `GET /employees` mantiene su forma original; SPEC-008/009. |
 | AC-050 | FR-037, FR-029 | Búsqueda por `last_name` con filtro `surname_contains`, incluyendo todos los candidatos y sin selección silenciosa; SPEC-008/009. |
+| AC-051 | FR-038, FR-029 | Borrador de oferta en chat, con requisitos user-supplied, sin tool calls ni persistencia; SPEC-009. |
+| AC-052 | FR-036, FR-038, FR-031 | Salario de oferta solo si el usuario lo proporcionó; compensación de empleados y datos bancarios siguen restringidos; SPEC-010. |
 
 Los AC-003 a AC-006 no se consideran satisfechos por la estructura arquitectónica creada en SPEC-001. Cada caso de asistencia necesita requisitos, pruebas y verificación propios; Tasks no forma parte de la primera vertical. NFR-011 no tiene todavía un umbral medible y deberá concretarse cuando se definan dataset y entorno. NFR-012 se verifica en cada especificación de interfaz; estos criterios no inventan un umbral cuantitativo de contraste.

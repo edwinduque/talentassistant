@@ -359,6 +359,36 @@ public sealed class ChatOrchestratorTests
     }
 
     [Fact]
+    public async Task JobOfferDraftingUsesOnlyUserProvidedTermsAndStaysInChat()
+    {
+        const string draft = "Oferta de vigilante para Bogotá, con turnos rotativos y salario de 2.500.000 COP.";
+        var model = new ScriptedLanguageModel();
+        model.Enqueue(new AssistantCompletion(draft, []));
+        var orchestrator = CreateOrchestrator(model);
+
+        var result = await orchestrator.ExecuteAsync(
+            new ChatQuery(
+                "Quiero crear una oferta de vigilante para Bogotá, horarios rotativos, salario 2.500.000 pesos colombianos.",
+                History: [],
+                Language: "es"));
+
+        Assert.True(result.Completed);
+        Assert.Equal(draft, result.Answer);
+        Assert.Empty(result.ToolsUsed);
+
+        var system = model.Requests[0].Messages[0].Content;
+        Assert.Contains("job-offer drafting", system, StringComparison.OrdinalIgnoreCase);
+        Assert.Contains("only user-provided requirements", system);
+        Assert.Contains("role, location, shift, salary, benefits, and work modality only when supplied", system);
+        Assert.Contains("ask one concise follow-up", system);
+        Assert.Contains("omit it rather than inventing it", system);
+        Assert.Contains("about 500 characters", system);
+        Assert.Contains("never save or publish", system);
+        Assert.Contains("employee salaries", system, StringComparison.OrdinalIgnoreCase);
+        Assert.Contains("offer term", system);
+    }
+
+    [Fact]
     public async Task HistoryIsTrimmedToMaxHistoryMessagesKeepingTheMostRecent()
     {
         var options = new AssistantOrchestratorOptions(MaxHistoryMessages: 3);

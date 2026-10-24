@@ -19,6 +19,7 @@ Añadir una página de chat donde el responsable de RR. HH. pregunte en lenguaje
 - Endpoint `POST /chat` autenticado en la API con bucle de herramientas: el modelo recibe un catálogo fijo de herramientas (los endpoints de SPEC-008, `upcoming_birthday` y los insights de SPEC-002), la API los ejecuta en proceso con el contexto del usuario y devuelve la respuesta junto a la traza de herramientas usadas.
 - Cliente LLM genérico sobre HTTP compatible con OpenAI (`/chat/completions` con `tools`) sin SDK ni paquetes nuevos, configurado para Groq en `.env`; intercambiable por un Ollama local cambiando configuración.
 - Página `/assistant` en la Web, localizada ES/EN, protegida por sesión, con historial de la conversación, estado de carga y las fuentes/ferramientas empleadas.
+- Borrador de oferta laboral en el chat a partir de requisitos escritos por RR. HH.; es una respuesta efímera, no una escritura ni publicación al HCM.
 - Límites operativos: tiempo de espera, número de rondas de herramientas y longitud de respuesta; errores del proveedor (sin clave, sin red, límite de tasa) traducidos a mensajes localizados controlados.
 - Evaluación: las diez preguntas de SPEC-008 como criterios de aceptación del chat; la lógica de bucle se prueba con un transporte LLM falso y determinista; la pasada en vivo queda documentada y solo se ejecuta con la clave presente.
 - Documentación: guía (clave y modelo en `.env`, flujo, coste/límites del nivel gratuito), README, catálogos y registro de decisiones.
@@ -33,13 +34,13 @@ Añadir una página de chat donde el responsable de RR. HH. pregunte en lenguaje
 
 ## 3. Requisitos y límites arquitectónicos
 
-- La IA no accede a los datos: todas las respuestas pasan por los casos de uso existentes de Application, con la sesión e idioma del usuario autenticado (coherente con ADR-0003, FR-013 y NFR-014).
+- La IA no accede directamente a los datos: los hechos del HCM pasan por los casos de uso existentes de Application, con la sesión e idioma del usuario autenticado. El borrador de oferta es la excepción textual: usa solo los requisitos proporcionados por RR. HH. y no consulta ni escribe datos (coherente con ADR-0003, FR-013 y NFR-014).
 - Resolución de nombres y desambigüación: la búsqueda de personas es insensible a acentos (SPEC-008 enmendada) y, cuando una pregunta de una persona concreta coincide con varios empleados, el asistente lista los candidatos y pregunta cuál antes de responder; nunca elige en silencio. *(Enmienda 2026-10-18.)*
 - El catálogo de herramientas es fijo y cerrado en el backend; el modelo no lo amplía ni decide permisos.
 - Clave del proveedor y configuración solo en `.env`/User Secrets; nunca en el repositorio ni en imágenes (NFR-004).
 - La respuesta debe distinguir los datos devueltos por las herramientas de cualquier texto del modelo: si las herramientas no traen el dato, el asistente lo dice (sin inventar).
-- El modelo solo recibe atributos proyectados explícitamente por los DTOs de las herramientas; sueldo y datos bancarios están restringidos, y campos no aprobados no se añaden al payload.
-- Sin escrituras y sin acciones más allá de llamar herramientas de lectura.
+- El modelo solo recibe atributos proyectados explícitamente por los DTOs de las herramientas; el sueldo de empleados y los datos bancarios están restringidos, y campos no aprobados no se añaden al payload. Un salario introducido por el usuario como requisito de una oferta puede aparecer solo en el borrador de esa oferta.
+- No hay escrituras ni publicación: el borrador solo se devuelve como texto en el chat y no se guarda en el HCM.
 
 ## 4. Flujo local esperado
 
@@ -51,6 +52,7 @@ Añadir una página de chat donde el responsable de RR. HH. pregunte en lenguaje
 6. Las diez preguntas de SPEC-008 producen respuestas que contienen los valores de los fixtures (criterio de aceptación automatizado donde sea posible).
 7. Para «Quien es la proxima persona que cumple años», el modelo llama a `upcoming_birthday` y redacta a partir del resultado, sin calcular desde fechas de nacimiento.
 8. Para «Que cargo tiene mauricio», el modelo busca a la persona y responde con el `JobTitle` devuelto por `search_employees`.
+9. Para «Por ejemplo: quiero que crees una oferta de vigilante para la ciudad de Bogotá, horarios rotativos, salario 2.500.000 pesos colombianos y la ia me de un texto de aproximadamente unos 500 caracteres con ese requerimiento», el asistente genera un borrador en el idioma del usuario, usa solo esos términos, no invoca herramientas y no lo guarda ni publica.
 
 ## 5. Componentes candidatos
 
@@ -73,9 +75,10 @@ Añadir una página de chat donde el responsable de RR. HH. pregunte en lenguaje
 | ID | Criterio verificable propuesto | Evidencia futura |
 |---|---|---|
 | AC-029 | Las diez preguntas de SPEC-008, formuladas en el chat, producen respuestas que contienen los valores esperados de los fixtures y citan la herramienta usada. | Pruebas del bucle con transporte falso y pasada en vivo documentada con la clave presente. |
-| AC-030 | El modelo solo invoca el catálogo fijo, las invocaciones usan la sesión e idioma del usuario, no hay escrituras y una pregunta sin datos recibe una respuesta de «sin información» del propio asistente. | Pruebas unitarias del orquestador y revisión del catálogo. |
+| AC-030 | El modelo solo invoca el catálogo fijo, las invocaciones usan la sesión e idioma del usuario, no hay escrituras y una pregunta factual sin datos recibe una respuesta de «sin información» del propio asistente. | Pruebas unitarias del orquestador y revisión del catálogo. |
 | AC-031 | Sin clave o sin red la aplicación degrada con mensajes localizados controlados; secretos solo en `.env`; límites de tiempo/rondas activos; suite completa en verde y recorrido de navegador del chat en ES y EN. | Pruebas de degradación, inspección y E2E de navegador. |
 | AC-032 | Una pregunta por una persona con nombre compartido («Juan») recibe una respuesta del asistente que lista los candidatos y pregunta cuál antes de responder; tras la elección responde con el dato del fixture, y un nombre sin acento («Juan Perez») resuelve al empleado correcto. *(Enmienda 2026-10-18.)* | Pasada en vivo con la pregunta ambigua y su turno de elección, más pruebas deterministas del matcher sin acentos. |
+| AC-051 | La solicitud de borrador de oferta de §13 responde en el chat sin herramientas, se basa solo en los términos proporcionados, pregunta de forma breve solo cuando falta un dato esencial y no guarda ni publica. | Prueba determinista del prompt y pasada en vivo opcional autorizada. |
 
 ## 8. Diseño propuesto para planificar
 
@@ -115,3 +118,7 @@ El usuario aprobó ampliar el asistente para responder «Quien es la proxima per
 ## 12. Enmienda: fecha de contratación y búsqueda por apellido (2026-10-23)
 
 Se añaden `HireDate`, `LastName` y el filtro opcional `surname_contains` a la proyección aprobada de `search_employees`. La búsqueda por apellido usa el valor `last_name` del HCM y devuelve todos los candidatos; el asistente no debe inferir el apellido desde otra parte del nombre ni elegir en silencio. El corpus de SPEC-008 pasa a diez preguntas de referencia, más la pregunta ambigua de AC-032.
+
+## 13. Enmienda: borrador de oferta laboral (2026-10-24)
+
+El usuario aclaró que RR. HH. debe poder pedir un borrador inicial de oferta a partir de requisitos, mostrarlo en el chat y no guardarlo ni publicarlo todavía. El modelo usa solo los datos proporcionados, pregunta de forma breve cuando falta un detalle esencial, omite términos opcionales desconocidos y apunta a unos 500 caracteres cuando se solicite. El sueldo de un empleado sigue restringido; un salario provisto expresamente para la oferta puede repetirse únicamente en su borrador.

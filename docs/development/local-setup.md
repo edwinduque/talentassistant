@@ -387,9 +387,11 @@ Códigos de salida: `0` las once preguntas verdes; `1` fallo de aserción (respu
 
 ### Qué responde y qué rechaza
 
-Desde SPEC-010, la primera instrucción del system prompt fija el ámbito del asistente: es un asistente interno de RR. HH./HCM que responde únicamente con los datos que devuelven sus herramientas; a una petición ajena —programación, conocimiento general, traducciones, recetas o escritura creativa— responde con un rechazo breve y amable en el idioma del usuario que recuerda su función y le ofrece ayudar con temas del equipo, sin invocar herramientas y sin entregar el contenido pedido. Sueldo y datos bancarios están restringidos; las herramientas no los exponen y, si se preguntan, el asistente declara que la información no está disponible. Los atributos nuevos no se incorporan al payload sin aprobación explícita. No hay clasificador de intención ni paquetes nuevos: son reglas de instrucción del prompt.
+Desde SPEC-010, el system prompt limita al asistente a RR. HH./HCM: los hechos sobre empleados/organización deben venir de herramientas; las peticiones ajenas —programación, conocimiento general, traducciones, recetas o escritura creativa genérica— reciben un rechazo localizado. Sueldos de empleados y datos bancarios están restringidos y, si se preguntan, se declaran no disponibles. La enmienda de SPEC-009 permite como excepción redactar un borrador de oferta solo con requisitos escritos por RR. HH.; no se guarda ni publica. No hay clasificador de intención ni paquetes nuevos: son reglas de instrucción del prompt.
 
-El banco adversarial que evalúa este comportamiento se ejecuta contra la API local con la clave configurada, con el mismo patrón que el script de las once preguntas:
+Enmienda de SPEC-009: redactar un borrador de oferta laboral es una tarea válida de RR. HH. El asistente usa solo requisitos que proporcione la persona, puede pedir una aclaración breve si falta un dato esencial, apunta a unos 500 caracteres cuando se solicita y lo deja únicamente en el chat. No lo guarda ni publica. Puede repetir un salario que RR. HH. dio explícitamente para esa oferta; no puede revelar o inferir sueldos de empleados.
+
+El banco de guardrails y borrador que evalúa este comportamiento se ejecuta contra la API local con la clave configurada, con el mismo patrón que el script de las once preguntas:
 
 ```powershell
 powershell -NoProfile -File scripts\verify-assistant-guardrails.ps1 -PaceSeconds 9
@@ -398,11 +400,11 @@ powershell -NoProfile -File scripts\verify-assistant-guardrails.ps1 -PaceSeconds
 | Opción | Efecto |
 |---|---|
 | `-PaceSeconds <n>` | Espera n segundos entre casos, por el mismo motivo de tasa que en el script de las once preguntas. |
-| `-Only <n>` | Ejecuta solo un caso del banco (1..6). |
+| `-Only <n>` | Ejecuta solo un caso del banco (1..7). |
 
-Los códigos de salida son idénticos a los del script de las once preguntas: `0` los seis casos verdes, `1` fallo de aserción y `3` proveedor no disponible o sin configurar. El script lee el usuario y la contraseña de `.env` y nunca imprime credenciales.
+Los códigos de salida son idénticos a los del script de las once preguntas: `0` los seis casos de guardrail y el borrador de oferta verificados, `1` fallo de aserción y `3` proveedor no disponible o sin configurar. El script lee el usuario y la contraseña de `.env` y nunca imprime credenciales.
 
-Las aserciones se apoyan en **marcadores estables de comportamiento, no en frases literales**: familias de marcadores de rechazo/redirección y de no disponibilidad, más la ausencia de artefactos de código, de cifras de salario y de empleados fabricados. Los patrones del script son ASCII con escapes `\uXXXX` para los acentos, de modo que no dependen de la codificación de la consola.
+Las aserciones se apoyan en **marcadores estables de comportamiento, no en frases literales**: familias de marcadores de rechazo/redirección y de no disponibilidad, más la ausencia de artefactos de código, cifras de sueldo de empleados, datos bancarios y empleados fabricados. El caso positivo de oferta solo acepta el salario explícito del usuario. Los patrones del script son ASCII con escapes `\uXXXX` para los acentos, de modo que no dependen de la codificación de la consola.
 
 Lección de diseño: la cláusula de registros manda presentar los valores que las herramientas devuelven aunque el ámbito se haya reforzado — «información no disponible» solo cuando no hay datos relevantes; sin esa cláusula, la regla de ámbito apaga preguntas legítimas del dominio.
 
