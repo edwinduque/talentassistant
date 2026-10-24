@@ -41,6 +41,7 @@ Estado inicial: Propuesto. La aprobación del alcance convierte los requisitos s
 | FR-032 | La aplicación consultará el HCM real desde su PostgreSQL de solo lectura mediante los puertos existentes, con un interruptor único de fuente (`Hcm__Source=Sintética|Postgres`) que gobierna a la vez todos los puertos de datos, sin SQL dinámico y con el cambio de motor de base de datos contenido en un adaptador de Infrastructure. | Must |
 | FR-033 | En modo Postgres, si la base del HCM no está disponible, los endpoints de datos devolverán un error localizado de fuente no disponible; el sistema nunca volverá a datos sintéticos de forma silenciosa. | Must |
 | FR-034 | La interfaz Web ofrecerá en `/` una landing pública que explique Talent Assistant y permita navegar a sus secciones informativas y al login; las páginas funcionales seguirán protegidas por autenticación. | Must |
+| FR-035 | La interfaz Web retirará la página `/attendance-insights` y su enlace de navegación; la información de asistencia seguirá disponible mediante el asistente (herramienta `attendance_insights`) y el endpoint `GET /attendance/insights`, que conservan su contrato y autorización. | Must |
 
 FR-020 fue aprobado mediante SPEC-004 y está implementado y verificado (commits en `main`); el perfil local Compose sirve los fixtures desde PostgreSQL (motor sustituido por ADR-0013/SPEC-013).
 
@@ -59,6 +60,8 @@ FR-031 fue aprobado mediante SPEC-010 (sin ADR nuevo; refuerza ADR-0003 y ADR-00
 FR-032 y FR-033 fueron aprobados mediante SPEC-011 y ADR-0012 y están implementados y verificados en T1/T2 de la rama `feat/hcm-postgres-source` (suite completa en verde con ambas bases de prueba activas); la validación contra la base real del HCM queda pendiente de credenciales locales y de la decisión de egreso de SPEC-011 §10.
 
 FR-034 fue aprobado mediante SPEC-017; su landing pública usa información del proyecto y datos sintéticos, conserva el acceso al login en `/login` y mantiene autenticado el resumen operativo en `/overview`.
+
+FR-035 fue aprobado mediante SPEC-019; el retiro se limita a la interfaz Web (página, navegación y cliente HTTP específico), sin tocar el endpoint, el caso de uso, las fuentes ni la herramienta del asistente.
 
 ## Reglas de negocio iniciales
 

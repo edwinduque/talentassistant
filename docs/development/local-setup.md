@@ -38,7 +38,7 @@ Invoke-RestMethod http://127.0.0.1:5101/health
 Invoke-RestMethod http://127.0.0.1:5101/health/database
 $items = Invoke-RestMethod "http://127.0.0.1:5101/attendance/insights?from=2026-10-15&to=2026-10-18"
 "Fixtures: $($items.Count)"
-(Invoke-WebRequest http://127.0.0.1:5102/attendance-insights -UseBasicParsing).StatusCode
+(Invoke-WebRequest http://127.0.0.1:5102/assistant -UseBasicParsing).StatusCode
 (Invoke-WebRequest http://127.0.0.1:5102/_framework/blazor.web.js -UseBasicParsing).StatusCode
 ```
 
