@@ -69,7 +69,43 @@
 
         .assistant-message-text {
             margin: 0;
+        }
+
+        .assistant-message-text--plain {
             white-space: pre-wrap;
+        }
+
+        .assistant-message-heading {
+            margin: 0;
+            line-height: 1.3;
+        }
+
+        h2.assistant-message-heading {
+            font-size: 1.1rem;
+        }
+
+        h3.assistant-message-heading {
+            font-size: 1.02rem;
+        }
+
+        h4.assistant-message-heading {
+            font-size: 0.95rem;
+        }
+
+        .assistant-message-list {
+            margin: 0;
+            padding-left: 1.3rem;
+        }
+
+        .assistant-message-list li + li {
+            margin-top: 0.2rem;
+        }
+
+        .assistant-message-text code {
+            padding: 0.05rem 0.3rem;
+            border-radius: 0.2rem;
+            background: var(--field-surface);
+            font-size: 0.9em;
         }
 
         .assistant-message-tools {
@@ -176,13 +212,13 @@
                 else if (item.Role == "user")
                 {
                     <article class="assistant-message assistant-message--user" aria-label="@Local["UserLabel"]">
-                        <p class="assistant-message-text">@item.Text</p>
+                        <p class="assistant-message-text assistant-message-text--plain">@item.Text</p>
                     </article>
                 }
                 else
                 {
                     <article class="assistant-message">
-                        <p class="assistant-message-text">@item.Text</p>
+                        <AssistantMarkdown Text="@item.Text" />
                         @if (item.ToolsUsed.Count > 0)
                         {
                             <p class="assistant-message-tools">

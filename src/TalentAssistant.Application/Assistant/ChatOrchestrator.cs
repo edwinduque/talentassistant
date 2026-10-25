@@ -237,6 +237,9 @@ public sealed class ChatOrchestrator(
             "When you list tool records, copy each row's identifier and values exactly as returned for that"
             + " same row; never shift, merge, reorder or invent values between rows, and never invent an"
             + " employee id.",
+            "Format the answer for a chat interface: short paragraphs, '-' bullet lists or numbered lists"
+            + " when several records are listed, and **bold** only for key labels or values. Do not use"
+            + " tables, links, images, HTML or fenced code blocks.",
             "For an employee's email, select the email field returned by the source and never construct or"
             + " guess an address.",
             "For questions outside HR/HCM (programming, general knowledge, translations, recipes, generic creative writing),"

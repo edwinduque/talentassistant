@@ -1,0 +1,71 @@
+@using TalentAssistant.Web.Formatting
+
+@if (_blocks.Count > 0)
+{
+    @foreach (var block in _blocks)
+    {
+        if (block is AssistantHeadingBlock heading)
+        {
+            if (heading.Level == 1)
+            {
+                <h2 class="assistant-message-heading"><AssistantMarkdownSpans Spans="heading.Spans" /></h2>
+            }
+            else if (heading.Level == 2)
+            {
+                <h3 class="assistant-message-heading"><AssistantMarkdownSpans Spans="heading.Spans" /></h3>
+            }
+            else
+            {
+                <h4 class="assistant-message-heading"><AssistantMarkdownSpans Spans="heading.Spans" /></h4>
+            }
+        }
+        else if (block is AssistantListBlock { Ordered: true } ordered)
+        {
+            <ol class="assistant-message-list">
+                @foreach (var item in ordered.Items)
+                {
+                    <li><AssistantMarkdownSpans Spans="item.Spans" /></li>
+                }
+            </ol>
+        }
+        else if (block is AssistantListBlock list)
+        {
+            <ul class="assistant-message-list">
+                @foreach (var item in list.Items)
+                {
+                    <li><AssistantMarkdownSpans Spans="item.Spans" /></li>
+                }
+            </ul>
+        }
+        else if (block is AssistantParagraphBlock paragraph)
+        {
+            <p class="assistant-message-text">
+                @for (var index = 0; index < paragraph.Lines.Count; index++)
+                {
+                    if (index > 0)
+                    {
+                        <br />
+                    }
+                    <AssistantMarkdownSpans Spans="paragraph.Lines[index].Spans" />
+                }
+            </p>
+        }
+    }
+}
+
+@code {
+    private IReadOnlyList<AssistantBlock> _blocks = [];
+    private string? _parsedText;
+
+    [Parameter, EditorRequired]
+    public string? Text { get; set; }
+
+    protected override void OnParametersSet()
+    {
+        if (!string.Equals(_parsedText, Text, StringComparison.Ordinal))
+        {
+            _parsedText = Text;
+            _blocks = AssistantMarkdownFormatter.Parse(Text);
+        }
+    }
+}
