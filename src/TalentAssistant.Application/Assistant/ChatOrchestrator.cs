@@ -51,7 +51,7 @@ public sealed class ChatOrchestrator(
         [
             new(
                 "search_employees",
-                "Search by display name, surname fragment, and/or office id (the office is an exact id like office-demo-tokyo; if the id is unknown, call without filters and match OfficeIds); results include approved surname, hire date, job title and derived AgeOnNextBirthday fields.",
+                "Search by display name, surname fragment, and/or office id (the office is an exact value such as office-demo-tokyo or a department name like Ingeniería; if the value is unknown, call without filters and match OfficeIds); results include approved surname, hire date, job title and derived AgeOnNextBirthday fields.",
                 """{"type":"object","properties":{"name":{"type":["string","null"]},"office":{"type":["string","null"]},"surname_contains":{"type":["string","null"],"description":"Substring in the employee's surname"}},"required":[]}"""),
             new(
                 "presence",

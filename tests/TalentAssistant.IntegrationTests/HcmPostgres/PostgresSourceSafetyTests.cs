@@ -26,9 +26,10 @@ public sealed class PostgresSourceSafetyTests : PostgresSourceTestBase
         Assert.Empty(await Workforce.GetTimeOffAsync(new EmployeeDataQuery(Name: value)));
         Assert.Empty(await Workforce.GetTasksAsync(new EmployeeDataQuery(Name: value)));
 
-        Assert.Equal(
-            9,
-            (await Workforce.SearchEmployeesAsync(new EmployeeSearchQuery())).Count);
+        var count = (await Workforce.SearchEmployeesAsync(new EmployeeSearchQuery())).Count;
+        Assert.True(
+            count > 9,
+            $"Expected a catalog wider than the nine fixtures, got {count}.");
     }
 
     [Fact]
@@ -78,7 +79,10 @@ public sealed class PostgresSourceSafetyTests : PostgresSourceTestBase
         await using (var selectView = connection.CreateCommand())
         {
             selectView.CommandText = "SELECT count(*) FROM hcm_contract.talentassistant_employees";
-            Assert.Equal(9L, Assert.IsType<long>(await selectView.ExecuteScalarAsync()));
+            var viewCount = Assert.IsType<long>(await selectView.ExecuteScalarAsync());
+            Assert.True(
+                viewCount > 9L,
+                $"The contract view must serve more than the nine fixtures, got {viewCount}.");
         }
     }
 }

@@ -17,6 +17,10 @@ namespace TalentAssistant.IntegrationTests.HcmPostgres;
 ///   upcoming-birthday ages must match exactly for an explicit query date.
 /// Office ids match exactly: the seed was corrected to the fixtures'
 /// 'office-demo-*' convention during the T2 reconciliation.
+/// Scope (SPEC-012 amendment 2026-10-25): the contract view serves every
+/// active employee while <see cref="SyntheticWorkforceSource"/> serves only
+/// the nine fixtures, so parity runs over the fixture subset and the widened
+/// catalog itself is pinned by PostgresCatalogScopeTests.
 /// </summary>
 public sealed class PostgresWorkforceSourceParityTests : PostgresSourceTestBase
 {
@@ -31,16 +35,26 @@ public sealed class PostgresWorkforceSourceParityTests : PostgresSourceTestBase
         var synthetic = await Synthetic.SearchEmployeesAsync(new EmployeeSearchQuery());
         var postgres = await Workforce.SearchEmployeesAsync(new EmployeeSearchQuery());
 
+        // The synthetic source serves only the nine fixtures; the contract view
+        // serves every active employee (SPEC-012 amendment 2026-10-25), so the
+        // parity runs over the fixture subset and the widened catalog itself is
+        // pinned by PostgresCatalogScopeTests.
         Assert.Equal(9, synthetic.Count);
-        Assert.Equal(9, postgres.Count);
-        Assert.Equal(
-            synthetic.Select(employee => employee.Id).Order(),
-            postgres.Select(employee => employee.Id).Order());
+        Assert.True(
+            postgres.Count > synthetic.Count,
+            $"Expected a catalog wider than the nine fixtures, got {postgres.Count}.");
 
-        var syntheticById = synthetic.ToDictionary(employee => employee.Id, StringComparer.Ordinal);
-        foreach (var entry in postgres)
+        var postgresById = postgres.ToDictionary(employee => employee.Id, StringComparer.Ordinal);
+        Assert.Equal(postgres.Count, postgresById.Count);
+        foreach (var expected in synthetic)
         {
-            var expected = syntheticById[entry.Id];
+            var matches = postgres
+                .Where(candidate => candidate.Id == expected.Id)
+                .ToArray();
+            Assert.True(
+                matches.Length == 1,
+                $"The contract view must serve fixture '{expected.Id}' exactly once.");
+            var entry = matches[0];
             Assert.Equal(expected.DisplayName, entry.DisplayName);
             Assert.Single(entry.OfficeIds);
             Assert.Equal(expected.OfficeIds, entry.OfficeIds);
@@ -68,28 +82,42 @@ public sealed class PostgresWorkforceSourceParityTests : PostgresSourceTestBase
     }
 
     [Theory]
-    [InlineData(2026, 9, 1, "employee-demo-madrid-004", 30)]
-    [InlineData(2027, 12, 1, "employee-demo-tokyo", 30)]
-    public async Task UpcomingBirthdayAgeIsIdenticalAcrossSourcesForAFixedQueryDate(
+    [InlineData(2026, 9, 1)]
+    [InlineData(2026, 10, 23)]
+    [InlineData(2027, 12, 1)]
+    public async Task NextBirthdayFollowsTheContractRuleForTheWholeCatalog(
         int year,
         int month,
-        int day,
-        string expectedId,
-        int expectedAge)
+        int day)
     {
-        // Killer dates for a CURRENT_DATE-anchored age (L4/L6): 004 (born
-        // 1996) turns 30 on 2026-09-27 seen from a past query date, 002 (born
-        // 1997) turns 30 on 2027-12-02 seen from a future one. Both sources
-        // must report the SAME age for the same explicit query date.
-        var query = new UpcomingBirthdayQuery(new DateOnly(year, month, day));
+        // Killer dates for a CURRENT_DATE-anchored age (L4/L6): a past query
+        // date and a future one must both pair next_birthday_on with the age
+        // turned at that occurrence. The synthetic source only holds the nine
+        // fixtures, so the widened catalog is checked against the contract's
+        // own rule instead of against the synthetic answer.
+        var asOfDate = new DateOnly(year, month, day);
+        var query = new UpcomingBirthdayQuery(asOfDate);
+        var databaseToday = await ReadDatabaseCurrentDateAsync();
+        var rows = await ReadContractEmployeesAsync();
 
-        var synthetic = await Synthetic.GetUpcomingBirthdaysAsync(query);
         var postgres = await Workforce.GetUpcomingBirthdaysAsync(query);
+        Assert.Equal(
+            ExpectedUpcomingBirthdays(rows, asOfDate, databaseToday),
+            postgres
+                .OrderBy(birthday => birthday.EmployeeId, StringComparer.Ordinal)
+                .ToArray());
 
-        Assert.Equal(synthetic, postgres);
-        var next = Assert.Single(postgres);
-        Assert.Equal(expectedId, next.EmployeeId);
-        Assert.Equal(expectedAge, next.AgeOnNextBirthday);
+        // The synthetic side keeps its own fixture parity: the same rule over
+        // the nine fixture rows of the contract view must reproduce it exactly.
+        var synthetic = await Synthetic.GetUpcomingBirthdaysAsync(query);
+        var fixtures = rows
+            .Where(row => row.Id.StartsWith("employee-demo-", StringComparison.Ordinal))
+            .ToArray();
+        Assert.Equal(
+            ExpectedUpcomingBirthdays(fixtures, asOfDate, databaseToday),
+            synthetic
+                .OrderBy(birthday => birthday.EmployeeId, StringComparer.Ordinal)
+                .ToArray());
     }
 
     [Fact]
@@ -101,28 +129,15 @@ public sealed class PostgresWorkforceSourceParityTests : PostgresSourceTestBase
         var postgres = await Workforce.SearchEmployeesAsync(query);
 
         var expected = Assert.Single(synthetic);
-        var employee = Assert.Single(postgres);
-        Assert.Equal(expected.Id, employee.Id);
+        // The widened catalog also matches generated surnames containing "z"
+        // (for example "Vázquez"), so parity runs over the fixture match. The
+        // record itself is compared field by field: OfficeIds is a list, and
+        // record equality would compare it by reference.
+        var employee = postgres.Single(candidate => candidate.Id == expected.Id);
         Assert.Equal(expected.DisplayName, employee.DisplayName);
         Assert.Equal("employee-demo-juan", employee.Id);
         Assert.Equal("Pérez", employee.LastName);
         Assert.Equal(expected.HireDate, employee.HireDate);
-    }
-
-    [Fact]
-    public async Task UpcomingBirthdayMatchesSyntheticSourceWithoutExposingBirthYear()
-    {
-        var query = new UpcomingBirthdayQuery(new DateOnly(2026, 10, 23));
-
-        var synthetic = await Synthetic.GetUpcomingBirthdaysAsync(query);
-        var postgres = await Workforce.GetUpcomingBirthdaysAsync(query);
-
-        Assert.Equal(synthetic, postgres);
-        var next = Assert.Single(postgres);
-        Assert.Equal("employee-demo-mauricio", next.EmployeeId);
-        Assert.Equal("Mauricio Cardenas", next.DisplayName);
-        Assert.Equal(new DateOnly(2026, 11, 30), next.NextBirthdayOn);
-        Assert.Equal(38, next.AgeOnNextBirthday); // 2026-11-30 minus birth year 1988.
     }
 
     [Theory]
@@ -135,9 +150,10 @@ public sealed class PostgresWorkforceSourceParityTests : PostgresSourceTestBase
         var postgres = await Workforce.SearchEmployeesAsync(
             new EmployeeSearchQuery(Language: language));
 
-        Assert.Equal(
-            synthetic.Select(employee => employee.Id).Order(),
-            postgres.Select(employee => employee.Id).Order());
+        var postgresIds = postgres
+            .Select(employee => employee.Id)
+            .ToHashSet(StringComparer.Ordinal);
+        Assert.All(synthetic, employee => Assert.Contains(employee.Id, postgresIds));
 
         // Proper nouns are data and identical in both languages (SPEC-007 §6).
         Assert.Equal(
@@ -221,10 +237,22 @@ public sealed class PostgresWorkforceSourceParityTests : PostgresSourceTestBase
                 + "as a parity failure.");
         }
 
-        Assert.Equal(9, postgres.Entries.Count);
-        Assert.Equal(StateMap(synthetic), StateMap(postgres));
+        // The contract view derives presence for every active employee, the
+        // synthetic source only for the nine fixtures: parity runs over the
+        // fixture subset (SPEC-012 amendment 2026-10-25).
+        Assert.True(
+            postgres.Entries.Count >= synthetic.Entries.Count,
+            $"Expected at least the nine fixtures, got {postgres.Entries.Count}.");
 
         var states = StateMap(postgres);
+        foreach (var entry in synthetic.Entries)
+        {
+            Assert.True(
+                states.ContainsKey(entry.Employee.Id),
+                $"The contract presence dropped fixture '{entry.Employee.Id}'.");
+            Assert.Equal(entry.State, states[entry.Employee.Id]);
+        }
+        Assert.Equal(postgres.Entries.Count, states.Count);
 
         // SPEC-012 T3 (default3 aprobado): la ausencia fixture de Pedro terminó
         // el19 (inclusivo); desde el20 ambos lados derivan not-arrived (el
@@ -233,11 +261,11 @@ public sealed class PostgresWorkforceSourceParityTests : PostgresSourceTestBase
         Assert.Equal("working", states["employee-demo-juan"]);
         Assert.Equal("not-arrived", states["employee-demo-mauricio"]);
 
-        foreach (var entry in postgres.Entries)
+        foreach (var entry in synthetic.Entries)
         {
-            var expected = synthetic.Entries.Single(
+            var actual = postgres.Entries.Single(
                 candidate => candidate.Employee.Id == entry.Employee.Id);
-            Assert.Equal(expected.Employee.DisplayName, entry.Employee.DisplayName);
+            Assert.Equal(entry.Employee.DisplayName, actual.Employee.DisplayName);
         }
     }
 
@@ -251,8 +279,13 @@ public sealed class PostgresWorkforceSourceParityTests : PostgresSourceTestBase
         var postgres = await Workforce.GetTimeOffAsync(query);
 
         Assert.Equal(3, synthetic.Count);
-        Assert.Equal(3, postgres.Count);
-        Assert.Equal(ByReference(synthetic), ByReference(postgres));
+        Assert.True(
+            postgres.Count > synthetic.Count,
+            $"Expected absences beyond the three fixtures, got {postgres.Count}.");
+        foreach (var fixture in synthetic)
+        {
+            Assert.Contains(fixture, postgres);
+        }
     }
 
     [Theory]
@@ -306,6 +339,50 @@ public sealed class PostgresWorkforceSourceParityTests : PostgresSourceTestBase
 
     private static IReadOnlyList<HcmTask> ByReference(IReadOnlyList<HcmTask> tasks) =>
         tasks.OrderBy(task => task.Reference, StringComparer.Ordinal).ToArray();
+
+    // Independent mirror of the contract's next-birthday rule (SPEC-008 §3):
+    // for every contract row the next occurrence on or after the query date;
+    // the birth year recovered as year(next on CURRENT_DATE) minus the view's
+    // own derived age; the age turned at that occurrence; the earliest date
+    // wins and every employee sharing it is returned - exactly what the
+    // adapter's SQL does, so the widened catalog can be checked without read
+    // access to the physical tables.
+    private static IReadOnlyList<HcmUpcomingBirthday> ExpectedUpcomingBirthdays(
+        IReadOnlyList<ContractEmployee> rows,
+        DateOnly asOfDate,
+        DateOnly databaseToday)
+    {
+        var candidates = new List<HcmUpcomingBirthday>();
+        foreach (var row in rows)
+        {
+            if (row.BirthdayMonth is not int month
+                || row.BirthdayDay is not int day
+                || row.AgeOnNextBirthday is not int ageToday)
+            {
+                continue;
+            }
+
+            var nextOnQueryDate = NextBirthdayOn(asOfDate, month, day);
+            var birthYear = NextBirthdayOn(databaseToday, month, day).Year - ageToday;
+            candidates.Add(new HcmUpcomingBirthday(
+                row.Id,
+                row.DisplayName,
+                nextOnQueryDate,
+                nextOnQueryDate.Year - birthYear));
+        }
+
+        if (candidates.Count == 0)
+        {
+            throw new InvalidOperationException(
+                "The contract view served no employee with a birthday.");
+        }
+
+        var earliest = candidates.Min(candidate => candidate.NextBirthdayOn);
+        return candidates
+            .Where(candidate => candidate.NextBirthdayOn == earliest)
+            .OrderBy(candidate => candidate.EmployeeId, StringComparer.Ordinal)
+            .ToArray();
+    }
 
     // Mirror of the sources' next-occurrence rule (Feb 29 only on Feb 29) so
     // expected ages derive from each source's own anchor date.

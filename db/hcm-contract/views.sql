@@ -4,12 +4,15 @@
 -- de forma real (db/hcm-real/schema.sql + seed.sql) y la sustitución hcm.* se
 -- reduce a lo que el shape real todavía no expone.
 --
--- Alcance de servicio (default aprobado en la puerta de T3): las vistas de
--- personas, presencia y ausencias sirven a los NUEVE empleados de fixture
--- (marcador: department = identificador de unidad orgánica 'office-demo-%'),
--- de modo que la salida del contrato es idéntica a la del fuente sintético y
--- la suite permanece verde; ampliar el catálogo servido a los209 empleados
--- reales es retirar ese filtro cuando se decida.
+-- Alcance de servicio (ampliado 2026-10-25 por decisión literal del usuario:
+-- «Ampliar a los 209 empleados reales»): las vistas de personas, presencia y
+-- ausencias sirven a TODOS los empleados activos del HCM (deleted_on IS NULL y
+-- status_id <> 3), no solo a los NUEVE fixtures con department 'office-demo-%'.
+-- Los nueve fixtures conservan sus alias employee-demo-* para que la paridad
+-- campo a campo con el fuente sintético siga intacta; el resto del catálogo
+-- activo recibe el alias determinista 'employee-'||id. Cualquier empleado
+-- fuera de ese alcance (borrado o inactivo) queda fuera de TODAS las vistas,
+-- de modo que ningún identificador servido cuelga del directorio.
 --
 -- Derivación de presencia (SPEC-012 §5, aprobada): prioridad
 --   1 vacation: timeoff status_id=2 (activo) cubriendo la fecha (date_end es
@@ -26,15 +29,20 @@
 -- hcm.attendance_incidents hasta que el HCM exponga su DDL de tareas y sus
 -- hallazgos de regla evaluados (la aplicación nunca deriva reglas del HCM).
 --
--- Identificadores: el shape real usa enteros; el contrato usa los textos del
--- fuente sintético. El CASE de alias es el mapeo explícito de los nueve
--- fixtures (futuro: al ampliar alcance, 'employee-'||id y las pruebas evolucionan).
+-- Identificadores: el shape real usa enteros; el contrato usa textos. El CASE
+-- de alias es el mapeo explícito de los nueve fixtures y se repite en las tres
+-- vistas que necesitan el identificador de texto (personas, presencia y
+-- ausencias), siempre con el mismo criterio (nombre del empleado) para que las
+-- tres coincidan sin depender del orden de ids de la semilla; el COALESCE
+-- añade 'employee-'||id al resto del catálogo activo. En AUSENCIAS las
+-- referencias de los tres fixtures se conservan y el resto usa 'timeoff-'||id.
 -- Duración de ausencias: derivada como (ends_before - starts_on) en días,
 -- con unidad bilingüe literal; el shape real no almacena duración.
 
 CREATE SCHEMA IF NOT EXISTS hcm_contract;
 
--- 1) Directorio (solo fixtures; display name = name + last_name). Job title,
+-- 1) Directorio (todos los empleados activos; display name = name + last_name).
+--    Job title,
 --    surname, hire date, birthday month/day and the DERIVED age_on_next_birthday
 --    (age turned at the next birthday from CURRENT_DATE; approved 2026-10-24)
 --    are explicit approved projections; birth year and every other employee
@@ -53,19 +61,25 @@ SELECT
     aliases.age_on_next_birthday
 FROM (
     SELECT
-        CASE
-            WHEN e.name = 'Juan' AND e.last_name = 'Pérez' THEN 'employee-demo-juan'
-            WHEN e.name = 'Pedro' AND e.last_name = 'Rojas' THEN 'employee-demo-pedro'
-            WHEN e.name = 'Mauricio' AND e.last_name = 'Cardenas' THEN 'employee-demo-mauricio'
-            WHEN e.name = 'Juan' AND e.last_name = 'Herrera' THEN 'employee-demo-herrera'
-            WHEN e.name || ' ' || e.last_name = 'Empleado sintético 001' THEN 'employee-demo-madrid'
-            WHEN e.name || ' ' || e.last_name = 'Empleado sintético 005' THEN 'employee-demo-tokyo-002'
-            WHEN e.name || ' ' || e.last_name = 'Empleado sintético 004' THEN 'employee-demo-madrid-004'
-            WHEN e.name || ' ' || e.last_name = 'Empleado sintético 002' THEN 'employee-demo-tokyo'
-            WHEN e.name || ' ' || e.last_name = 'Empleado sintético 003' THEN 'employee-demo-madrid-002'
-        END AS employee_id,
-        e.name || ' ' || e.last_name AS display_name,
-        ARRAY[e.department]::text[] AS office_ids,
+        COALESCE(
+            CASE
+                WHEN e.name = 'Juan' AND e.last_name = 'Pérez' THEN 'employee-demo-juan'
+                WHEN e.name = 'Pedro' AND e.last_name = 'Rojas' THEN 'employee-demo-pedro'
+                WHEN e.name = 'Mauricio' AND e.last_name = 'Cardenas' THEN 'employee-demo-mauricio'
+                WHEN e.name = 'Juan' AND e.last_name = 'Herrera' THEN 'employee-demo-herrera'
+                WHEN e.name || ' ' || e.last_name = 'Empleado sintético 001' THEN 'employee-demo-madrid'
+                WHEN e.name || ' ' || e.last_name = 'Empleado sintético 005' THEN 'employee-demo-tokyo-002'
+                WHEN e.name || ' ' || e.last_name = 'Empleado sintético 004' THEN 'employee-demo-madrid-004'
+                WHEN e.name || ' ' || e.last_name = 'Empleado sintético 002' THEN 'employee-demo-tokyo'
+                WHEN e.name || ' ' || e.last_name = 'Empleado sintético 003' THEN 'employee-demo-madrid-002'
+            END,
+            'employee-' || e.id::text
+        ) AS employee_id,
+        COALESCE(
+            NULLIF(TRIM(CONCAT(e.name, ' ', e.last_name)), ''),
+            'employee-' || e.id::text
+        ) AS display_name,
+        ARRAY_REMOVE(ARRAY[e.department]::text[], NULL) AS office_ids,
         e."job:title" AS job_title,
         EXTRACT(MONTH FROM e.birthday_date)::integer AS birthday_month,
         EXTRACT(DAY FROM e.birthday_date)::integer AS birthday_day,
@@ -103,8 +117,7 @@ FROM (
         ORDER BY dates.next_birthday_on
         LIMIT 1
     ) AS next_birthday ON true
-    WHERE e.department LIKE 'office-demo-%'
-      AND e.deleted_on IS NULL
+    WHERE e.deleted_on IS NULL
       AND e.status_id <> 3
 ) AS aliases
 WHERE aliases.employee_id IS NOT NULL;
@@ -115,22 +128,27 @@ CREATE OR REPLACE VIEW hcm_contract.talentassistant_presence AS
 WITH scoped AS (
     SELECT
         e.id AS int_id,
-        CASE
-            WHEN e.name = 'Juan' AND e.last_name = 'Pérez' THEN 'employee-demo-juan'
-            WHEN e.name = 'Pedro' AND e.last_name = 'Rojas' THEN 'employee-demo-pedro'
-            WHEN e.name = 'Mauricio' AND e.last_name = 'Cardenas' THEN 'employee-demo-mauricio'
-            WHEN e.name = 'Juan' AND e.last_name = 'Herrera' THEN 'employee-demo-herrera'
-            WHEN e.name || ' ' || e.last_name = 'Empleado sintético 001' THEN 'employee-demo-madrid'
-            WHEN e.name || ' ' || e.last_name = 'Empleado sintético 005' THEN 'employee-demo-tokyo-002'
-            WHEN e.name || ' ' || e.last_name = 'Empleado sintético 004' THEN 'employee-demo-madrid-004'
-            WHEN e.name || ' ' || e.last_name = 'Empleado sintético 002' THEN 'employee-demo-tokyo'
-            WHEN e.name || ' ' || e.last_name = 'Empleado sintético 003' THEN 'employee-demo-madrid-002'
-        END AS employee_id,
-        e.name || ' ' || e.last_name AS display_name,
-        ARRAY[e.department]::text[] AS office_ids
+        COALESCE(
+            CASE
+                WHEN e.name = 'Juan' AND e.last_name = 'Pérez' THEN 'employee-demo-juan'
+                WHEN e.name = 'Pedro' AND e.last_name = 'Rojas' THEN 'employee-demo-pedro'
+                WHEN e.name = 'Mauricio' AND e.last_name = 'Cardenas' THEN 'employee-demo-mauricio'
+                WHEN e.name = 'Juan' AND e.last_name = 'Herrera' THEN 'employee-demo-herrera'
+                WHEN e.name || ' ' || e.last_name = 'Empleado sintético 001' THEN 'employee-demo-madrid'
+                WHEN e.name || ' ' || e.last_name = 'Empleado sintético 005' THEN 'employee-demo-tokyo-002'
+                WHEN e.name || ' ' || e.last_name = 'Empleado sintético 004' THEN 'employee-demo-madrid-004'
+                WHEN e.name || ' ' || e.last_name = 'Empleado sintético 002' THEN 'employee-demo-tokyo'
+                WHEN e.name || ' ' || e.last_name = 'Empleado sintético 003' THEN 'employee-demo-madrid-002'
+            END,
+            'employee-' || e.id::text
+        ) AS employee_id,
+        COALESCE(
+            NULLIF(TRIM(CONCAT(e.name, ' ', e.last_name)), ''),
+            'employee-' || e.id::text
+        ) AS display_name,
+        ARRAY_REMOVE(ARRAY[e.department]::text[], NULL) AS office_ids
     FROM public.employee AS e
-    WHERE e.department LIKE 'office-demo-%'
-      AND e.deleted_on IS NULL
+    WHERE e.deleted_on IS NULL
       AND e.status_id <> 3
 ), days AS (
     SELECT d::date AS presence_date
@@ -166,24 +184,68 @@ CROSS JOIN days AS d
 LEFT JOIN punches AS p ON p.int_id = s.int_id AND p.punch_date = d.presence_date
 WHERE s.employee_id IS NOT NULL;
 
--- 3) Ausencias: solo las tres filas de fixture (referencias del contrato);
---    date_end INCLUSIVO -> ends_before = date_end + 1 día; duración derivada.
+-- 3) Ausencias: TODAS las filas de los empleados activos (ampliación de alcance
+--    2026-10-25); date_end INCLUSIVO -> ends_before = date_end + 1 día; duración
+--    derivada. reference: los tres fixtures conservan las referencias del
+--    contrato y el resto usa 'timeoff-'||id. type sale del catálogo público
+--    timeoff_type (type_en con la traducción fija de esos siete tipos), status
+--    de status_id (1 Pendiente/Pending, 2 Aprobado/Approved, 3
+--    Rechazado/Rejected) y el resumen real proyecta note en los dos idiomas
+--    (decisión de producto 2026-10-25: «Mismo texto en summary_es y
+--    summary_en»); los tres fixtures conservan sus textos bilingües literales
+--    de paridad. Solo se sirven ausencias de empleados activos, así que ningún
+--    employee_id cuelga del directorio.
 CREATE OR REPLACE VIEW hcm_contract.talentassistant_timeoff AS
 SELECT
-    CASE t.id
-        WHEN 1 THEN 'timeoff-juan-2026-10'
-        WHEN 2 THEN 'timeoff-pedro-2026-10'
-        WHEN 3 THEN 'timeoff-mauricio-2026-10'
-    END AS reference,
-    CASE t.employee_id
-        WHEN 1 THEN 'employee-demo-juan'
-        WHEN 2 THEN 'employee-demo-pedro'
-        WHEN 3 THEN 'employee-demo-mauricio'
-    END AS employee_id,
-    CASE WHEN t.id = 3 THEN 'Calamidad' ELSE 'Vacación' END AS type_es,
-    CASE WHEN t.id = 3 THEN 'Calamity' ELSE 'Vacation' END AS type_en,
-    CASE WHEN t.id = 3 THEN 'Rechazado' ELSE 'Aprobado' END AS status_es,
-    CASE WHEN t.id = 3 THEN 'Rejected' ELSE 'Approved' END AS status_en,
+    COALESCE(
+        CASE t.id
+            WHEN 1 THEN 'timeoff-juan-2026-10'
+            WHEN 2 THEN 'timeoff-pedro-2026-10'
+            WHEN 3 THEN 'timeoff-mauricio-2026-10'
+        END,
+        'timeoff-' || t.id::text
+    ) AS reference,
+    COALESCE(
+        CASE
+            WHEN e.name = 'Juan' AND e.last_name = 'Pérez' THEN 'employee-demo-juan'
+            WHEN e.name = 'Pedro' AND e.last_name = 'Rojas' THEN 'employee-demo-pedro'
+            WHEN e.name = 'Mauricio' AND e.last_name = 'Cardenas' THEN 'employee-demo-mauricio'
+            WHEN e.name = 'Juan' AND e.last_name = 'Herrera' THEN 'employee-demo-herrera'
+            WHEN e.name || ' ' || e.last_name = 'Empleado sintético 001' THEN 'employee-demo-madrid'
+            WHEN e.name || ' ' || e.last_name = 'Empleado sintético 005' THEN 'employee-demo-tokyo-002'
+            WHEN e.name || ' ' || e.last_name = 'Empleado sintético 004' THEN 'employee-demo-madrid-004'
+            WHEN e.name || ' ' || e.last_name = 'Empleado sintético 002' THEN 'employee-demo-tokyo'
+            WHEN e.name || ' ' || e.last_name = 'Empleado sintético 003' THEN 'employee-demo-madrid-002'
+        END,
+        'employee-' || e.id::text
+    ) AS employee_id,
+    COALESCE(tt.name::text, '') AS type_es,
+    CASE tt.id
+        WHEN 1 THEN 'Vacation'
+        WHEN 2 THEN 'Calamity'
+        WHEN 3 THEN 'Sick leave'
+        WHEN 4 THEN 'Personal leave'
+        WHEN 5 THEN 'Paid leave'
+        WHEN 6 THEN 'Compensatory time'
+        WHEN 7 THEN 'External training'
+        ELSE COALESCE(tt.name::text, '')
+    END AS type_en,
+    COALESCE(
+        CASE t.status_id
+            WHEN 1 THEN 'Pendiente'
+            WHEN 2 THEN 'Aprobado'
+            WHEN 3 THEN 'Rechazado'
+        END,
+        ''
+    ) AS status_es,
+    COALESCE(
+        CASE t.status_id
+            WHEN 1 THEN 'Pending'
+            WHEN 2 THEN 'Approved'
+            WHEN 3 THEN 'Rejected'
+        END,
+        ''
+    ) AS status_en,
     t.date_start::date AS starts_on,
     (t.date_end::date + 1) AS ends_before,
     ((t.date_end::date + 1) - t.date_start::date)::text AS duration,
@@ -193,14 +255,21 @@ SELECT
         WHEN 1 THEN 'El HCM sintético informa una ausencia de vacaciones aprobada de Juan Pérez.'
         WHEN 2 THEN 'El HCM sintético informa la ausencia de vacaciones en curso de Pedro Rojas.'
         WHEN 3 THEN 'El HCM sintético informa una solicitud de calamidad rechazada de Mauricio Cardenas.'
+        ELSE t.note::text
     END AS summary_es,
     CASE t.id
         WHEN 1 THEN 'The synthetic HCM reports an approved vacation absence for Juan Pérez.'
         WHEN 2 THEN 'The synthetic HCM reports an in-progress vacation absence for Pedro Rojas.'
         WHEN 3 THEN 'The synthetic HCM reports a rejected calamity request for Mauricio Cardenas.'
+        ELSE t.note::text
     END AS summary_en
 FROM public.timeoff AS t
-WHERE t.id IN (1, 2, 3);
+JOIN public.employee AS e
+    ON e.id = t.employee_id
+   AND e.deleted_on IS NULL
+   AND e.status_id <> 3
+LEFT JOIN public.timeoff_type AS tt
+    ON tt.id = t.timeoff_type_id;
 
 -- 4) Tareas: fuente legada hcm.tasks (gap del shape, ver cabecera).
 CREATE OR REPLACE VIEW hcm_contract.talentassistant_tasks AS

@@ -44,11 +44,15 @@ public sealed class PostgresModeHttpContractTests
     [Fact]
     public async Task TheFiveDataEndpointsServeTheSeededContractInPostgresMode()
     {
+        int employeeCount;
         using (var employees = await GetAsync("/employees"))
         {
             var root = employees.RootElement;
             Assert.Equal(JsonValueKind.Array, root.ValueKind);
-            Assert.Equal(9, root.GetArrayLength());
+            Assert.True(
+                root.GetArrayLength() > 9,
+                "The contract must serve every active employee, not only the nine fixtures.");
+            employeeCount = root.GetArrayLength();
 
             var names = root.EnumerateArray()
                 .Select(employee => employee.GetProperty("displayName").GetString())
@@ -70,7 +74,7 @@ public sealed class PostgresModeHttpContractTests
                 root.GetProperty("date").GetString());
 
             var entries = root.GetProperty("entries");
-            Assert.Equal(9, entries.GetArrayLength());
+            Assert.Equal(employeeCount, entries.GetArrayLength());
             var pedro = entries.EnumerateArray().Single(entry =>
                 entry.GetProperty("employee").GetProperty("id").GetString()
                     == "employee-demo-pedro");
@@ -82,7 +86,20 @@ public sealed class PostgresModeHttpContractTests
 
         using (var timeOff = await GetAsync("/timeoff"))
         {
-            Assert.Equal(3, timeOff.RootElement.GetArrayLength());
+            var root = timeOff.RootElement;
+            Assert.True(
+                root.GetArrayLength() > 3,
+                "The contract must serve every seeded absence, not only the three fixtures.");
+
+            var references = root.EnumerateArray()
+                .Select(entry => entry.GetProperty("reference").GetString() ?? string.Empty)
+                .ToArray();
+            Assert.Contains("timeoff-juan-2026-10", references);
+
+            var generated = references.Count(reference =>
+                reference.StartsWith("timeoff-", StringComparison.Ordinal)
+                && reference["timeoff-".Length..].All(char.IsDigit));
+            Assert.True(generated > 0, "Expected absences beyond the three fixtures.");
         }
 
         using (var tasks = await GetAsync("/tasks"))
