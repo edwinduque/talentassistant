@@ -241,7 +241,7 @@ Desde SPEC-011 la aplicación puede consultar el HCM real desde su PostgreSQL de
 
 ### Servicio local de pruebas (`hcm-postgres`)
 
-El perfil Compose incluye un servicio `postgres:17-alpine` publicado **solo en loopback** (`127.0.0.1:5433`) que aplica el contrato de `db/hcm-contract/` sobre la réplica local del shape real (`public.*`) y las tablas legadas ficticias `hcm.*` de tareas/insights. La semilla contiene 209 empleados (197 activos), al menos 2.000 ausencias visibles, 20.000 marcajes en 45 días y 2.000 tareas, con nombres inventados plausibles; nunca copia datos personales reales. La base real del HCM no se toca desde este servicio y este no lleva TLS por diseño: es una excepción local documentada, no la postura de la base real.
+El perfil Compose incluye un servicio `postgres:17-alpine` publicado **solo en loopback** (`127.0.0.1:5433`) que aplica el contrato de `db/hcm-contract/` sobre la réplica local del shape real (`public.*`) y las tablas legadas ficticias `hcm.*` de tareas/insights. La semilla contiene 209 empleados (197 activos), al menos 2.000 ausencias visibles, 20.000 marcajes en 45 días y 2.000 tareas, con **nombres completos únicos**, 11 áreas, género `F`/`M`, cargo plausible y jefe directo; nunca copia datos personales reales. `gender` es un añadido local del dataset ficticio: no está en el shape real pegado (`upstream.sql`) y el contrato de producción solo podrá servirlo si el HCM lo expone. La base real del HCM no se toca desde este servicio y este no lleva TLS por diseño: es una excepción local documentada, no la postura de la base real.
 
 Para restablecer por completo la base de pruebas del contrato:
 
@@ -256,8 +256,8 @@ Desde SPEC-012, `hcm-postgres` sirve el contrato sobre una réplica local con la
 | Fichero | Qué contiene |
 |---|---|
 | `db/hcm-real/upstream.sql` | DDL del usuario **verbatim** (2026-10-20). No se ejecuta: es la fuente de verdad del shape cambiante. |
-| `db/hcm-real/schema.sql` | Adaptación ejecutable a PostgreSQL: identidades deterministas, `timestamp` (`time_check_date_utc` como `timestamptz`), `smallint`, `boolean`, `text`, `"job:title"` entrecomillado; añade 9 FK locales y 5 índices de apoyo (ambos documentados como añadidos locales en su cabecera). |
-| `db/hcm-real/seed.sql` | Semilla base ficticia, determinista por día UTC y de una sola ejecución; incluye `demo-scale.sql` para completar nombres y volúmenes. No se ejecuta otra vez sobre una base ya inicializada. |
+| `db/hcm-real/schema.sql` | Adaptación ejecutable a PostgreSQL: identidades deterministas, `timestamp` (`time_check_date_utc` como `timestamptz`), `smallint`, `boolean`, `text`, `"job:title"` entrecomillado; añade 9 FK locales, 5 índices de apoyo y la columna local `gender` (solo dataset ficticio), documentados en su cabecera. |
+| `db/hcm-real/seed.sql` | Semilla base ficticia, determinista por día UTC y de una sola ejecución; incluye `demo-scale.sql` para completar nombres y volúmenes. Nombres completos únicos, 11 áreas, género y jefe por área. No se ejecuta otra vez sobre una base ya inicializada. |
 
 Orden del pipeline de init (`db/hcm-contract/local/01_init.sh`, con `ON_ERROR_STOP=1`): `/real/schema.sql` → `/real/seed.sql` (incluye el top-up `demo-scale.sql`) → `local_tables.sql` → `views.sql` → `local_seed.sql` (empleados de FK, tareas e insight) → `roles.sql` → contraseña del rol de aplicación desde el entorno → `grants.sql` → `/real/verify-demo-data.sql`. Al terminar imprime el marcador `hcm contract initialized`.
 
@@ -267,7 +267,7 @@ Orden del pipeline de init (`db/hcm-contract/local/01_init.sh`, con `ON_ERROR_ST
 docker exec talentassistant-local-hcm-postgres-1 psql -U talentassistant_hcm_admin -d talentassistant_hcm -f /contract/views.sql
 ```
 
-Cuando la lista de columnas coincide, `CREATE OR REPLACE VIEW` conserva la vista y sus privilegios. La vista antigua de producción tiene solo 3 columnas, así que **no** se debe usar este comando aislado allí; usa el bundle transaccional de la sección «Carga en la VPS».
+Cuando la lista de columnas coincide, `CREATE OR REPLACE VIEW` conserva la vista y sus privilegios. Si el cambio **añade o elimina columnas** (por ejemplo `area`, `gender`, `years_in_company` y el jefe directo, 2026-10-25), `CREATE OR REPLACE` falla: reinicializa el volumen con el comando de restablecimiento anterior. La vista antigua de producción tiene solo 3 columnas, así que **no** se debe usar este comando aislado allí; usa el bundle transaccional de la sección «Carga en la VPS».
 
 **Cuando el usuario comparta un shape nuevo** (la información puede cambiar; misma revisión, sin atajos):
 
@@ -282,7 +282,9 @@ Convenciones del shape (SPEC-012):
 |---|---|
 | `timeoff.date_end` es inclusivo | El contrato expone el exclusivo `ends_before = date_end + 1 día`. |
 | Vocabulario de `status_id` | `1` pendiente, `2` activo, `3` eliminado (confirmado por el usuario). |
-| `department` como unidad orgánica | La columna dobla como identificador de unidad orgánica del contrato (marcador de alcance abajo). |
+| `department` como unidad orgánica | La columna es el área orgánica de todos los empleados (`area` escalar y `office_ids`); la ubicación de la oficina vive en `hcm.attendance_incidents`. |
+| `vacancy_supervisor` como jefe | Supuesto 2026-10-25: el contrato expone `manager_employee_id`/`manager_display_name` desde `vacancy_supervisor` (0 = sin jefe). |
+| `gender` local | Añadido solo al dataset ficticio; el shape real pegado no lo expone. Valores `F`/`M`. |
 | `time_check.status_id` | Su mapeo por valor es un supuesto documentado en la cabecera del seed. |
 | Días en UTC | Los límites de día de las marcaciones se evalúan en UTC. |
 | Ausencias que cubren hoy | Horizonte rodante a +365 días para no degradar la paridad sin reinicializar. |
@@ -296,6 +298,8 @@ Alcance y gaps documentados (no corregidos):
 ### Carga del dataset ficticio en la VPS
 
 La API se despliega por el workflow; no hace falta `git pull` ni clonar el repositorio en la VPS. Para actualizar la base, el bundle `db/hcm-contract/vps-demo-upgrade.psql` aplica las vistas y carga el dataset ficticio desde un preflight transaccional. Si la base no coincide con la semilla conocida de 209 empleados ficticios, el script aborta antes de modificar datos. No borra filas ni reinicializa volúmenes; actualiza solo los cinco nombres placeholder y los apellidos nulos reconocidos, y añade ausencias, marcajes y tareas hasta los mínimos de §6.
+
+**Cambio de columnas del contrato (2026-10-25):** las vistas nuevas referencian `employee.gender` y añaden `area`, `gender`, `years_in_company` y el jefe directo; `CREATE OR REPLACE VIEW` no puede incorporar columnas sobre la vista anterior y `vps-demo-upgrade.psql` no añade la columna física. Para este dataset hay que **recrear la base demo** con la cadena de init completa (`schema → seed → local_tables → views → local_seed → roles → grants → verify`), como en la recreación que el usuario autorizó el 2026-10-25 al decir «podemos borrar los actuales para evitar conflictos». El asistente no abre SSH: la recreación la ejecuta el usuario y conserva roles/contraseña del clúster.
 
 Desde PowerShell en la raíz del repositorio, copia las dos carpetas conservando su estructura. Usa el mismo destino SSH que empleas normalmente para abrir la VPS (el nombre que muestra el prompt remoto puede no resolver desde tu PC):
 
