@@ -1,6 +1,9 @@
 using System.Net;
 using System.Globalization;
+using System.Net.Http.Headers;
 using System.Net.Http.Json;
+using Microsoft.AspNetCore.Components.Authorization;
+using TalentAssistant.Web.Authentication;
 
 namespace TalentAssistant.Web.Services;
 
@@ -27,7 +30,8 @@ public sealed record BackendHealthResult(BackendHealthStatus Status)
 
 public sealed class BackendApiClient(
     HttpClient httpClient,
-    ILogger<BackendApiClient> logger)
+    ILogger<BackendApiClient> logger,
+    AuthenticationStateProvider authenticationStateProvider)
 {
     public async Task<BackendHealthResult> GetHealthAsync(
         CancellationToken cancellationToken = default)
@@ -83,7 +87,8 @@ public sealed class BackendApiClient(
 
         try
         {
-            using var response = await httpClient.GetAsync(path, cancellationToken);
+            using var request = new HttpRequestMessage(HttpMethod.Get, path);
+            using var response = await SendAuthenticatedAsync(request, cancellationToken);
             if (response.StatusCode != HttpStatusCode.OK)
             {
                 logger.LogWarning(
@@ -137,7 +142,8 @@ public sealed class BackendApiClient(
 
         try
         {
-            using var response = await httpClient.GetAsync(path, cancellationToken);
+            using var request = new HttpRequestMessage(HttpMethod.Get, path);
+            using var response = await SendAuthenticatedAsync(request, cancellationToken);
             if (response.StatusCode != HttpStatusCode.OK)
             {
                 logger.LogWarning(
@@ -192,8 +198,8 @@ public sealed class BackendApiClient(
 
     /// <summary>
     /// Sends one question plus the client-held history to <c>POST chat</c>
-    /// (SPEC-009 S3). The bearer token rides on the same authenticated
-    /// HttpClient as every other backend call.
+    /// (SPEC-009 S3). The bearer token is attached per request from the
+    /// authenticated Blazor circuit, alongside the other protected API calls.
     /// </summary>
     public async Task<AssistantChatResult> AskAssistantAsync(
         string message,
@@ -202,10 +208,11 @@ public sealed class BackendApiClient(
     {
         try
         {
-            using var response = await httpClient.PostAsJsonAsync(
-                "chat",
-                new ChatRequest(message, history),
-                cancellationToken);
+            using var request = new HttpRequestMessage(HttpMethod.Post, "chat")
+            {
+                Content = JsonContent.Create(new ChatRequest(message, history))
+            };
+            using var response = await SendAuthenticatedAsync(request, cancellationToken);
 
             if (response.StatusCode != HttpStatusCode.OK)
             {
@@ -323,6 +330,26 @@ public sealed class BackendApiClient(
             // Not the expected {reason} body: keep the previous mapping.
             return false;
         }
+    }
+
+    /// <summary>
+    /// Attaches the API JWT from the current Blazor circuit's authenticated
+    /// principal. HttpContext is only available during the initial HTTP request
+    /// and prerender; interactive server events run outside that request context.
+    /// </summary>
+    private async Task<HttpResponseMessage> SendAuthenticatedAsync(
+        HttpRequestMessage request,
+        CancellationToken cancellationToken)
+    {
+        var authenticationState = await authenticationStateProvider.GetAuthenticationStateAsync();
+        var accessToken = authenticationState.User
+            .FindFirst(AuthenticationClaimTypes.AccessToken)?.Value;
+        if (!string.IsNullOrWhiteSpace(accessToken))
+        {
+            request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", accessToken);
+        }
+
+        return await httpClient.SendAsync(request, cancellationToken);
     }
 
     private sealed record BackendHealthPayload(string Status);

@@ -27,7 +27,7 @@ builder.Services.AddHttpClient<BackendApiClient>(client =>
 {
     client.BaseAddress = backendApiBaseAddress;
     client.Timeout = TimeSpan.FromSeconds(5);
-}).AddHttpMessageHandler<AuthenticationMessageHandler>();
+});
 
 builder.Services.AddHttpClient<AuthApiClient>(client =>
 {
@@ -35,8 +35,6 @@ builder.Services.AddHttpClient<AuthApiClient>(client =>
     client.Timeout = TimeSpan.FromSeconds(5);
 });
 
-builder.Services.AddHttpContextAccessor();
-builder.Services.AddScoped<AuthenticationMessageHandler>();
 builder.Services.AddScoped<SessionService>();
 
 builder.Services.AddCascadingAuthenticationState();
@@ -119,10 +117,10 @@ app.MapPost("/session/login", async (
         identity.AddClaim(new Claim(ClaimTypes.Role, role));
     }
     identity.AddClaim(new Claim(
-        AuthenticationMessageHandler.FullNameClaimType,
+        AuthenticationClaimTypes.FullName,
         login.FullName));
     identity.AddClaim(new Claim(
-        AuthenticationMessageHandler.AccessTokenClaimType,
+        AuthenticationClaimTypes.AccessToken,
         login.AccessToken));
     identity.AddClaim(new Claim("expires", login.ExpiresAtUtc.ToString("O")));
 
@@ -156,7 +154,7 @@ app.MapPost("/session/logout", async (
     HttpContext httpContext,
     CancellationToken cancellationToken) =>
 {
-    var accessToken = user.FindFirst(AuthenticationMessageHandler.AccessTokenClaimType)?.Value;
+    var accessToken = user.FindFirst(AuthenticationClaimTypes.AccessToken)?.Value;
     if (!string.IsNullOrEmpty(accessToken))
     {
         // Best effort: the API revocation gap documented in ADR-0007 still applies.
@@ -201,7 +199,7 @@ app.MapPost("/session/profile", async (
         return Results.Redirect(QueryHelpers.AddQueryString(returnUrl, "profileError", "1"));
     }
 
-    var accessToken = user.FindFirst(AuthenticationMessageHandler.AccessTokenClaimType)?.Value;
+    var accessToken = user.FindFirst(AuthenticationClaimTypes.AccessToken)?.Value;
     var profile = string.IsNullOrEmpty(accessToken)
         ? null
         : await authApiClient.UpdateProfileAsync(
@@ -220,10 +218,10 @@ app.MapPost("/session/profile", async (
     // Re-issue the session cookie with the saved display name so the layout
     // reflects it without requiring a new sign-in.
     var identity = new ClaimsIdentity(
-        user.Claims.Where(claim => claim.Type != AuthenticationMessageHandler.FullNameClaimType),
+        user.Claims.Where(claim => claim.Type != AuthenticationClaimTypes.FullName),
         CookieAuthenticationDefaults.AuthenticationScheme);
     identity.AddClaim(new Claim(
-        AuthenticationMessageHandler.FullNameClaimType,
+        AuthenticationClaimTypes.FullName,
         profile.FullName));
     await httpContext.SignInAsync(new ClaimsPrincipal(identity));
 
@@ -246,7 +244,7 @@ app.MapPost("/session/password", async (
         return Results.Redirect(QueryHelpers.AddQueryString(returnUrl, "passwordError", "confirm"));
     }
 
-    var accessToken = user.FindFirst(AuthenticationMessageHandler.AccessTokenClaimType)?.Value;
+    var accessToken = user.FindFirst(AuthenticationClaimTypes.AccessToken)?.Value;
     var outcome = string.IsNullOrEmpty(accessToken)
         ? ChangePasswordOutcome.Failed
         : await authApiClient.ChangePasswordAsync(

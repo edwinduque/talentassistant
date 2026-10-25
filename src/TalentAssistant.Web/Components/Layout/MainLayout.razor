@@ -69,7 +69,7 @@
     private static string GetDisplayName(ClaimsPrincipal user)
     {
         // The saved display name wins over the technical user name (SPEC-006 S6).
-        var fullName = user.FindFirst(AuthenticationMessageHandler.FullNameClaimType)?.Value;
+        var fullName = user.FindFirst(AuthenticationClaimTypes.FullName)?.Value;
         return string.IsNullOrEmpty(fullName)
             ? user.Identity?.Name ?? string.Empty
             : fullName;

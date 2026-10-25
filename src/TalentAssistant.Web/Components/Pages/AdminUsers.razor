@@ -209,7 +209,7 @@
     }
 
     private string? GetAccessToken(ClaimsPrincipal principal) =>
-        principal.FindFirst(AuthenticationMessageHandler.AccessTokenClaimType)?.Value;
+        principal.FindFirst(AuthenticationClaimTypes.AccessToken)?.Value;
 
     private async Task<string?> GetAccessTokenAsync()
     {

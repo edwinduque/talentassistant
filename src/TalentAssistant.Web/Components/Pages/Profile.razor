@@ -159,7 +159,7 @@
 
         var authenticationState = await AuthenticationState.GetAuthenticationStateAsync();
         var accessToken = authenticationState.User.FindFirst(
-            AuthenticationMessageHandler.AccessTokenClaimType)?.Value;
+            AuthenticationClaimTypes.AccessToken)?.Value;
         if (string.IsNullOrEmpty(accessToken))
         {
             _loadFailed = true;
