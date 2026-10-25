@@ -1,6 +1,6 @@
 # ADR-0011 — Asistente conversacional con proveedor Groq (API compatible OpenAI)
 
-- **Estado:** Aceptado (2026-10-17).
+- **Estado:** Aceptado (2026-10-17); enmendado por ADR-0014 (2026-10-25).
 - **Fecha:** 2026-10-17.
 - **Aprobación de arquitectura:** aprobado por el usuario junto con SPEC-009 (2026-10-17).
 - **Especificación relacionada:** SPEC-009 — Asistente conversacional con herramientas del backend.
@@ -11,10 +11,10 @@ SPEC-008 construyó la superficie de consultas que el asistente necesita (direct
 
 El usuario propuso usar un modelo gratuito (Groq, Hugging Face o un modelo local) y que "el modelo consulte las fuentes de datos". Se corrigió el planteamiento: el modelo **no consulta los datos**; pide herramientas, la API consulta con la sesión del usuario y el modelo redacta la respuesta. Tras presentar las opciones (local/Ollama, Groq, Hugging Face), el usuario eligió **“Groq (API en la nube)”** por su cero instalación y su mayor calidad sin hardware.
 
-## Decisión propuesta
+## Decisión aceptada (enmendada por ADR-0014)
 
 - Groq es el proveedor primario, integrado con un cliente HTTP genérico **compatible con OpenAI** (`/chat/completions` con `tools`): sin SDK ni paquetes NuGet nuevos, y con la posibilidad de cambiar a un Ollama local más adelante solo cambiando `AI__BaseUrl`/`AI__ApiKey` (el modelo de Groq se confirma al implementar con la lista vigente de modelos con soporte de herramientas; la verificación documental no estuvo disponible en esta sesión).
-- El bucle de herramientas vive en la API: catálogo fijo y cerrado (las capacidades de SPEC-008/002), ejecución en proceso con la sesión e idioma del usuario, máximo de rondas y longitud de respuesta; el modelo nunca accede a red ni a datos por su cuenta.
+- El bucle de herramientas vive en la API: catálogo cerrado que incluye `query_hr_data` y herramientas de dominio, ejecución en proceso con la sesión e idioma del usuario, máximo de rondas y longitud de respuesta; el modelo nunca accede a red ni a datos por su cuenta. ADR-0014 define la excepción de consulta dinámica validada.
 - La clave vive solo en `.env`/User Secrets; sin clave o sin red la aplicación degrada con un mensaje localizado controlado (503), sin reintentos ciegos y con errores 429 traducidos.
 - La respuesta incluye la traza de herramientas para que la interfaz muestre las fuentes y para que el banco de SPEC-008 sirva de evaluación.
 
@@ -23,7 +23,7 @@ El usuario propuso usar un modelo gratuito (Groq, Hugging Face o un modelo local
 - ADR-0003 (límite del servicio de IA): se materializa — la IA invoca contratos del backend y no toca datos.
 - ADR-0007/0008: la autenticación existente da la identidad y el idioma a cada herramienta; nada cambia.
 - ADR-0010: los endpoints construidos pasan a ser las herramientas del catálogo; no se duplican casos de uso.
-- NFR-013/NFR-014 y FR-015 quedan satisfechos por diseño (timeouts, catálogo fijo, sin escrituras).
+- NFR-013/NFR-014 y FR-015 quedan satisfechos por diseño (timeouts, catálogo cerrado y sin escrituras).
 - La visión/documentación de estado que indicaba "el chat espera especificación y proveedor" queda actualizada al aceptarse este ADR.
 
 ## Consecuencias esperadas
@@ -49,7 +49,7 @@ El usuario propuso usar un modelo gratuito (Groq, Hugging Face o un modelo local
 
 ## Verificación de la decisión
 
-La decisión se considerará implementada cuando AC-029..AC-031 tengan evidencia observada: banco de las seis preguntas respondidas por el chat, catálogo cerrado y sin escrituras, degradación sin clave, secretos solo en `.env`, E2E en ES y EN con la clave presente y suite completa en verde. La aprobación de ADR-0011 autoriza planificar; la implementación se ejecuta por tareas.
+La decisión original se consideró implementada al verificar AC-029..AC-031. La capacidad adicional de consultas dinámicas, validación de planes y exclusión sensible se verifica mediante AC-055..AC-059 de SPEC-020 y ADR-0014.
 
 ## Actualizaciones (2026-10-18)
 

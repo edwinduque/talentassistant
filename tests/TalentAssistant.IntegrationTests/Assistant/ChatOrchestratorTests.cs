@@ -376,17 +376,17 @@ public sealed class ChatOrchestratorTests
         Assert.Contains("information is not available", system.Content);
         Assert.Contains("salary", system.Content, StringComparison.OrdinalIgnoreCase);
         Assert.Contains("bank account", system.Content, StringComparison.OrdinalIgnoreCase);
-        Assert.Contains("hire-date questions", system.Content);
-        Assert.Contains("surname_contains", system.Content);
+        Assert.Contains("query_hr_data", system.Content);
+        Assert.Contains("structured plan", system.Content);
+        Assert.Contains("read-only", system.Content);
+        Assert.Contains("Never send SQL or code", system.Content);
     }
 
     [Fact]
     public async Task SystemPromptTeachesFollowUpsAggregationAndDerivedAge()
     {
-        // Clarification 2026-10-24 (S6): fluid queries without a fixed recipe
-        // per question - resolve references from the conversation history and
-        // derive aggregates ONLY over records the tools returned; report the
-        // approved derived age instead of computing birth data.
+        // SPEC-020 and ADR-0014: resolve follow-ups from history and ask the
+        // backend to compute aggregates over the approved HCM source.
         var model = new ScriptedLanguageModel();
         model.Enqueue(new AssistantCompletion("ok", []));
         var orchestrator = CreateOrchestrator(model);
@@ -398,16 +398,11 @@ public sealed class ChatOrchestratorTests
         var system = model.Requests[0].Messages[0];
         Assert.Equal("system", system.Role);
         Assert.Contains("conversation history", system.Content);
-        Assert.Contains("not limited to a fixed list", system.Content);
+        Assert.Contains("Do not rely on a memorized list of question templates", system.Content);
         Assert.Contains("aggregates", system.Content);
+        Assert.Contains("ask the source to compute the result", system.Content);
         Assert.Contains("AgeOnNextBirthday", system.Content);
-
-        // Live-observed regression 2026-10-24 (Q4): after a search_employees
-        // round the model answered "unavailable" without calling timeoff, so
-        // the prompt must require the follow-up tool before an unavailable
-        // answer.
-        Assert.Contains("call the next tool", system.Content);
-        Assert.Contains("must call timeoff too", system.Content);
+        Assert.Contains("Do not broaden or change a user's filters silently", system.Content);
     }
 
     [Fact]
@@ -478,9 +473,11 @@ public sealed class ChatOrchestratorTests
 
     private static ChatOrchestrator CreateOrchestrator(
         ScriptedLanguageModel model,
-        AssistantOrchestratorOptions? options = null)
+        AssistantOrchestratorOptions? options = null,
+        IHcmDataQuerySource? querySource = null)
     {
         var workforce = new SyntheticWorkforceSource();
+        var attendance = new SyntheticHcmAttendanceSource();
         return new ChatOrchestrator(
             model,
             new SearchEmployees(workforce),
@@ -488,8 +485,170 @@ public sealed class ChatOrchestratorTests
             new GetEmployeePresence(workforce),
             new GetEmployeeTimeOff(workforce),
             new GetEmployeeTasks(workforce),
-            new GetAttendanceInsights(new SyntheticHcmAttendanceSource()),
+            new GetAttendanceInsights(attendance),
+            new QueryHcmData(
+                querySource ?? new SyntheticHcmDataQuerySource(workforce, attendance),
+                new HcmDataQueryValidator()),
             options ?? new AssistantOrchestratorOptions());
+    }
+
+    [Fact]
+    public async Task DynamicQueryToolCountsEmployeesAtTheSource()
+    {
+        var model = new ScriptedLanguageModel();
+        model.Enqueue(new AssistantCompletion(
+            Content: null,
+            ToolCalls:
+            [
+                new AssistantToolCall(
+                    "call-1",
+                    "query_hr_data",
+                    """{"dataset":"employees","aggregate":"count"}""")
+            ]));
+        model.Enqueue(new AssistantCompletion("La compañía tiene 9 empleados.", []));
+        var orchestrator = CreateOrchestrator(model);
+
+        var result = await orchestrator.ExecuteAsync(
+            new ChatQuery("¿Cuántos empleados tiene la compañía?", [], "es"));
+
+        Assert.Equal("La compañía tiene 9 empleados.", result.Answer);
+        Assert.Equal(["query_hr_data"], result.ToolsUsed);
+        var toolMessage = Assert.Single(model.Requests[1].Messages, message => message.Role == "tool");
+        using var payload = JsonDocument.Parse(toolMessage.Content);
+        Assert.Equal(9, payload.RootElement.GetProperty("Rows")[0].GetProperty("count").GetInt32());
+    }
+
+    [Fact]
+    public async Task DynamicQueryToolCountsEveryMauricioNameMatch()
+    {
+        var model = new ScriptedLanguageModel();
+        model.Enqueue(new AssistantCompletion(
+            Content: null,
+            ToolCalls:
+            [
+                new AssistantToolCall(
+                    "call-1",
+                    "query_hr_data",
+                    """{"dataset":"employees","filters":[{"field":"display_name","operator":"contains","value":"Mauricio"}],"aggregate":"count"}""")
+            ]));
+        model.Enqueue(new AssistantCompletion("Hay 1 Mauricio.", []));
+        var orchestrator = CreateOrchestrator(model);
+
+        var result = await orchestrator.ExecuteAsync(
+            new ChatQuery("¿Cuántos Mauricios hay en la compañía?", [], "es"));
+
+        Assert.Equal("Hay 1 Mauricio.", result.Answer);
+        var toolMessage = Assert.Single(model.Requests[1].Messages, message => message.Role == "tool");
+        using var payload = JsonDocument.Parse(toolMessage.Content);
+        Assert.Equal(1, payload.RootElement.GetProperty("Rows")[0].GetProperty("count").GetInt32());
+    }
+
+    [Fact]
+    public async Task DynamicQueryToolRejectsSensitiveFieldsAndRawSqlProperties()
+    {
+        var model = new ScriptedLanguageModel();
+        model.Enqueue(new AssistantCompletion(
+            Content: null,
+            ToolCalls:
+            [
+                new AssistantToolCall(
+                    "call-sensitive",
+                    "query_hr_data",
+                    """{"dataset":"employees","fields":["salary"]}""")
+            ]));
+        model.Enqueue(new AssistantCompletion("Ese dato no está disponible.", []));
+        var orchestrator = CreateOrchestrator(model);
+
+        await orchestrator.ExecuteAsync(new ChatQuery("¿Cuál es el salario?", [], "es"));
+        var sensitiveMessage = Assert.Single(
+            model.Requests[1].Messages,
+            message => message.Role == "tool");
+        Assert.Contains("restricted or unavailable", sensitiveMessage.Content, StringComparison.Ordinal);
+
+        var rawSqlModel = new ScriptedLanguageModel();
+        rawSqlModel.Enqueue(new AssistantCompletion(
+            Content: null,
+            ToolCalls:
+            [
+                new AssistantToolCall(
+                    "call-sql",
+                    "query_hr_data",
+                    """{"dataset":"employees","aggregate":"count","sql":"SELECT 1"}""")
+            ]));
+        rawSqlModel.Enqueue(new AssistantCompletion("No puedo ejecutar SQL libre.", []));
+        var rawSqlOrchestrator = CreateOrchestrator(rawSqlModel);
+
+        await rawSqlOrchestrator.ExecuteAsync(new ChatQuery("Consulta la base", [], "es"));
+        var sqlMessage = Assert.Single(
+            rawSqlModel.Requests[1].Messages,
+            message => message.Role == "tool");
+        Assert.Contains("unsupported property", sqlMessage.Content, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public async Task DynamicQueryToolRejectsWriteLikePlanProperties()
+    {
+        var model = new ScriptedLanguageModel();
+        model.Enqueue(new AssistantCompletion(
+            Content: null,
+            ToolCalls:
+            [
+                new AssistantToolCall(
+                    "call-write",
+                    "query_hr_data",
+                    """{"dataset":"employees","write":true,"operation":"update"}""")
+            ]));
+        model.Enqueue(new AssistantCompletion("No puedo modificar datos.", []));
+        var orchestrator = CreateOrchestrator(model);
+
+        await orchestrator.ExecuteAsync(new ChatQuery("Actualiza un empleado", [], "es"));
+
+        var toolMessage = Assert.Single(
+            model.Requests[1].Messages,
+            message => message.Role == "tool");
+        Assert.Contains("unsupported property", toolMessage.Content, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public async Task DynamicQueryToolBoundsTheSerializedResultPayload()
+    {
+        const string oversizedValue = "OVERSIZED_RESULT_SENTINEL";
+        var model = new ScriptedLanguageModel();
+        model.Enqueue(new AssistantCompletion(
+            Content: null,
+            ToolCalls:
+            [
+                new AssistantToolCall(
+                    "call-large-result",
+                    "query_hr_data",
+                    """{"dataset":"employees","fields":["display_name"]}""")
+            ]));
+        model.Enqueue(new AssistantCompletion("Refina la consulta.", []));
+        var oversizedResult = new HcmDataQueryResult(
+        [
+            new Dictionary<string, object?>
+            {
+                ["display_name"] = oversizedValue + new string('x', 70 * 1024)
+            }
+        ],
+        Truncated: false);
+        var orchestrator = CreateOrchestrator(
+            model,
+            querySource: new StaticHcmDataQuerySource(oversizedResult));
+
+        await orchestrator.ExecuteAsync(new ChatQuery("Busca empleados", [], "es"));
+
+        var toolMessage = Assert.Single(model.Requests[1].Messages, message => message.Role == "tool");
+        Assert.Contains("response limit", toolMessage.Content, StringComparison.OrdinalIgnoreCase);
+        Assert.DoesNotContain(oversizedValue, toolMessage.Content, StringComparison.Ordinal);
+    }
+
+    private sealed class StaticHcmDataQuerySource(HcmDataQueryResult result) : IHcmDataQuerySource
+    {
+        public Task<HcmDataQueryResult> ExecuteAsync(
+            HcmValidatedDataQuery query,
+            CancellationToken cancellationToken = default) =>
+            Task.FromResult(result);
     }
 
     /// <summary>

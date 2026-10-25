@@ -1,9 +1,9 @@
 # SPEC-009 — Asistente conversacional con herramientas del backend
 
-- **Estado:** Aprobada e implementada (2026-10-17); enmienda de resolución de nombres aprobada e implementada (2026-10-18).
+- **Estado:** Aprobada e implementada (2026-10-17); enmiendas de nombres y consulta flexible aprobadas (2026-10-18, 2026-10-25); SPEC-020/ADR-0014 implementan la consulta dinámica.
 - **Implementación:** T1 (orquestador y cliente de proveedor) y T2 (interfaz de chat) en `feat/conversational-assistant`; T3 (documentación) implementada.
-- **Requisitos relacionados (propuestos):** FR-029, FR-030 y NFR-021. Relacionados existentes: FR-012, FR-013, FR-016, FR-020..FR-027; NFR-004, NFR-006, NFR-013, NFR-014.
-- **Criterios relacionados (propuestos):** AC-029, AC-030, AC-031 y AC-032 (enmienda 2026-10-18).
+- **Requisitos relacionados:** FR-029, FR-030, FR-031, FR-040 y FR-041; NFR-021/022.
+- **Criterios relacionados:** AC-029..AC-032 y AC-051 (enmiendas previas); AC-055..AC-059 (SPEC-020).
 - **Decisión arquitectónica:** ADR-0011 aceptado (proveedor Groq vía API compatible OpenAI).
 - **Decisión de producto registrada:** el usuario eligió “Groq (API en la nube)” el 2026-10-17, tras la corrección de que el modelo no consulta los datos directamente sino que pide herramientas.
 - **Versión:** 0.1.
@@ -16,7 +16,7 @@ Añadir una página de chat donde el responsable de RR. HH. pregunte en lenguaje
 
 ### Incluido
 
-- Endpoint `POST /chat` autenticado en la API con bucle de herramientas: el modelo recibe un catálogo fijo de herramientas (los endpoints de SPEC-008, `upcoming_birthday` y los insights de SPEC-002), la API los ejecuta en proceso con el contexto del usuario y devuelve la respuesta junto a la traza de herramientas usadas.
+- Endpoint `POST /chat` autenticado en la API con bucle de herramientas: el modelo recibe un catálogo cerrado que incluye la capacidad genérica `query_hr_data` (SPEC-020) y las herramientas de dominio; la API valida y ejecuta con el contexto del usuario y devuelve la respuesta junto a la traza de herramientas usadas.
 - Cliente LLM genérico sobre HTTP compatible con OpenAI (`/chat/completions` con `tools`) sin SDK ni paquetes nuevos, configurado para Groq en `.env`; intercambiable por un Ollama local cambiando configuración.
 - Página `/assistant` en la Web, localizada ES/EN, protegida por sesión, con historial de la conversación, estado de carga y las fuentes/ferramientas empleadas.
 - Borrador de oferta laboral en el chat a partir de requisitos escritos por RR. HH.; es una respuesta efímera, no una escritura ni publicación al HCM.
@@ -27,7 +27,7 @@ Añadir una página de chat donde el responsable de RR. HH. pregunte en lenguaje
 ### Fuera de alcance
 
 - Que el modelo escriba, modifique o elimine datos (FR-015 sigue vigente: el MVP no tiene escrituras autónomas).
-- El modelo elija herramientas fuera del catálogo fijo o acceda a red/base de datos por su cuenta.
+- El modelo elija herramientas fuera del catálogo cerrado, envíe SQL/código o acceda a red/base de datos por su cuenta.
 - RAG sobre documentos (FR-014), agentes con roles (FR-017) y streaming de respuestas (v1 no streaming; la interfaz muestra estado de espera).
 - Registro de usuarios, roles y permisos nuevos; el acceso es «usuario autenticado» como hoy.
 - Recuperación de claves, proveedores alternativos como implementación (solo como configuración) y despliegues productivos.
@@ -36,17 +36,17 @@ Añadir una página de chat donde el responsable de RR. HH. pregunte en lenguaje
 
 - La IA no accede directamente a los datos: los hechos del HCM pasan por los casos de uso existentes de Application, con la sesión e idioma del usuario autenticado. El borrador de oferta es la excepción textual: usa solo los requisitos proporcionados por RR. HH. y no consulta ni escribe datos (coherente con ADR-0003, FR-013 y NFR-014).
 - Resolución de nombres y desambigüación: la búsqueda de personas es insensible a acentos (SPEC-008 enmendada) y, cuando una pregunta de una persona concreta coincide con varios empleados, el asistente lista los candidatos y pregunta cuál antes de responder; nunca elige en silencio. *(Enmienda 2026-10-18.)*
-- El catálogo de herramientas es fijo y cerrado en el backend; el modelo no lo amplía ni decide permisos.
+- El catálogo de herramientas es cerrado en el backend e incluye una capacidad genérica de consulta; el modelo no lo amplía ni decide permisos.
 - Clave del proveedor y configuración solo en `.env`/User Secrets; nunca en el repositorio ni en imágenes (NFR-004).
 - La respuesta debe distinguir los datos devueltos por las herramientas de cualquier texto del modelo: si las herramientas no traen el dato, el asistente lo dice (sin inventar).
-- El modelo solo recibe atributos proyectados explícitamente por los DTOs de las herramientas; el sueldo de empleados y los datos bancarios están restringidos, y campos no aprobados no se añaden al payload. Un salario introducido por el usuario como requisito de una oferta puede aparecer solo en el borrador de esa oferta.
+- El modelo recibe únicamente los campos solicitados del contrato HCM. La consulta genérica permite cualquier campo no sensible disponible en las vistas, sin aprobación individual; sueldo, números de cuenta y exclusiones previas explícitas (incluido el año de nacimiento crudo) permanecen bloqueados. Un salario introducido por el usuario como requisito de una oferta puede aparecer solo en el borrador de esa oferta.
 - No hay escrituras ni publicación: el borrador solo se devuelve como texto en el chat y no se guarda en el HCM.
 
 ## 4. Flujo local esperado
 
 1. El usuario abre `/assistant`, autenticado, y escribe «Dime cuantos dias de vacaciones tiene Juan Perez».
 2. La API envía la pregunta y el historial al proveedor con el catálogo de herramientas.
-3. Para una pregunta de persona, el modelo llama primero a `search_employees(name="Juan")`: con un único candidato continúa con `timeoff`, y con varios (p. ej. Juan Pérez y Juan Herrera) devuelve una pregunta con los candidatos antes de consultar datos. *(Enmienda 2026-10-18.)*
+3. Para una pregunta sobre datos de una persona concreta, el modelo puede llamar primero a `search_employees` para desambiguar; con varios candidatos pregunta cuál antes de consultar detalles. Una consulta de conteo por fragmento de nombre usa `query_hr_data` e incluye todas las coincidencias.
 4. El modelo redacta la respuesta a partir de los datos reales; la traza de herramientas viaja con la respuesta.
 5. Si el proveedor falla o agota el tiempo, la interfaz muestra un mensaje localizado controlado; la aplicación sigue funcionando sin IA.
 6. Las diez preguntas de SPEC-008 producen respuestas que contienen los valores de los fixtures (criterio de aceptación automatizado donde sea posible).
@@ -68,21 +68,21 @@ Añadir una página de chat donde el responsable de RR. HH. pregunte en lenguaje
 
 ## 6. Herramientas del catálogo (v1)
 
-`search_employees` (nombre/oficina/apellido y campos de directorio aprobados), `presence` (fecha), `timeoff` (empleado), `tasks` (empleado), `attendance_insights` (rango), `upcoming_birthday` (sin argumentos; resultado de la fuente HCM). El catálogo permanece cerrado; ninguna herramienta devuelve sueldo, datos bancarios ni atributos no aprobados.
+El catálogo cerrado incluye `search_employees`, `presence`, `timeoff`, `tasks`, `attendance_insights`, `upcoming_birthday` y `query_hr_data`. La última acepta un plan declarativo sobre los datasets y campos no sensibles del contrato HCM; no acepta SQL ni código. Ninguna herramienta expone sueldo, números de cuenta ni el año de nacimiento crudo.
 
 ## 7. Criterios de aceptación propuestos
 
 | ID | Criterio verificable propuesto | Evidencia futura |
 |---|---|---|
 | AC-029 | Las diez preguntas de SPEC-008, formuladas en el chat, producen respuestas que contienen los valores esperados de los fixtures y citan la herramienta usada. | Pruebas del bucle con transporte falso y pasada en vivo documentada con la clave presente. |
-| AC-030 | El modelo solo invoca el catálogo fijo, las invocaciones usan la sesión e idioma del usuario, no hay escrituras y una pregunta factual sin datos recibe una respuesta de «sin información» del propio asistente. | Pruebas unitarias del orquestador y revisión del catálogo. |
+| AC-030 | El modelo solo invoca el catálogo cerrado, incluida la herramienta genérica validada; las invocaciones usan la sesión e idioma del usuario, no hay escrituras y una pregunta factual sin datos recibe una respuesta de «sin información» del propio asistente. | Pruebas unitarias del orquestador y revisión del catálogo. |
 | AC-031 | Sin clave o sin red la aplicación degrada con mensajes localizados controlados; secretos solo en `.env`; límites de tiempo/rondas activos; suite completa en verde y recorrido de navegador del chat en ES y EN. | Pruebas de degradación, inspección y E2E de navegador. |
 | AC-032 | Una pregunta por una persona con nombre compartido («Juan») recibe una respuesta del asistente que lista los candidatos y pregunta cuál antes de responder; tras la elección responde con el dato del fixture, y un nombre sin acento («Juan Perez») resuelve al empleado correcto. *(Enmienda 2026-10-18.)* | Pasada en vivo con la pregunta ambigua y su turno de elección, más pruebas deterministas del matcher sin acentos. |
 | AC-051 | La solicitud de borrador de oferta de §13 responde en el chat sin herramientas, se basa solo en los términos proporcionados, pregunta de forma breve solo cuando falta un dato esencial y no guarda ni publica. | Prueba determinista del prompt y pasada en vivo opcional autorizada. |
 
 ## 8. Diseño propuesto para planificar
 
-1. `POST /chat` con historial limitado del cliente; orquestador en API con catálogo fijo de herramientas y máximo de rondas; cada herramienta delega en su caso de uso.
+1. `POST /chat` con historial limitado del cliente; orquestador en API con catálogo cerrado y máximo de rondas. `query_hr_data` pasa por el validador de Application y una fuente configurada de solo lectura.
 2. Cliente HTTP compatible OpenAI (`Authorization: Bearer` + `tools`); configuración `AI__Provider`, `AI__BaseUrl`, `AI__ApiKey`, `AI__Model`, `AI__TimeoutSeconds`, `AI__MaxTokens`, `AI__MaxToolRounds`.
 3. Groq como configuración por defecto: `BaseUrl=https://api.groq.com/openai/v1` y `AI__Model=openai/gpt-oss-120b` (id con soporte de herramientas confirmado con la API de Groq el 2026-10-18; los modelos Llama no estaban disponibles para la clave de prueba, se documenta como alternativa `openai/gpt-oss-20b`).
 4. Respuesta del chat: `{ answer, toolsUsed[], sources[] }`; la interfaz muestra la respuesta y las herramientas empleadas.
@@ -127,10 +127,18 @@ El usuario aclaró que RR. HH. debe poder pedir un borrador inicial de oferta a 
 
 Verbatim del usuario: «No se que haces pero llevas dos horas dando vueltas, ademas parece que no estas haciendo lo de hacerlo mas natural, veo que estas enfocado en el ejemplo que te di pero si la pregunta fuera, cuantos empleados tiene la sede de tokio o cuantos son se sexo masculino y de sexo femenino o quien es el empleado mas antiguo o quien es el empleado mas joven o quien lleva mas años en la compañia o ese tipo de preguntas, no quiero que simplemente te las aprendas o que tengas un select para cada una. quiero que la ia tenga mas fluides al consultar cosas y no solo las preguntas predeterminadas. pero necesito calidad».
 
-Cambios aprobados:
+Cambios aprobados el 2026-10-24:
 
-- El system prompt pasa de lista de recetas por tipo de pregunta a orientarse por capacidades: resuelve seguimientos con el historial («esa persona»), deriva agregados (contar, agrupar, ordenar, ranking, min/máx) **solo** sobre los registros que devuelven las herramientas, encadena varias llamadas y, si un filtro no devuelve filas, amplía la consulta en vez de concluir que no hay datos.
-- El catálogo **no crece**: sigue cerrado con las seis herramientas del §6. La fluidez no añade un `select` por pregunta; «Cuantos empleados tiene la sede de tokio?» se responde con `search_employees` + recuento sobre los registros, y «quién es el empleado más antiguo / quién lleva más años» con `search_employees` + ordenación por `HireDate`.
-- `search_employees` y `upcoming_birthday` proyectan la EDAD DERIVADA `AgeOnNextBirthday` (aprobación «Edad derivada (Recomendado)», 2026-10-24): la edad que cumple en el próximo cumpleaños, anclada a la fecha de consulta de cada fuente; `null` cuando la fuente no tiene cumpleaños. El año de nacimiento crudo sigue prohibido en cualquier payload del modelo y `GET /employees` conserva exactamente `id`, `displayName`, `officeIds`.
-- Banco en vivo: +3 probes (seguimiento de dos turnos con historial, recuento por oficina, ranking de antigüedad). SPEC-010 y sus guardrails no cambian.
-- Dato inexistente: el shape real (`db/hcm-real/upstream.sql`) no contiene columna de sexo/gender; hasta aprobación explícita de un atributo nuevo (SPEC-010 §11) esas preguntas se responden con «información no disponible», verificado en vivo.
+- El system prompt se orienta por capacidades: resuelve seguimientos con el historial y conserva la edad derivada `AgeOnNextBirthday`; el año de nacimiento crudo sigue excluido.
+- FR-040 aprobó agregados (conteo, agrupación, orden, ranking y extremos) sobre datos HCM; SPEC-020 amplía su ejecución a la fuente mediante un plan genérico.
+- El dato de sexo/gender no existe en el contrato HCM actual; no se inventa y se declara no disponible.
+
+### Enmienda aprobada por el usuario: consultas dinámicas (2026-10-25)
+
+El usuario indicó: «No modificacion de datos, consultas dinamicas pero que no contengan datos sensibles como el salario o numero de cuenta. lo demas si».
+
+- `query_hr_data` acepta un plan declarativo para seleccionar campos no sensibles y combinar filtros, agregados, agrupaciones y ordenamientos sobre los datasets de empleados, presencia, TimeOff, Tasks y attendance insights. No se crea una herramienta por pregunta.
+- Application valida el plan y la sesión; Infrastructure compila SQL dinámico parametrizado desde metadatos confiables y ejecuta solo lectura. El modelo no puede enviar SQL/código ni modificar datos.
+- Salario, número de cuenta y exclusiones previas como el año de nacimiento crudo siguen bloqueados en toda posición del plan. Otros campos no sensibles de las vistas HCM no necesitan aprobación individual.
+- Los agregados se calculan en la fuente; errores, campos ausentes y datos inexistentes se explican sin inventar. SPEC-010 conserva el rechazo de solicitudes ajenas como generar una función en Python.
+- La aprobación técnica y sus límites están en ADR-0014; SPEC-020 define AC-055..AC-059.

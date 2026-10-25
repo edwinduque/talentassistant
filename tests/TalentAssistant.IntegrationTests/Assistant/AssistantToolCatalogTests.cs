@@ -4,14 +4,13 @@ using TalentAssistant.Application.Assistant;
 namespace TalentAssistant.IntegrationTests.Assistant;
 
 /// <summary>
-/// The tool catalog is a fixed, closed registry (SPEC-009 §6, SPEC-008 §6):
-/// these names are the contract the model sees and the bench questions
-/// depend on. Adding or renaming a tool must fail here first.
+/// The tool catalog is closed but includes the generic HR data query
+/// capability (SPEC-020, ADR-0014) alongside source-owned domain tools.
 /// </summary>
 public sealed class AssistantToolCatalogTests
 {
     [Fact]
-    public void CatalogExposesExactlyTheFixedToolNames()
+    public void CatalogExposesTheGenericQueryToolAndExistingDomainTools()
     {
         var names = ChatOrchestrator.ToolCatalog
             .Select(tool => tool.Name)
@@ -25,7 +24,8 @@ public sealed class AssistantToolCatalogTests
                 "timeoff",
                 "tasks",
                 "attendance_insights",
-                "upcoming_birthday"
+                "upcoming_birthday",
+                "query_hr_data"
             },
             names);
     }
@@ -85,5 +85,23 @@ public sealed class AssistantToolCatalogTests
             "null",
             surnameContains.GetProperty("type").EnumerateArray()
                 .Select(entry => entry.GetString()));
+    }
+
+    [Fact]
+    public void GenericQuerySchemaAcceptsOnlyStructuredReadOnlyPlans()
+    {
+        var queryTool = ChatOrchestrator.ToolCatalog
+            .Single(tool => tool.Name == "query_hr_data");
+
+        using var schema = JsonDocument.Parse(queryTool.ParametersJson);
+        var root = schema.RootElement;
+        var properties = root.GetProperty("properties");
+
+        Assert.False(root.GetProperty("additionalProperties").GetBoolean());
+        Assert.True(properties.TryGetProperty("dataset", out _));
+        Assert.True(properties.TryGetProperty("filters", out var filters));
+        Assert.False(filters.GetProperty("items").GetProperty("additionalProperties").GetBoolean());
+        Assert.False(properties.TryGetProperty("sql", out _));
+        Assert.False(properties.TryGetProperty("write", out _));
     }
 }

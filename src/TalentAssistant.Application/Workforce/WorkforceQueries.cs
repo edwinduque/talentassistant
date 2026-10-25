@@ -63,7 +63,11 @@ public sealed record HcmEmployeeDirectoryEntry(
     string? JobTitle = null,
     string? LastName = null,
     DateOnly? HireDate = null,
-    int? AgeOnNextBirthday = null);
+    int? AgeOnNextBirthday = null,
+    [property: System.Text.Json.Serialization.JsonIgnore]
+    int? BirthdayMonth = null,
+    [property: System.Text.Json.Serialization.JsonIgnore]
+    int? BirthdayDay = null);
 
 /// <summary>
 /// The next birthday occurrence supplied by the HCM source. The raw birth year

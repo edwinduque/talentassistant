@@ -90,6 +90,8 @@ builder.Services.AddScoped<GetUpcomingBirthdays>();
 builder.Services.AddScoped<GetEmployeePresence>();
 builder.Services.AddScoped<GetEmployeeTimeOff>();
 builder.Services.AddScoped<GetEmployeeTasks>();
+builder.Services.AddSingleton<HcmDataQueryValidator>();
+builder.Services.AddScoped<QueryHcmData>();
 builder.Services.AddAssistantProvider(builder.Configuration.GetSection("AI"));
 builder.Services.AddScoped<ChatOrchestrator>();
 

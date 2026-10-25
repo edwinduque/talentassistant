@@ -50,6 +50,7 @@ public static class DependencyInjection
                 _ => NpgsqlDataSource.Create(hcmPostgresConnectionString));
             services.AddSingleton<IHcmWorkforceSource, PostgresWorkforceSource>();
             services.AddSingleton<IHcmAttendanceSource, PostgresAttendanceSource>();
+            services.AddSingleton<IHcmDataQuerySource, PostgresHcmDataQuerySource>();
         }
         else
         {
@@ -63,6 +64,7 @@ public static class DependencyInjection
             }
 
             services.AddSingleton<IHcmWorkforceSource, SyntheticWorkforceSource>();
+            services.AddScoped<IHcmDataQuerySource, SyntheticHcmDataQuerySource>();
         }
 
         return services;

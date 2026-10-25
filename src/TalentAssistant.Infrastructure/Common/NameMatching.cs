@@ -1,5 +1,4 @@
-using System.Globalization;
-using System.Text;
+using TalentAssistant.Application.Workforce;
 
 namespace TalentAssistant.Infrastructure.Common;
 
@@ -17,19 +16,7 @@ namespace TalentAssistant.Infrastructure.Common;
 internal static class NameMatching
 {
     internal static string NormalizeForNameMatching(string value)
-    {
-        var decomposed = value.Normalize(NormalizationForm.FormD);
-        var builder = new StringBuilder(decomposed.Length);
-        foreach (var character in decomposed)
-        {
-            if (CharUnicodeInfo.GetUnicodeCategory(character) != UnicodeCategory.NonSpacingMark)
-            {
-                builder.Append(character);
-            }
-        }
-
-        return builder.ToString();
-    }
+        => HcmQueryText.NormalizeForNameMatching(value);
 
     /// <summary>True when the folded display name contains the folded query.</summary>
     internal static bool Matches(string displayName, string queryName) =>

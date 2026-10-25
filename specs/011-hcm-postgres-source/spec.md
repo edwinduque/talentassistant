@@ -17,7 +17,7 @@ Que la aplicación pueda consumir **datos reales del HCM desde su PostgreSQL** �
 ### Incluido
 
 - **Contrato de vistas**: un conjunto de vistas (o, en su defecto, columnas concretas fijas) definidas en la base del HCM y versionadas en este repo como `db/hcm-contract/` — es la capa anti-corrupción que el DBA del HCM posee; esquema de descubrimiento documentado (tareas, columnas, tipos, cobertura de los conceptos que hoy sirven los puertos).
-- **Un adaptador de Infrastructure por motor** (`PostgresWorkforceSource` y `PostgresAttendanceSource`) que implementa los puertos existentes (`IHcmWorkforceSource`, fuente de asistencia) con **consultas fijas y parametrizadas** escritas contra las vistas, sin EF para este camino (no es un esquema propio: vistas de solo lectura), usando únicamente el proveedor Npgsql (único paquete nuevo candidato).
+- **Un adaptador de Infrastructure por motor** (`PostgresWorkforceSource` y `PostgresAttendanceSource`) que implementa los puertos existentes con Npgsql y consultas fijas parametrizadas contra las vistas; la excepción dinámica y validada de `query_hr_data` se define en SPEC-020/ADR-0014. Sin EF para este camino (no es un esquema propio: vistas de solo lectura).
 - **Interruptor único de fuente** por configuración (`Hcm__Source=Sintética|Postgres`) que gobierna **ambos** puertos a la vez: o todo real o todo sintético — prohibido el modo mixto silencioso.
 - **Contrato de seguridad** (cumplimiento verificable): rol de base de datos de la aplicación con SELECT sobre las vistas (grants documentados para el DBA), transacción de solo lectura con *statement timeout*, TLS obligatorio, credenciales solo en `.env`, logs de consulta sin valores de personas, red restringida al host.
 - **Degradación honesta**: en modo Postgres, si la base no responde, los endpoints responden un error localizado de «fuente no disponible» — **nunca** vuelven a datos sintéticos por su cuenta (silenciar el origen de los datos sería mentir al usuario).
@@ -27,7 +27,7 @@ Que la aplicación pueda consumir **datos reales del HCM desde su PostgreSQL** �
 ### Fuera de alcance
 
 - Escrituras de cualquier tipo sobre la base del HCM (lectura exclusiva; el MVP no tiene escrituras autónomas).
-- SQL dinámico o consultas generadas por el modelo (regla del proyecto, FR-013/NFR-014).
+- SQL libre o consultas SQL generadas/enviadas por el modelo; la excepción acotada compilada por Infrastructure se rige por SPEC-020/ADR-0014.
 - Exposición MCP: queda como **iteración futura** (publicar una capa delgada MCP sobre los mismos casos de uso si aparece otro consumidor), sin implementación en esta especificación.
 - ETL/CDC o réplica local (alternativa no elegida; viable si la frescura deja de ser prioridad).
 - Conexión a motores distintos de PostgreSQL: queda contenida en un adaptador futuro tras el mismo puerto (el objetivo es no depender del motor en Application).
@@ -36,7 +36,7 @@ Que la aplicación pueda consumir **datos reales del HCM desde su PostgreSQL** �
 ## 3. Requisitos y límites arquitectónicos
 
 - Application y el asistente **no cambian**: el conector se enchufa a los puertos existentes (ADR-0003); el catálogo de herramientas y los guardrails (SPEC-010) operan igual sobre la fuente real.
-- Solo lectura real: grants de la base + transacción `READ ONLY` + consultas fijas parametrizadas; imposible escribir por diseño, no por convención.
+- Solo lectura real: grants de la base + transacción `READ ONLY`; las operaciones existentes usan consultas fijas parametrizadas y `query_hr_data` solo SQL dinámico compilado por Infrastructure desde un plan validado.
 - El motor de datos es una decisión de Infrastructure: cambiar de PostgreSQL a otro motor sustituye un adaptador, sin tocar casos de uso, interfaz ni asistente.
 - Los datos reales de personas no aparecen en logs, errores ni artefactos del repo; las pruebas usan siempre filas sintéticas.
 - Sin credenciales de la base del HCM en el repositorio, en imágenes ni en la conversación: solo `.env` local (NFR-004).
@@ -54,7 +54,7 @@ Que la aplicación pueda consumir **datos reales del HCM desde su PostgreSQL** �
 | Componente | Responsabilidad propuesta | Línea base que debe conservar |
 |---|---|---|
 | Contrato `db/hcm-contract/` | Vistas + grants + semilla de prueba, versionados. | Esquema estable; sin datos reales en el repo. |
-| Infrastructure — adaptador workforce | Consultas fijas contra vistas → DTOs de los puertos, payload bilingüe honesto. | Sin SQL dinámico; timeouts. |
+| Infrastructure — adaptador workforce | Consultas contra vistas → DTOs de los puertos, payload bilingüe honesto. | SQL fijo para operaciones existentes; excepción de consulta dinámica según SPEC-020/ADR-0014; timeouts. |
 | Infrastructure — adaptador de asistencia | Ídem para insights/asistencia. | Mismo interruptor; sin datos sintéticos mezclados. |
 | Configuración | `Hcm__Source`, `HCM__Host/Port/Database/User/Password/SSLMode/Timeout`. | Secretos fuera de Git; TLS. |
 | Degradación | Error localizado de fuente no disponible. | Nunca fallback silencioso a sintético. |
@@ -73,7 +73,7 @@ Que la aplicación pueda consumir **datos reales del HCM desde su PostgreSQL** �
 | ID | Criterio verificable propuesto | Evidencia futura |
 |---|---|---|
 | AC-036 | Con `Hcm__Source=Postgres`, las cinco capacidades del asistente responden con los datos de la PostgreSQL local sembrada en el esquema del contrato (mismos formatos de antes), y con `Sintética` responden con los fixtures — nunca se mezclan orígenes en una misma respuesta. | Pruebas de integración del adaptador contra PostgreSQL local y E2E en ambos modos. |
-| AC-037 | El rol de la aplicación no puede escribir (grants de solo lectura aplicados), toda petición corre en transacción `READ ONLY` con *statement timeout*, las consultas son fijas y parametrizadas (grep de SQL dinámico vacío), el transporte exige TLS verificado para hosts no-loopback (`Ssl Mode=VerifyFull` validado en el arranque; los bucles locales quedan exentos por la base de pruebas local sin TLS) y los logs no contienen valores de personas. *(Reforzado el 2026-10-19 por SEC-001.)* | Script de grants revisado, pruebas del cliente (SQL fijo, timeouts), pruebas de validación de transporte en arranque (SEC-001) y revisión de logs en el recorrido. |
+| AC-037 | El rol de la aplicación no puede escribir (grants de solo lectura aplicados), toda petición corre en transacción `READ ONLY` con *statement timeout*, los valores son parametrizados y cualquier SQL dinámico procede solo del compilador de planes validados de ADR-0014 (nunca del modelo), el transporte exige TLS verificado para hosts no-loopback (`Ssl Mode=VerifyFull`; bucles locales exentos) y los logs no contienen valores de personas. *(Enmienda ADR-0014, 2026-10-25.)* | Script de grants, pruebas negativas de planes/SQL, comprobación de transacción y parámetros, pruebas TLS (SEC-001) y revisión de logs. |
 | AC-038 | Si la base del HCM no responde en modo Postgres, los endpoints devuelven el error localizado de fuente no disponible sin datos sintéticos; la suite completa permanece en verde sin tocar ninguna base real. | Prueba de degradación (base apagada) y suite completa. |
 
 ## 8. Diseño propuesto para planificar
