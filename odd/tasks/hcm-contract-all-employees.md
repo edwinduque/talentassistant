@@ -101,6 +101,21 @@ vieja por cambio de columnas, se hace `DROP VIEW` en orden inverso de dependenci
 
 - *Supuesto*: los scripts de la VPS los ejecuta el usuario; el asistente no abre SSH.
 - **Aceptación**: `SELECT count(*)` de la vista = empleados activos; chat y presencia responden.
+- **Checklist de migración** (aportado por la verificación independiente, L15) — en este orden:
+  1. Comprobar duplicados de `(name, last_name)` en `public.employee`: un par activo idéntico al
+     de un fixture chocaría con su alias `employee-demo-*` (no reproducible con la semilla
+     determinista). Si hay colisión, resolver el alias antes de aplicar.
+  2. Confirmar que existen `hcm.tasks` y `hcm.attendance_incidents` en `talentassistant_hcm`
+     (sustituciones legadas). Si faltan, **no** usar `-v ON_ERROR_STOP=1` con el fichero entero:
+     aplicar solo las tres vistas recableadas (`employees`, `presence`, `timeoff`).
+  3. `CREATE OR REPLACE VIEW` no puede cambiar la lista de columnas, así que la vista vieja de
+     empleados (3 columnas) **hay que dropearla** antes; el resto de vistas se reemplazan.
+  4. Tras cualquier `DROP`, re-aplicar `db/hcm-contract/grants.sql` (el `GRANT SELECT` de la vista
+     dropeada se pierde).
+  5. Verificar: 8 columnas en `\d`, `count(*)` = empleados activos, presencia de hoy = directorio,
+     `display_name` sin NULL, y medir el coste de `talentassistant_presence` con el volumen real.
+  6. `department = ''` real aparecería como office id `''` (`ARRAY_REMOVE` solo elimina NULLs);
+     revisar si el dato real trae vacíos.
 
 ## Tasks
 
@@ -218,3 +233,15 @@ entrega antes del primer commit (pendiente, ver L12).
   run `40163343898` (el Environment `production` pide la aprobación del mantenedor; SPEC-015:
   despliegue nunca automático). Sigue pendiente T5: aplicar `db/hcm-contract/views.sql` en la
   VPS, que es lo que repara el chat de producción.
+- **L15** (2026-10-25) Verificación independiente (`gentle-ai-verify`, sesión
+  `ses_e8e95d011ffe7rmXIa3mvGx6rI`) sobre `101c993..612bab7`: **S1, S2, S3 y S4 CUMPLE**,
+  **S5 pendiente** (sin acceso remoto autorizado), **0 blockers**. Evidencia observada por el
+  verificador: suite **185/185** en su propia ejecución (`SUITE_EXIT=0`), conteos 197/197/583/0
+  (`display_name` sin NULL), 9 alias fixtures presentes y sin ids duplicados, 0 filas generadas
+  con `summary_es ≠ summary_en`, 52 resúmenes `NULL` por `note` NULL, `\d` con las 13 columnas de
+  `timeoff`, barrido de `specs/` y `docs/` sin texto de alcance vigente acotado a nueve fixtures,
+  SQL parametrizado y cero secretos en el diff. Advisories: el texto del catálogo de herramientas
+  (`ChatOrchestrator.cs:54`) no tiene prueba que lo aserte; warnings CS8601/CS8604 preexistentes
+  en `Api/Program.cs`; 20 grupos de `display_name` duplicado en la semilla (identidad por id).
+  Riesgo residual del `Risk: item 5` convertido en el checklist de migración de S5 (colisión de
+  alias, tablas legadas, `ON_ERROR_STOP`, re-grant, coste de presencia, departamentos vacíos).
