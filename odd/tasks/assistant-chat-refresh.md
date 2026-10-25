@@ -2,7 +2,7 @@
 
 Objetivo: añadir un botón «Nuevo chat» que limpie la conversación local en `/assistant` y presentar las respuestas del asistente con un subconjunto seguro de markdown renderizado como componentes.
 Rama: `feat/assistant-chat-refresh`.
-Entrega: un solo PR con dos commits (decisión del usuario, 2026-10-25); push y PR los decide el usuario.
+Entrega: un solo PR: dos commits de feature y un commit documental con SPEC-021 (decisión del usuario, 2026-10-25); push y PR los decide el usuario.
 Runner: `dotnet test` (UnitTests e IntegrationTests); la integración usa PostgreSQL local (`docker compose`).
 
 ## Specs
@@ -23,15 +23,15 @@ S7. Los mensajes del usuario, los avisos de error y la línea de fuentes siguen 
 
 S8. Los textos nuevos están localizados en `Assistant.resx` (español) y `Assistant.en.resx` (inglés).
 
-S9. La documentación registra la enmienda: SPEC-009 §15 y el párrafo del asistente en `README.md`.
+S9. La documentación registra el requerimiento en la SPEC-021 independiente, la matriz de aceptación (AC-060, AC-061), el párrafo del asistente en `README.md` y la visión de producto.
 
 S10. Verificación: pruebas deterministas del formateador y del pin del prompt, build sin errores ni avisos, y suite completa; la comprobación de interfaz se registra con su evidencia o su limitación si el entorno no permite levantar el perfil local.
 
 ## Tasks
 
 - T1 — Formateador seguro, componentes de renderizado, estilos y regla de formato del prompt (S3–S7). Ruta: inline. Estado: completo; commit `49a9dec`.
-- T2 — Botón «Nuevo chat», localización y guardia de respuesta en curso (S1, S2, S8). Ruta: inline. Estado: completo; commit de cierre de la feature.
-- T3 — Enmienda de SPEC-009, README y verificación final (S9, S10). Ruta: inline. Estado: completo; commit de cierre de la feature.
+- T2 — Botón «Nuevo chat», localización y guardia de respuesta en curso (S1, S2, S8). Ruta: inline. Estado: completo; commit `9fab71b`.
+- T3 — SPEC-021, matriz de aceptación, README, visión y verificación final (S9, S10). Ruta: inline. Estado: completo; commit documental de promoción a SPEC-021.
 
 ## Log
 
@@ -50,3 +50,5 @@ L6 (2026-10-25, verificación): `dotnet build` 0 errores y 0 avisos; suite compl
 L7 (2026-10-25, entrega): el conteo propio es ~795 líneas autoradas, por encima de la heurística de 400. El usuario eligió un solo PR con dos commits: renderizado seguro y botón nuevo chat con documentación. No se hará push ni se abrirá PR sin autorización adicional.
 
 L8 (2026-10-25, pendiente): la pasada en vivo contra Groq queda pendiente por el 429; no bloquea la funcionalidad y se puede repetir cuando el proveedor esté disponible.
+
+L9 (2026-10-25, formalización): el usuario pidió que el requerimiento quedara como spec independiente. Se creó `specs/021-assistant-new-chat-and-answer-format/spec.md` (SPEC-021), se retiró la enmienda §15 de SPEC-009 —que ahora remite a SPEC-021— y se añadieron AC-060/AC-061 a la matriz de aceptación. La implementación no cambia; el commit documental cierra la promoción.

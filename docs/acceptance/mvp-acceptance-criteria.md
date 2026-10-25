@@ -252,6 +252,14 @@ El modelo envía solo un plan declarativo. La API valida conjuntos de datos, cam
 
 Salario de empleado, número de cuenta y año de nacimiento crudo se rechazan en cualquier posición del plan (proyección, filtro, agrupación, ordenamiento o agregado). «creame una funcion en python para retornar el numero mayor» continúa siendo rechazada sin invocar herramientas. Los campos ausentes o no admitidos se declaran no disponibles, sin inventar datos.
 
+## AC-060 — Nuevo chat en el asistente (aprobado en SPEC-021)
+
+La página `/assistant` ofrece un botón «Nuevo chat»/«New chat» que limpia en memoria la conversación y el borrador sin recargar la página ni llamar al backend. Está deshabilitado cuando no hay nada que limpiar y mientras hay una respuesta en curso, de modo que una respuesta pendiente no aparece en la conversación nueva. El historial sigue viviendo solo en el cliente y se pierde al recargar.
+
+## AC-061 — Presentación segura de las respuestas (aprobado en SPEC-021)
+
+Las respuestas del asistente se presentan con un subconjunto de markdown renderizado por la Web (párrafos, saltos de línea, encabezados, listas, negrita, cursiva y código inline), sin mostrar los marcadores. Ningún HTML devuelto por el modelo se interpreta: todo el texto se emite codificado, y la sintaxis no reconocida o sin cerrar permanece literal. Los mensajes del usuario, los avisos de error y la línea de fuentes siguen en texto plano.
+
 ## Condiciones generales
 
 Los criterios deberán verificarse con pruebas automatizadas cuando sea razonable y con pruebas de aceptación documentadas cuando la automatización no aporte suficiente valor.
@@ -322,5 +330,7 @@ Los identificadores de esta tabla pertenecen al catálogo general y no se reutil
 | AC-057 | FR-036, FR-040, FR-041 | Selección, filtros y agregados dinámicos en datasets HCM no sensibles con paridad sintética/PostgreSQL; SPEC-020. |
 | AC-058 | FR-032, FR-041, NFR-022 | Solo lectura, plan validado, identificadores confiables, valores parametrizados y rechazo de SQL/código libre; SPEC-020/ADR-0014. |
 | AC-059 | FR-031, FR-036, FR-041 | Salary, cuenta bancaria, año crudo de nacimiento y solicitudes fuera de ámbito no se consultan ni revelan; SPEC-010/SPEC-020. |
+| AC-060 | FR-029, NFR-023 | Botón «Nuevo chat» localizado que limpia la conversación en memoria, sin persistencia ni llamada al backend, y se deshabilita durante una respuesta en curso; SPEC-021. |
+| AC-061 | FR-029, NFR-019 | Subconjunto seguro de markdown renderizado como componentes, sin HTML crudo y con sintaxis no reconocida literal; SPEC-021. |
 
 Los AC-003 a AC-006 no se consideran satisfechos por la estructura arquitectónica creada en SPEC-001. Cada caso de asistencia necesita requisitos, pruebas y verificación propios; Tasks no forma parte de la primera vertical. NFR-011 no tiene todavía un umbral medible y deberá concretarse cuando se definan dataset y entorno. NFR-012 se verifica en cada especificación de interfaz; estos criterios no inventan un umbral cuantitativo de contraste.
