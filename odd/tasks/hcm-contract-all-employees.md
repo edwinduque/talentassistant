@@ -154,10 +154,10 @@ ausencias y 4 tareas. Los datos y nombres seguirán siendo ficticios, conforme a
 | T1 | S1, S2, S3, S6 | inline | RED L19 → GREEN: nombres, ausencia/presencia/tasks y parity tests | `06ea529` |
 | T2 | S1, S2, S3, S6 | inline | Implementada; aliases por id, apellidos plausibles y escalado de eventos | `06ea529` |
 | T3 | S4, S6 | inline | Implementada; SPEC-007/012, AC y guía local/VPS actualizadas | `30d2f1e` |
-| T4 | S1, S2, S3, S6 | inline | Suite 186/186; Q3/Q7/Q10 vivos PASS, banco completo parcial por 429 (L24) | `06ea529` + `30d2f1e` |
+| T4 | S1, S2, S3, S6 | inline | Suite local + CI 186/186; Q3/Q7/Q10 vivos PASS, banco completo parcial por 429 (L24) | `06ea529` + `30d2f1e` |
 | T5 | S5, S6 | inline | Pendiente: aplicación manual del bundle en VPS | — |
 | T6 | S1, S2, S6 | inline | Implementada; seed limpio verificado en BD aislada con mínimos | `06ea529` |
-| T7 | S5, S6 | inline | Bundle/harness local PASS; ejecución real en VPS pendiente | `30d2f1e` |
+| T7 | S5, S6 | inline | Bundle/harness local + CI PASS; ejecución real en VPS pendiente | `30d2f1e` |
 
 Forecast de esta ampliación: **~1.000–1.400 líneas**. Se conserva la estrategia de entrega ya
 elegida en L12 (push directo a `main`); commits work-unit en la rama indicada en la cabecera.
@@ -354,3 +354,5 @@ elegida en L12 (push directo a `main`); commits work-unit en la rama indicada en
 - **L32** (2026-10-25) No se ejecuta `workflow_dispatch`: el diff no cambia `PostgresWorkforceSource`
   ni los contratos de API; la API desplegada ya consulta las vistas. T5 es solo el bundle SQL en
   la VPS, ejecutado por el usuario.
+- **L33** (2026-10-25) CI run `40203985404` en `main` → **success**: restore, build, suite completa
+  contra Postgres y Gitleaks pasaron. No se despachó `deploy.yml` porque no cambió el conector/API.
