@@ -172,29 +172,54 @@ public sealed class ChatOrchestrator(
                 && !string.IsNullOrWhiteSpace(message.Role)
                 && !string.IsNullOrWhiteSpace(message.Content))
             .ToArray();
-        var cappedByCount = visible.Length <= options.MaxHistoryMessages
-            ? visible
-            : visible[^options.MaxHistoryMessages..];
+        var completedTurns = CompleteTurns(visible);
 
-        // Cap by bytes as well as by message count: a previous answer can be
-        // tens of kilobytes and the provider rejects oversized payloads with
-        // HTTP 400. Keep the newest turns that fit, in chronological order.
-        var kept = new List<ChatMessage>(cappedByCount.Length);
+        // Keep whole user/assistant pairs: a count or byte cap that splits a
+        // pair leaves an orphan turn the model cannot resolve. Newest pairs
+        // win, and the result stays in chronological order.
+        var kept = new List<ChatMessage>(completedTurns.Length);
         var bytes = 0;
-        for (var index = cappedByCount.Length - 1; index >= 0; index--)
+        for (var index = completedTurns.Length - 2; index >= 0; index -= 2)
         {
-            var size = Encoding.UTF8.GetByteCount(cappedByCount[index].Content);
-            if (bytes + size > MaximumHistoryBytes)
+            var user = completedTurns[index];
+            var assistant = completedTurns[index + 1];
+            var pairBytes = Encoding.UTF8.GetByteCount(user.Content)
+                + Encoding.UTF8.GetByteCount(assistant.Content);
+            if (kept.Count + 2 > options.MaxHistoryMessages
+                || bytes + pairBytes > MaximumHistoryBytes)
             {
                 break;
             }
 
-            kept.Add(cappedByCount[index]);
-            bytes += size;
+            kept.InsertRange(0, [user, assistant]);
+            bytes += pairBytes;
         }
 
-        kept.Reverse();
         return kept;
+    }
+
+    // Only completed exchanges belong in the provider history: the Web keeps
+    // the user turn of a failed call, and a run of unanswered questions makes
+    // the model answer an old question again (observed live on 2026-10-25 with
+    // "Cual es el correo de mauricio?" after five failed turns). A user message
+    // is kept only when the immediately following message is its assistant
+    // answer; trailing unanswered user messages are dropped.
+    private static ChatMessage[] CompleteTurns(ChatMessage[] messages)
+    {
+        var completed = new List<ChatMessage>(messages.Length);
+        for (var index = 0; index < messages.Length; index++)
+        {
+            if (messages[index].Role == "user"
+                && index + 1 < messages.Length
+                && messages[index + 1].Role == "assistant")
+            {
+                completed.Add(messages[index]);
+                completed.Add(messages[index + 1]);
+                index++;
+            }
+        }
+
+        return completed.ToArray();
     }
 
     private static string BuildSystemPrompt(string language)
@@ -242,7 +267,8 @@ public sealed class ChatOrchestrator(
             "Use the conversation history to resolve follow-ups: when a message refers back to an earlier turn"
             + " (for example 'esa persona', 'the person you mentioned' or an unnamed employee), take the referenced"
             + " name or value from the history and call the tools with those concrete values; ask which one only"
-            + " when the history itself is ambiguous.",
+            + " when the history itself is ambiguous. Answer only the latest user message; use the history to"
+            + " resolve references, never to answer an earlier question again.",
             "Do not rely on a memorized list of question templates: translate the requested HR/HCM result into a structured query over the available data sets, using multiple bounded calls only when the question spans data sets.",
             "Do not broaden or change a user's filters silently. A valid query with no matches is different from an invalid, unsupported or unavailable query; explain the observed outcome and never report a false zero.",
             "If a query is rejected or a field is unavailable, do not retry through another tool to bypass the restriction; state that the information is unavailable.",
