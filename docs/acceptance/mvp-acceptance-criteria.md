@@ -260,6 +260,22 @@ La página `/assistant` ofrece un botón «Nuevo chat»/«New chat» que limpia 
 
 Las respuestas del asistente se presentan con un subconjunto de markdown renderizado por la Web (párrafos, saltos de línea, encabezados, listas, negrita, cursiva y código inline), sin mostrar los marcadores. Ningún HTML devuelto por el modelo se interpreta: todo el texto se emite codificado, y la sintaxis no reconocida o sin cerrar permanece literal. Los mensajes del usuario, los avisos de error y la línea de fuentes siguen en texto plano.
 
+## AC-062 — Reparto pegajoso por conversación (aprobado en SPEC-022)
+
+Con Groq y Gemini configurados, cada conversación queda asignada de forma determinista a un proveedor según un hash estable y los pesos configurados; todos sus turnos usan el mismo proveedor mientras esté disponible. Conversaciones distintas se reparten y «Nuevo chat» puede cambiar la asignación. La asignación no se persiste y un cliente sin identificador sigue funcionando.
+
+## AC-063 — Failover entre proveedores (aprobado en SPEC-022)
+
+Ante un límite de tasa, error 5xx, timeout, error de red o respuesta inválida del proveedor preferido, el turno continúa en el otro proveedor sobre el mismo transcript, sin repetir las herramientas ya ejecutadas y con una sola respuesta para el usuario. En modo enrutador se hace como máximo un intento HTTP por proveedor. Si ambos fallan, se conservan los mensajes localizados y el código HTTP actual; `RateLimited` cuando ambos fueron limitados.
+
+## AC-064 — Consistencia entre modelos (aprobado en SPEC-022)
+
+Ambos proveedores reciben el mismo system prompt, catálogo de herramientas, idioma, reglas de formato de SPEC-021, temperatura y `max_tokens`; Gemini usa `reasoning_effort` configurable. Las preguntas de paridad devuelven los mismos hechos y la misma estructura, sin mencionar el proveedor, y el adaptador de esquema elimina las uniones y banderas que Gemini no acepta sin cambiar el esquema canónico de Groq.
+
+## AC-065 — Cuotas y secretos en la verificación (aprobado en SPEC-022)
+
+La suite y el CI no realizan llamadas reales a Groq o Gemini; usan transportes falsos que simulan 200, 429, 5xx, timeout y `tool_use_failed`. Los scripts en vivo son opt-in, tienen tope de llamadas y ritmo, y no imprimen claves ni contenido. Un despliegue con solo la clave de Groq sigue funcionando; sin ninguna clave se mantiene `NotConfigured`.
+
 ## Condiciones generales
 
 Los criterios deberán verificarse con pruebas automatizadas cuando sea razonable y con pruebas de aceptación documentadas cuando la automatización no aporte suficiente valor.
@@ -332,5 +348,9 @@ Los identificadores de esta tabla pertenecen al catálogo general y no se reutil
 | AC-059 | FR-031, FR-036, FR-041 | Salary, cuenta bancaria, año crudo de nacimiento y solicitudes fuera de ámbito no se consultan ni revelan; SPEC-010/SPEC-020. |
 | AC-060 | FR-029, NFR-023 | Botón «Nuevo chat» localizado que limpia la conversación en memoria, sin persistencia ni llamada al backend, y se deshabilita durante una respuesta en curso; SPEC-021. |
 | AC-061 | FR-029, NFR-019 | Subconjunto seguro de markdown renderizado como componentes, sin HTML crudo y con sintaxis no reconocida literal; SPEC-021. |
+| AC-062 | FR-029, NFR-024 | Reparto determinista y pegajoso por conversación entre Groq y Gemini, con pesos configurables y sin persistencia; SPEC-022. |
+| AC-063 | FR-029, NFR-021, NFR-024 | Failover por completion sobre el mismo transcript, sin repetir herramientas, un intento por proveedor y error controlado si ambos fallan; SPEC-022. |
+| AC-064 | FR-029, NFR-021, NFR-024 | Mismo prompt, catálogo, formato y parámetros; adaptador de esquema y paridad de hechos entre proveedores; SPEC-022. |
+| AC-065 | NFR-004, NFR-021, NFR-024 | Suite/CI sin llamadas reales, scripts opt-in con presupuesto, secretos fuera de logs y compatibilidad con un solo proveedor; SPEC-022. |
 
 Los AC-003 a AC-006 no se consideran satisfechos por la estructura arquitectónica creada en SPEC-001. Cada caso de asistencia necesita requisitos, pruebas y verificación propios; Tasks no forma parte de la primera vertical. NFR-011 no tiene todavía un umbral medible y deberá concretarse cuando se definan dataset y entorno. NFR-012 se verifica en cada especificación de interfaz; estos criterios no inventan un umbral cuantitativo de contraste.

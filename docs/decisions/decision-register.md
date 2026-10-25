@@ -20,12 +20,7 @@ Este documento resume las decisiones de producto y arquitectura que gobiernan Ta
 | ADR-0011 | Asistente conversacional con proveedor Groq (API compatible OpenAI) | Aceptado; catálogo cerrado enmendado por ADR-0014 para incluir consulta genérica | `docs/architecture/adr/ADR-0011-groq-conversational-assistant.md`; `specs/009-conversational-assistant/spec.md` |
 | ADR-0012 | Consumo directo de solo lectura del HCM (PostgreSQL) tras los puertos | Aceptado; SQL dinámico parametrizado permitido solo según ADR-0014 | `docs/architecture/adr/ADR-0012-read-only-hcm-consumption.md`; `specs/011-hcm-postgres-source/spec.md` |
 | ADR-0014 | Consultas dinámicas estructuradas de solo lectura, compiladas por el backend y limitadas a datos HCM no sensibles | Aceptado e implementado (2026-10-25, `f9592f4`); recheck focal completado | `docs/architecture/adr/ADR-0014-dynamic-read-only-hcm-queries.md`; `specs/020-flexible-hr-data-query/spec.md` |
-
-## Propuestas pendientes de aprobación
-
-| ID | Decisión | Estado | Referencia |
-|---|---|---|---|
-| ADR-0015 | Enrutar las peticiones entre Groq y Gemini por conversación, con failover y cortacircuitos | Propuesto (2026-10-25); no implementado | `docs/architecture/adr/ADR-0015-ai-provider-routing-and-fallback.md`; `specs/022-ai-provider-balancing/spec.md` |
+| ADR-0015 | Enrutar las peticiones entre Groq y Gemini por conversación, con failover y cortacircuitos | Aceptado e implementado (2026-10-25, `a4be5db`/`78c4de2`); sin llamadas reales en la suite | `docs/architecture/adr/ADR-0015-ai-provider-routing-and-fallback.md`; `specs/022-ai-provider-balancing/spec.md` |
 
 ## Línea base tecnológica confirmada
 Las siguientes decisiones están aprobadas y deben guiar la implementación inicial:

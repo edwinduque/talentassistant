@@ -1,6 +1,6 @@
 # SPEC-009 — Asistente conversacional con herramientas del backend
 
-- **Estado:** Aprobada e implementada (2026-10-17); enmiendas de nombres y consulta flexible aprobadas (2026-10-18, 2026-10-25); SPEC-020/ADR-0014 implementan la consulta dinámica. El nuevo chat y la presentación de respuestas se rigen por SPEC-021.
+- **Estado:** Aprobada e implementada (2026-10-17); enmiendas de nombres y consulta flexible aprobadas (2026-10-18, 2026-10-25); SPEC-020/ADR-0014 implementan la consulta dinámica. El nuevo chat y la presentación de respuestas se rigen por SPEC-021. El enrutamiento entre proveedores de IA se rige por SPEC-022/ADR-0015.
 - **Implementación:** T1 (orquestador y cliente de proveedor) y T2 (interfaz de chat) en `feat/conversational-assistant`; T3 (documentación) implementada.
 - **Requisitos relacionados:** FR-029, FR-030, FR-031, FR-040 y FR-041; NFR-021/022.
 - **Criterios relacionados:** AC-029..AC-032 y AC-051 (enmiendas previas); AC-055..AC-059 (SPEC-020).

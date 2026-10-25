@@ -33,9 +33,9 @@ S12. Verificación: pruebas deterministas de configuración, selección, failove
 
 ## Tasks
 
-- T1 — Contratos, configuración de proveedores, enrutador, salud/cortacircuitos, cliente (intentos, `reasoning_effort`, normalizador) y pruebas deterministas (S1, S2, S4–S10). Ruta: inline.
-- T2 — Integración API/Web: `conversationId`, renovación con «Nuevo chat», payload y pruebas (S2, S3, S9). Ruta: inline.
-- T3 — Documentación y verificación final: SPEC-022, ADR-0015 aceptado, NFR-024, AC-062..AC-065, README, visión, guía local, entorno y suite (S11, S12). Ruta: inline.
+- T1 — Contratos, configuración de proveedores, enrutador, salud/cortacircuitos, cliente (intentos, `reasoning_effort`, normalizador) y pruebas deterministas (S1, S2, S4–S10). Ruta: inline. Estado: completo; commit `a4be5db`.
+- T2 — Integración API/Web: `conversationId`, renovación con «Nuevo chat», payload y pruebas (S2, S3, S9). Ruta: inline. Estado: completo; commit `78c4de2`.
+- T3 — Documentación y verificación final: SPEC-022, ADR-0015 aceptado, NFR-024, AC-062..AC-065, README, visión, guía local, entorno y suite (S11, S12). Ruta: inline. Estado: completo; cierre documental.
 
 ## Log
 
@@ -46,3 +46,11 @@ L2 (2026-10-25): el usuario aprobó SPEC-022 y ADR-0015 con los pesos 50/50, fai
 L3 (2026-10-25, propuesta): SPEC-022 y ADR-0015 quedaron en `spec/022-ai-provider-balancing`, commit `4bf7be3`; no se hicieron llamadas reales. La rama de implementación continúa desde ese commit.
 
 L4 (2026-10-25, fuentes verificadas): Gemini 2.5 Flash expone `https://generativelanguage.googleapis.com/v1beta/openai/` con Bearer y `tools`; `reasoning_effort=low` equivale a 1.024 de pensamiento y `none` desactiva el pensamiento en 2.5; la cuota gratuita es por proyecto y solo se consulta en AI Studio; la capa gratuita puede usar prompts para mejorar sus productos, así que solo se envían datos sintéticos.
+
+L5 (2026-10-25, implementación): el enrutador scoped selecciona por hash SHA-256 del `conversationId` y pesos, conserva el proveedor durante el turno, reintenta la completion fallida en el otro con el mismo transcript y registra salud por proveedor con enfriamiento. El cliente compatible OpenAI acepta un presupuesto de intentos por proveedor, `reasoning_effort` opcional y normalización de esquema; Gemini reduce uniones al primer tipo no nulo, añade `items` a arrays sin elementos y elimina `additionalProperties`. La configuración conserva las claves de Groq y añade `AI:Gemini:*`/`AI:Routing:*`; `AI:Provider` acepta `router|groq|gemini`. La Web renueva el `conversationId` con «Nuevo chat».
+
+L6 (2026-10-25, verificación): build 0 errores/0 avisos; 261/261 pruebas de integración en verde, incluidas configuración, selección, failover, cortacircuitos, payloads, normalizador y el identificador de extremo a extremo; UnitTests 23/24 por el bloqueo ambiental de App Control ya conocido (`0x800711C7` al cargar `TalentAssistant.Domain.dll`). El script `verify-ai-providers.ps1` se validó con `-DryRun`; no se ejecutaron llamadas reales a Groq ni Gemini.
+
+L7 (2026-10-25, entrega): la rama `feat/ai-provider-balancing` está apilada sobre `feat/assistant-chat-refresh` porque depende de SPEC-021 y del botón «Nuevo chat»; el PR del chat debe integrarse primero. El PR de esta feature incluye el commit de propuesta y tres commits de implementación/cierre (T1, T2 y documentación), sin push ni PR todavía.
+
+L8 (2026-10-25, pendiente): la pasada en vivo con presupuesto de cuatro llamadas confirmará que Gemini acepta el transcript con `tool_calls` de Groq y el esquema normalizado; hasta entonces esa compatibilidad es un riesgo documentado y el fallo se degrada con el error controlado.

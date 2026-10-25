@@ -1,7 +1,8 @@
 # ADR-0015 — Enrutamiento y continuidad entre proveedores de IA
 
-- **Estado:** Propuesto (2026-10-25); pendiente de aprobación humana.
+- **Estado:** Aceptado (2026-10-25).
 - **Fecha:** 2026-10-25.
+- **Aprobación de arquitectura:** aprobado explícitamente por el usuario el 2026-10-25 para implementar.
 - **Especificación relacionada:** [SPEC-022 — Balanceo y continuidad entre proveedores de IA](../../../specs/022-ai-provider-balancing/spec.md).
 - **Decisiones relacionadas:** amplía ADR-0011 sin sustituirlo; conserva ADR-0003 (frontera del servicio de IA) y NFR-021 (claves y degradación).
 
@@ -11,7 +12,7 @@ El asistente usa un único proveedor, Groq, a través de `OpenAiCompatibleLangua
 
 Gemini 2.5 Flash expone un endpoint compatible con OpenAI (`https://generativelanguage.googleapis.com/v1beta/openai/`) con autenticación Bearer y soporte de `tools`, por lo que no requiere SDK ni un segundo formato de request. Su capa gratuita también es finita y su cuota solo se consulta en AI Studio. La diferencia de comportamiento entre modelos es un riesgo de experiencia: si se alternan por turno, una misma conversación cambia de estilo y de criterio.
 
-## Decisión propuesta
+## Decisión aceptada
 
 Adoptar un enrutador en Infrastructure que implemente `IAssistantLanguageModel` sobre dos instancias del cliente compatible con OpenAI (Groq y Gemini). El enrutador:
 
@@ -21,6 +22,7 @@ Adoptar un enrutador en Infrastructure que implemente `IAssistantLanguageModel` 
 4. Mantiene un **cortacircuitos en memoria**: tras dos fallos consecutivos, el proveedor queda fuera del reparto durante un enfriamiento configurable (120 s) y una sonda decide su vuelta. No hay estado distribuido ni persistido.
 5. Comparte **prompt, catálogo, idioma, formato y parámetros** entre proveedores. Gemini usa `reasoning_effort=low` para acercar latencia y verbosidad; temperatura 0.1 y `max_tokens` son comunes.
 6. Conserva la **configuración actual de Groq** (`AI:BaseUrl`, `AI:ApiKey`, `AI:Model`) y añade `AI:Gemini:*` y `AI:Routing:*` con valores por defecto. `AI:Provider` acepta `router` (por defecto), `groq` o `gemini`.
+7. Adapta el esquema de herramientas para Gemini: reduce uniones anulables y multi-tipo al primer tipo no nulo, añade un `items` genérico a arrays sin elementos y elimina `additionalProperties`; el esquema canónico de Groq no cambia.
 
 El dominio no conoce proveedores. `ChatOrchestrator` sigue dependiendo del puerto; el enrutador y los clientes viven en Infrastructure.
 
@@ -37,7 +39,7 @@ El dominio no conoce proveedores. `ChatOrchestrator` sigue dependiendo del puert
 ## Cambios a decisiones vigentes
 
 - **ADR-0011:** se mantiene el proveedor Groq y el catálogo cerrado; se añade Gemini como segundo proveedor intercambiable y un enrutador. No se cambia la política de egreso de datos, que sigue pendiente para HCM real.
-- **NFR-021:** se amplía con continuidad entre proveedores y verificación sin llamadas reales (propuesto como NFR-024).
+- **NFR-021:** se amplía con continuidad entre proveedores y verificación sin llamadas reales (NFR-024).
 - **SPEC-009/SPEC-021:** el contrato de `POST /chat` gana un campo opcional `conversationId`; el formato de respuesta y la UI no cambian.
 
 ## Consecuencias
@@ -65,17 +67,17 @@ El dominio no conoce proveedores. `ChatOrchestrator` sigue dependiendo del puert
 - **Gateway/proxy externo con estado distribuido:** añade infraestructura y operación para un monolito local; no se justifica.
 - **Enrutador en la Web o decisión del cliente:** expondría la lógica y las claves al cliente y rompería la frontera de ADR-0003.
 
-## Verificación requerida para declarar implementada la decisión
+## Verificación observada
 
-1. Pruebas deterministas del selector: misma conversación → mismo proveedor; pesos → reparto; sin estado persistido.
-2. Pruebas de failover: 429, 5xx, timeout, red y respuesta inválida; transcript reutilizado; sin repetición de herramientas; doble fallo con mensaje localizado.
-3. Pruebas de cortacircuitos y recuperación tras el enfriamiento.
-4. Pruebas de payload por proveedor: prompt, catálogo, idioma, temperatura, `max_tokens`, `reasoning_effort` y autenticación Bearer; adaptador de esquema.
-5. Pruebas de configuración: solo Groq, solo Gemini, ambos, ninguno, pesos inválidos.
-6. Suite completa sin llamadas reales y build sin avisos.
-7. Pasada de paridad opcional con tres preguntas y presupuesto de llamadas, solo con autorización explícita; el resultado se documenta con hechos y estructura, no con texto literal.
-8. Actualización de NFR-024/AC-062..AC-065 y de la documentación operativa al aprobarse.
+1. Pruebas deterministas del selector: misma conversación → mismo proveedor en turnos nuevos; pesos → reparto; sin estado persistido.
+2. Pruebas de failover: 429, 5xx, timeout y respuesta inválida; transcript reutilizado; un intento por proveedor; doble fallo con `RateLimited` solo cuando ambos lo fueron.
+3. Pruebas de cortacircuitos y recuperación tras el enfriamiento, incluido el caso de ambos bloqueados sin llamadas.
+4. Pruebas de payload por proveedor: `reasoning_effort`, normalización de esquema, autenticación Bearer y presupuesto de intentos.
+5. Pruebas de configuración: solo Groq, solo Gemini, ambos, ninguno, modo forzado, pesos inválidos y `reasoning_effort` inválido.
+6. Build con 0 errores y 0 avisos; 261/261 pruebas de integración en verde. Unitarias 23/24: la única falla es el bloqueo ambiental de App Control (`0x800711C7`) al cargar `TalentAssistant.Domain.dll`, ya reproducido antes y ajeno al cambio.
+7. Script `verify-ai-providers.ps1` validado con `-DryRun`; la pasada de paridad en vivo queda pendiente de autorización explícita y presupuesto de cuatro llamadas.
+8. NFR-024, AC-062..AC-065 y la guía local actualizados.
 
 ## Estado
 
-Propuesto el 2026-10-25. No se ha modificado código, configuración ni catálogos, y no se ha realizado ninguna llamada a Groq o Gemini. La implementación requiere la aprobación explícita del usuario.
+Aceptado e implementado el 2026-10-25 en `feat/ai-provider-balancing` (commits `a4be5db`, `78c4de2` y cierre documental). No se realizaron llamadas reales a Groq o Gemini durante la implementación; la aceptación de Gemini del transcript y del esquema normalizado se confirma con la pasada en vivo opt-in.

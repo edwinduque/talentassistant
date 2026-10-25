@@ -385,22 +385,39 @@ Configuración de medidas de GitHub que el propietario debe activar con consenti
 
 Desde SPEC-009, la Web incluye `/assistant` (ES/EN, con sesión) y la API `POST /chat`: el usuario pregunta en lenguaje natural y la API ejecuta un catálogo cerrado con la sesión e idioma del usuario. Incluye las herramientas de dominio (`search_employees`, `presence`, `timeoff`, `tasks`, `attendance_insights`, `upcoming_birthday`) y `query_hr_data`, un plan declarativo para filtros y agregados dinámicos sobre campos no sensibles del contrato HCM. El backend valida el plan y compone SQL parametrizado de solo lectura; el modelo no envía SQL ni tiene acceso directo a la base. La respuesta incluye `answer`, `toolsUsed` y `sources`. En preguntas sobre una persona concreta se desambigua antes de consultar sus detalles; los conteos por nombre incluyen todas las coincidencias. Salario, número de cuenta y año de nacimiento crudo permanecen restringidos; el asistente no escribe datos.
 
-### Clave y modelo del proveedor
+### Proveedores y enrutamiento
 
-Groq es el proveedor por defecto, integrado mediante su API compatible con OpenAI. Completa en tu `.env` local (nunca versionado):
+Groq y Gemini 2.5 Flash se integran mediante sus APIs compatibles con OpenAI. El asistente reparte las conversaciones entre ambos con un hash determinista y pesos configurables (50/50 por defecto); una misma conversación conserva proveedor y, si falla o agota su cuota, el turno continúa en el otro. Sin clave de Gemini, todo sigue funcionando solo con Groq. Completa en tu `.env` local (nunca versionado):
 
 | Variable | Valor esperado |
 |---|---|
-| `AI_API_KEY` | Clave de Groq. Vacía por defecto: sin ella la API no llama al proveedor. Solo en `.env`; nunca en el repositorio ni en la salida de comandos. |
+| `AI_API_KEY` | Clave de Groq. Vacía por defecto: sin ella y sin Gemini la API no llama a ningún proveedor. Solo en `.env`; nunca en el repositorio ni en la salida de comandos. |
 | `AI_MODEL` | `openai/gpt-oss-120b` (valor por defecto en `.env.example`), el modelo confirmado con la API de Groq el 2026-10-18 con soporte de herramientas. |
+| `GEMINI_API_KEY` | Clave de Google AI Studio para Gemini. Opcional; si falta, el enrutador usa solo Groq. |
+| `GEMINI_MODEL` | `gemini-2.5-flash` por defecto. |
+| `AI_PROVIDER` | `router` (por defecto), `groq` o `gemini` para forzar un proveedor único en diagnóstico. |
+| `AI_ROUTING_GROQ_WEIGHT` / `AI_ROUTING_GEMINI_WEIGHT` | Pesos del reparto; 50/50 por defecto. |
+| `AI_ROUTING_FAILURE_THRESHOLD` / `AI_ROUTING_COOLDOWN_SECONDS` | Cortacircuitos: fallos consecutivos antes de apartar un proveedor y segundos de enfriamiento (2 y 120 por defecto). |
 
-La API usa `AI__BaseUrl=https://api.groq.com/openai/v1` (fijada en la sección `AI` de `appsettings.json`) junto a los límites `AI__TimeoutSeconds`, `AI__MaxTokens` y `AI__MaxToolRounds`. Tras editar `.env`, reinicia el contenedor de la API (`docker compose restart api`).
+La sección `AI` de `appsettings.json` fija los endpoints, `AI__Gemini__ReasoningEffort=low`, `AI__TimeoutSeconds`, `AI__MaxTokens` y `AI__MaxToolRounds`. Tras editar `.env`, reinicia el contenedor de la API (`docker compose restart api`). El detalle del contrato y las decisiones está en [SPEC-022](../../specs/022-ai-provider-balancing/spec.md) y [ADR-0015](../architecture/adr/ADR-0015-ai-provider-routing-and-fallback.md).
 
 ### Degradación sin proveedor
 
-- Sin `AI_API_KEY`, `POST /chat` responde HTTP 503 `{"reason":"NotConfigured"}` antes de realizar ninguna llamada saliente; el resto de la aplicación funciona igual, sin IA.
-- Los fallos del proveedor se traducen a razones legibles por máquina y se muestran con mensajes localizados en la interfaz: límite de tasa (`RateLimited`) responde HTTP 429 y el resto de fallos HTTP 503.
+- Sin `AI_API_KEY` ni `GEMINI_API_KEY`, `POST /chat` responde HTTP 503 `{"reason":"NotConfigured"}` antes de realizar ninguna llamada saliente; el resto de la aplicación funciona igual, sin IA.
+- Con una sola clave, el enrutador usa ese proveedor sin error; las claves de Gemini son opcionales.
+- Los fallos del proveedor se traducen a razones legibles por máquina y se muestran con mensajes localizados en la interfaz: límite de tasa o ambos proveedores en enfriamiento (`RateLimited`) responde HTTP 429 y el resto de fallos HTTP 503.
 - Los argumentos opcionales de las herramientas pueden viajar como `null` (el proveedor valida los argumentos contra el JSON Schema); el ejecutor los normaliza a ausentes.
+
+### Humo y presupuesto de llamadas
+
+La suite y el CI usan transportes falsos y **no consumen cuota**. La comprobación en vivo es opcional y tiene un tope duro de llamadas:
+
+```powershell
+powershell -NoProfile -File scripts\verify-ai-providers.ps1 -DryRun
+powershell -NoProfile -File scripts\verify-ai-providers.ps1 -MaxCalls 4 -PaceSeconds 15
+```
+
+`-DryRun` imprime el plan sin iniciar sesión ni llamar al proveedor. La ejecución real comprueba HTTP 200, respuesta no vacía y que las preguntas de datos usen herramientas; para comparar la paridad entre modelos, fuerza `AI__Provider=groq` y `AI__Provider=gemini` en dos pasadas pequeñas y compara hechos y estructura, nunca texto literal. El script lee las credenciales de `.env` y nunca imprime claves ni respuestas.
 
 ### Pasada en vivo de las once preguntas
 

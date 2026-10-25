@@ -1,10 +1,10 @@
 # SPEC-022 — Balanceo y continuidad entre proveedores de IA
 
-- **Estado:** Propuesta para aprobación (2026-10-25); no implementada.
+- **Estado:** Aprobada e implementada (2026-10-25) en `feat/ai-provider-balancing`; commits de implementación `a4be5db` y `78c4de2`, cierre documental en este commit; sin push ni PR.
 - **Fecha:** 2026-10-25.
-- **Requisitos relacionados:** FR-029, FR-030, NFR-021; NFR-024 (propuesto).
-- **Criterios propuestos:** AC-062..AC-065 (se incorporarán a los catálogos al aprobarse).
-- **Decisión arquitectónica:** ADR-0015 propuesto.
+- **Requisitos relacionados:** FR-029, FR-030, NFR-021, NFR-024.
+- **Criterios relacionados:** AC-062, AC-063, AC-064, AC-065.
+- **Decisión arquitectónica:** ADR-0015 aceptado.
 - **Decisión de producto registrada:** el usuario pidió añadir Gemini 2.5 Flash y distribuir las peticiones entre proveedores con reintento en el otro, evitando consumir la cuota diaria en pruebas.
 - **Versión:** 0.1.
 
@@ -28,7 +28,7 @@ El riesgo principal no es técnico sino de experiencia: si cada turno elige un m
 Nuevo spec, debido a que la capa gratuita de groq es bastante limitada quiero agregar una nueva api de gemini con el modelo 2.5 flash. quiero que implementemos un sistema en el cual podamos tener como una specie de balanceador en el cual algunas peticiones se vayan por uno o por otro modelo o si es el caso que intente con un modelo y si falla lo haga con el otro. Cuando hagas pruebas no acabes con los tokens del día porque precisamente eso me pasó con groq. elabora la mejor estrategia y tambien quiero que las respuestas no sean tan diferentes entre modelos
 ```
 
-## 3. Estrategia propuesta
+## 3. Estrategia aprobada
 
 ### 3.1 Dos proveedores tras el mismo puerto
 
@@ -64,7 +64,7 @@ Riesgo controlado: el proveedor alternativo debe aceptar un transcript con `tool
 
 - Un único system prompt, un único catálogo de herramientas, el mismo idioma del perfil y las mismas reglas de formato de SPEC-021. Sin instrucciones específicas por proveedor que cambien el estilo.
 - Misma temperatura (0.1) y mismo `max_tokens` en ambos. En Gemini se fija `reasoning_effort=low` (presupuesto de pensamiento 1.024) para acercar latencia y verbosidad a Groq; es configurable y puede desactivarse con `none`.
-- Adaptador de esquema por proveedor si Gemini rechaza uniones `["string","null"]` u otra construcción del catálogo actual; el esquema canónico no cambia para Groq y el adaptador se prueba con un proveedor falso estricto.
+- Adaptador de esquema por proveedor: para Gemini se reducen las uniones anulables y multi-tipo al primer tipo no nulo, se añade un `items` genérico a los arrays sin elementos y se elimina `additionalProperties`; el esquema canónico de Groq no cambia y el backend sigue validando los argumentos. Se prueba con un proveedor falso estricto.
 - Verificación de paridad con tres preguntas de referencia (un conteo, una persona y una lista): se comparan hechos y estructura, no texto literal. Una respuesta no debe mencionar el modelo ni el proveedor.
 - La asignación pegajosa por conversación es la principal defensa contra la diferencia de estilo; la paridad se mide, no se asume.
 
@@ -133,7 +133,7 @@ Riesgo controlado: el proveedor alternativo debe aceptar un transcript con `tool
 11. Gemini recibe solo datos sintéticos hasta que exista una decisión de política para datos reales.
 12. Cualquier cambio de pesos, proveedor o contrato requiere aprobación humana.
 
-## 7. Diseño propuesto
+## 7. Diseño implementado
 
 | Componente | Responsabilidad | Límite |
 |---|---|---|
@@ -148,29 +148,35 @@ Riesgo controlado: el proveedor alternativo debe aceptar un transcript con `tool
 
 No se añaden paquetes. Gemini usa el mismo cliente HTTP; solo cambian configuración y adaptación de payload si la verificación lo exige.
 
-## 8. Criterios de aceptación propuestos
+## 8. Criterios de aceptación aprobados
 
-| ID | Criterio verificable propuesto | Evidencia requerida |
+| ID | Criterio verificable aprobado | Evidencia requerida |
 |---|---|---|
 | AC-062 | Con ambos proveedores sanos, una conversación mantiene el mismo proveedor en todos sus turnos según el hash y los pesos; conversaciones distintas se reparten y «Nuevo chat» puede cambiar la asignación. Sin estado persistido. | Pruebas deterministas del selector con pesos y miles de identificadores; verificación de que no hay cambios por turno. |
 | AC-063 | Ante 429, 5xx, timeout, error de red o respuesta inválida del proveedor preferido, el turno termina con el otro proveedor sobre el mismo transcript, sin repetir herramientas; si ambos fallan, se conserva el mensaje localizado y el código HTTP actual. | Transportes falsos por escenario, incluido failover a mitad del bucle y doble fallo. |
 | AC-064 | Ambos proveedores reciben el mismo system prompt, catálogo, idioma, formato y parámetros efectivos; las tres preguntas de paridad devuelven los mismos hechos y estructura, sin mencionar el proveedor, y el formato de SPEC-021 se mantiene. | Pruebas de payload por proveedor, adaptador de esquema y pasada de paridad opcional con presupuesto. |
 | AC-065 | La suite y el CI no hacen llamadas reales; los scripts en vivo exigen autorización, tienen tope de llamadas y ritmo, y no imprimen claves ni contenido. Los despliegues sin Gemini siguen funcionando. | Inspección de la suite/CI, pruebas de configuración y ejecución controlada del script con `-MaxCalls`. |
 
-## 9. Plan SDD propuesto
+## 9. Plan SDD
 
 1. T1: opciones y validación de proveedores, dos clientes Gemini/Groq, enrutador pegajoso, cortacircuitos y contrato `conversationId`, con pruebas deterministas.
 2. T2: integración con la Web, prompt/parámetros de consistencia, adaptador de esquema y observabilidad.
 3. T3: ADR-0015, catálogos de requisitos/criterios, documentación operativa y script de paridad/humo con presupuesto; verificación sin llamadas reales por defecto.
 
-## 10. Estado y decisiones pendientes
+## 10. Estado y aprobación
 
-La propuesta queda pendiente de aprobación humana. Decisiones que se confirman al aprobar:
+El usuario aprobó SPEC-022 y ADR-0015 el 2026-10-25 con pesos 50/50, failover total y un presupuesto de pruebas de cuatro llamadas.
+
+Decisiones confirmadas:
 
 1. Adoptar ADR-0015 y el reparto pegajoso por conversación con `conversationId` opcional.
 2. Pesos iniciales 50/50, configurables.
 3. Failover ante cualquier fallo de proveedor y un intento HTTP por proveedor en modo enrutador.
 4. `reasoning_effort=low` en Gemini 2.5 Flash y temperatura 0.1 compartida.
-5. Scripts en vivo opt-in con `-MaxCalls 4` y `-PaceSeconds 15`; ninguna llamada real en esta propuesta.
+5. Scripts en vivo opt-in con `-MaxCalls 4` y `-PaceSeconds 15`.
 
-No se ha modificado código, configuración ni catálogos, y no se ha realizado ninguna llamada a Groq o Gemini.
+Implementación: commits `a4be5db` (configuración, enrutador, cortacircuitos, adaptador y pruebas) y `78c4de2` (identificador de conversación en API/Web y pruebas), más el cierre documental.
+
+Evidencia observada: build con 0 errores y 0 avisos; 261/261 pruebas de integración en verde, incluidas configuraciones válidas e inválidas, selección determinista, failover, ambos fallos, cortacircuitos, recuperación tras el enfriamiento, payloads por proveedor, esquema normalizado y el `conversationId` de extremo a extremo. Pruebas unitarias: 23/24; la única falla es el bloqueo ambiental de App Control (`0x800711C7`) al cargar `TalentAssistant.Domain.dll`, reproducido en sesiones anteriores y ajeno a este cambio. No se ejecutaron llamadas reales a Groq o Gemini; el script de humo se validó con `-DryRun` y queda pendiente la pasada en vivo autorizada.
+
+Limitación: la aceptación de Gemini del transcript con `tool_calls` generados por Groq y del esquema normalizado solo puede confirmarse con la pasada en vivo opt-in; el diseño devuelve el error controlado si el proveedor alternativo no acepta el transcript.
