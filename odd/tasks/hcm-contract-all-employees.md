@@ -155,9 +155,9 @@ ausencias y 4 tareas. Los datos y nombres seguirán siendo ficticios, conforme a
 | T2 | S1, S2, S3, S6 | inline | Implementada; aliases por id, apellidos plausibles y escalado de eventos | `06ea529` |
 | T3 | S4, S6 | inline | Implementada; SPEC-007/012, AC y guía local/VPS actualizadas | `30d2f1e` |
 | T4 | S1, S2, S3, S6 | inline | Suite local + CI 186/186; Q3/Q7/Q10 vivos PASS, banco completo parcial por 429 (L24) | `06ea529` + `30d2f1e` |
-| T5 | S5, S6 | inline | Pendiente: aplicación manual del bundle en VPS | — |
+| T5 | S5, S6 | inline | Aplicada en VPS: recreación de `talentassistant_hcm` + init completo, guard en verde | `06ea529` + `30d2f1e` |
 | T6 | S1, S2, S6 | inline | Implementada; seed limpio verificado en BD aislada con mínimos | `06ea529` |
-| T7 | S5, S6 | inline | Bundle/harness local + CI PASS; ejecución real en VPS pendiente | `30d2f1e` |
+| T7 | S5, S6 | inline | Harness local PASS y init completo ejecutado en VPS con guard en verde | `30d2f1e` |
 
 Forecast de esta ampliación: **~1.000–1.400 líneas**. Se conserva la estrategia de entrega ya
 elegida en L12 (push directo a `main`); commits work-unit en la rama indicada en la cabecera.
@@ -356,3 +356,15 @@ elegida en L12 (push directo a `main`); commits work-unit en la rama indicada en
   la VPS, ejecutado por el usuario.
 - **L33** (2026-10-25) CI run `40203985404` en `main` → **success**: restore, build, suite completa
   contra Postgres y Gitleaks pasaron. No se despachó `deploy.yml` porque no cambió el conector/API.
+- **L34** (2026-10-25) **T5 completada en la VPS.** Primer intento: `vps-demo-upgrade.psql` abortó
+  en el guard final con `tasks_without_active_employee=4` (las 4 tareas fixture heredadas apuntaban
+  a alias que la vista anclada por `e.id` no marcaba como activos); psql salió con error dentro de
+  la transacción → **ROLLBACK completo, la VPS no cambió**. Decisión del usuario (texto literal):
+  «borremos la bd de talent y recreemosla porque no me interesan los datos actuales». Se ejecutó
+  `dropdb --force` + `createdb` y la cadena de init completa con los ficheros ya subidos en
+  `/tmp/hcm-demo` (schema → seed → local_tables → views → local_seed → roles → grants → verify),
+  en el mismo orden que `01_init.sh`. Guard final en verde:
+  `employees=209, active=197, timeoff=2000, time_checks_45d=20000, tasks=2000`. Roles y
+  contraseña de `talentassistant_hcm_app` se conservaron a nivel de clúster. Lección: el bundle de
+  upgrade es *fail-closed* contra estado previo desconocido; para una BD con historial ajeno, la
+  recreación limpia es el camino correcto y más barato que diagnosticarla.
