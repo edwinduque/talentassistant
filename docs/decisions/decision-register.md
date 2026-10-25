@@ -21,8 +21,13 @@ Este documento resume las decisiones de producto y arquitectura que gobiernan Ta
 | ADR-0012 | Consumo directo de solo lectura del HCM (PostgreSQL) tras los puertos | Aceptado; SQL dinámico parametrizado permitido solo según ADR-0014 | `docs/architecture/adr/ADR-0012-read-only-hcm-consumption.md`; `specs/011-hcm-postgres-source/spec.md` |
 | ADR-0014 | Consultas dinámicas estructuradas de solo lectura, compiladas por el backend y limitadas a datos HCM no sensibles | Aceptado e implementado (2026-10-25, `f9592f4`); recheck focal completado | `docs/architecture/adr/ADR-0014-dynamic-read-only-hcm-queries.md`; `specs/020-flexible-hr-data-query/spec.md` |
 
-## Línea base tecnológica confirmada
+## Propuestas pendientes de aprobación
 
+| ID | Decisión | Estado | Referencia |
+|---|---|---|---|
+| ADR-0015 | Enrutar las peticiones entre Groq y Gemini por conversación, con failover y cortacircuitos | Propuesto (2026-10-25); no implementado | `docs/architecture/adr/ADR-0015-ai-provider-routing-and-fallback.md`; `specs/022-ai-provider-balancing/spec.md` |
+
+## Línea base tecnológica confirmada
 Las siguientes decisiones están aprobadas y deben guiar la implementación inicial:
 
 - **Framework objetivo:** .NET 10 LTS (`net10.0`); SDK `10.0.402` y runtime `10.0.13` como versiones estables vigentes al 2026-10-14.
