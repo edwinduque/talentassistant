@@ -152,11 +152,11 @@ ausencias y 4 tareas. Los datos y nombres seguirán siendo ficticios, conforme a
 |----|-------|------|--------|--------|
 | T1 | S1, S2, S3, S6 | inline | RED L19 → GREEN: nombres, ausencia/presencia/tasks y parity tests | `06ea529` |
 | T2 | S1, S2, S3, S6 | inline | Implementada; aliases por id, apellidos plausibles y escalado de eventos | `06ea529` |
-| T3 | S4, S6 | inline | Implementada; SPEC-007/012, AC y guía local/VPS actualizadas | pendiente |
-| T4 | S1, S2, S3, S6 | inline | Suite 186/186; Q3/Q7/Q10 vivos PASS, banco completo parcial por 429 (L24) | pendiente |
+| T3 | S4, S6 | inline | Implementada; SPEC-007/012, AC y guía local/VPS actualizadas | `30d2f1e` |
+| T4 | S1, S2, S3, S6 | inline | Suite 186/186; Q3/Q7/Q10 vivos PASS, banco completo parcial por 429 (L24) | `06ea529` + `30d2f1e` |
 | T5 | S5, S6 | inline | Pendiente: aplicación manual del bundle en VPS | — |
 | T6 | S1, S2, S6 | inline | Implementada; seed limpio verificado en BD aislada con mínimos | `06ea529` |
-| T7 | S5, S6 | inline | Bundle y harness locales PASS; ejecución real en VPS pendiente | pendiente |
+| T7 | S5, S6 | inline | Bundle/harness local PASS; ejecución real en VPS pendiente | `30d2f1e` |
 
 Forecast de esta ampliación: **~1.000–1.400 líneas**. Se conserva la estrategia de entrega ya
 elegida en L12 (push directo a `main`); commits work-unit en la rama indicada en la cabecera.
@@ -345,3 +345,8 @@ elegida en L12 (push directo a `main`); commits work-unit en la rama indicada en
   `feat(hcm): add realistic fictional HCM activity data` — nombres y alias estables, seed de 2.000
   ausencias/20.000 marcajes/2.000 tareas, paridad actualizada y pruebas asociadas. T7 loader y guía
   VPS continúan en el siguiente work-unit.
+- **L31** (2026-10-25) Commit work-unit T7/T3 en `feat/hcm-production-like-demo-data`: `30d2f1e`
+  `feat(hcm): add idempotent VPS demo-data upgrade` — bundle transaccional, guard de volúmenes,
+  harness negativo/idempotente y guía de transferencia; `dotnet test` 186/186 y
+  `verify-hcm-demo-loader.ps1` PASS. T5 sigue pendiente: el usuario debe subir las carpetas con su
+  destino SSH habitual y ejecutar el bundle en `talentassistant_hcm`.
