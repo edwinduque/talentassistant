@@ -120,3 +120,11 @@ El usuario eligió la cadena de ramas de feature. Se autoriza el work-unit commi
 - El commit contiene 3.014 adiciones y 129 eliminaciones (3.143 líneas de cambio). La implementación, documentación y pruebas forman una sola capacidad de extremo a extremo; no se forzó una división funcional solo para encajar la heurística de 400 líneas.
 - Suite completa del verificador: 195/196 antes de corregir una aserción obsoleta del catálogo; tras la corrección y el test HTTP de S4, el recheck acotado pasó 9/9. No se volvió a ejecutar una suite completa tras la corrección por el límite de recheck.
 - Revisión de seguridad read-only: sin vulnerabilidades confirmadas; queda el riesgo prompt-only y la política de egreso de datos reales descritos en L7. RDD permanece `disabled/unmanaged`; no hubo PR, push ni llamadas a Groq/base real.
+
+### L10 — CI del PR y carrera del seeder de identidad (2026-10-25)
+
+- PR #10 (`feat/flexible-hcm-query` → `main`): Gitleaks en verde; la suite completa falló 1/197 en `AdminUserManagementTests.SeedUserCarriesTheAdminRole`.
+- Causa raíz: dos seeders concurrentes crean el rol `admin`; el `catch (DbUpdateException)` del rol absorbía el error pero dejaba la entidad `IdentityRole` en estado `Added`, y el `SaveChanges` siguiente (alta del usuario semilla) reintentaba el INSERT del rol → `23505 RoleNameIndex`. El test HTTP nuevo añadió un tercer seeder concurrente y destapó la carrera.
+- Corrección `fix(auth)`: se hace `Detach` de las entidades fallidas (rol y usuario) dentro de sus bloques `catch`, de modo que un `SaveChanges` posterior en el mismo scope no las reenvíe.
+- Suite completa local tras el fix: UnitTests 23/23 e IntegrationTests 197/197. Este resultado cierra además la prueba pendiente de suite completa que se había diferido en L9.
+- El fix es necesario para poder mergear el PR con CI verde; no altera contratos de autenticación ni datos sembrados.

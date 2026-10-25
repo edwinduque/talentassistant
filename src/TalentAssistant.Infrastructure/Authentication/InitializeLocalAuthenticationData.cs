@@ -26,9 +26,10 @@ public sealed class InitializeLocalAuthenticationData(
 
         if (!await roleManager.RoleExistsAsync(AdminRoleName))
         {
+            var adminRole = new IdentityRole(AdminRoleName);
             try
             {
-                var roleResult = await roleManager.CreateAsync(new IdentityRole(AdminRoleName));
+                var roleResult = await roleManager.CreateAsync(adminRole);
                 if (!roleResult.Succeeded)
                 {
                     var descriptions = string.Join(
@@ -45,6 +46,11 @@ public sealed class InitializeLocalAuthenticationData(
             // keeps its identity for the caller.
             catch (DbUpdateException exception)
             {
+                // A failed insert stays tracked as "Added"; detach it or the next
+                // SaveChanges (creating the seed user) replays the role INSERT and
+                // fails again with the same duplicate key.
+                identityDbContext.Entry(adminRole).State = EntityState.Detached;
+
                 bool seededByAnotherInitializer;
                 try
                 {
@@ -103,6 +109,10 @@ public sealed class InitializeLocalAuthenticationData(
         // keeps its identity for the caller.
         catch (DbUpdateException exception)
         {
+            // Same tracker hazard as the role: drop the failed insert so a later
+            // SaveChanges in this scope cannot replay it.
+            identityDbContext.Entry(user).State = EntityState.Detached;
+
             bool seededByAnotherInitializer;
             try
             {
