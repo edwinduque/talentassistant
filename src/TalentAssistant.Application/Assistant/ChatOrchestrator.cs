@@ -44,7 +44,9 @@ public sealed class ChatOrchestrator(
     QueryHcmData queryHcmData,
     AssistantOrchestratorOptions options)
 {
-    private const int MaximumQueryResultBytes = 64 * 1024;
+    private const int MaximumToolResultBytes = 24 * 1024;
+    private const int MaximumDirectoryResults = 25;
+    private const int MaximumHistoryBytes = 32 * 1024;
 
     /// <summary>
     /// Closed tool catalog with one composable HR data query capability and
@@ -55,7 +57,7 @@ public sealed class ChatOrchestrator(
         [
             new(
                 "search_employees",
-                "Search by display name, surname fragment, and/or office id (the office is an exact area value such as Ingeniería or Soporte; if the value is unknown, call without filters and match OfficeIds); results include approved surname, hire date, job title, area, gender, manager and derived AgeOnNextBirthday fields.",
+                "Search by display name, surname fragment, and/or office/area. At least one filter is required; never call it unfiltered. Returns at most 25 matches; use query_hr_data for counts, groupings or complete lists. Results include approved surname, hire date, job title, area, gender, manager, email and derived AgeOnNextBirthday fields.",
                 """{"type":"object","properties":{"name":{"type":["string","null"]},"office":{"type":["string","null"]},"surname_contains":{"type":["string","null"],"description":"Substring in the employee's surname"}},"required":[]}"""),
             new(
                 "presence",
@@ -170,9 +172,29 @@ public sealed class ChatOrchestrator(
                 && !string.IsNullOrWhiteSpace(message.Role)
                 && !string.IsNullOrWhiteSpace(message.Content))
             .ToArray();
-        return visible.Length <= options.MaxHistoryMessages
+        var cappedByCount = visible.Length <= options.MaxHistoryMessages
             ? visible
             : visible[^options.MaxHistoryMessages..];
+
+        // Cap by bytes as well as by message count: a previous answer can be
+        // tens of kilobytes and the provider rejects oversized payloads with
+        // HTTP 400. Keep the newest turns that fit, in chronological order.
+        var kept = new List<ChatMessage>(cappedByCount.Length);
+        var bytes = 0;
+        for (var index = cappedByCount.Length - 1; index >= 0; index--)
+        {
+            var size = Encoding.UTF8.GetByteCount(cappedByCount[index].Content);
+            if (bytes + size > MaximumHistoryBytes)
+            {
+                break;
+            }
+
+            kept.Add(cappedByCount[index]);
+            bytes += size;
+        }
+
+        kept.Reverse();
+        return kept;
     }
 
     private static string BuildSystemPrompt(string language)
@@ -206,7 +228,12 @@ public sealed class ChatOrchestrator(
             "For factual questions about employees or the organization, call a data tool and wait for its result; job-offer drafts use the user's supplied requirements and do not require a data tool.",
             "Job-offer drafting is an allowed HR writing task: use only user-provided requirements. Include role, location, shift, salary, benefits, and work modality only when supplied; ask one concise follow-up if a missing detail is essential, otherwise omit it rather than inventing it. When requested, aim for about 500 characters and return the draft in chat only; never save or publish it.",
             "Employee salaries and bank account details remain restricted: never disclose or infer them, and say the information is unavailable if asked. A salary explicitly supplied by the user as an offer term may be repeated only in that job-offer draft.",
-            "For a question seeking one employee's details, first call search_employees to resolve identity; if it returns several candidates, list them and ask which one before querying details. A count or grouping by name fragment includes every match and never selects one silently.",
+            "For a question seeking one employee's details, first call search_employees to resolve identity; it"
+            + " requires a name, surname or office/area filter and returns at most 25 matches. If it returns"
+            + " several candidates, list them and ask which one before querying details. For broad questions"
+            + " (offices, headcounts, birthdays) use query_hr_data or upcoming_birthday, never an unfiltered"
+            + " search_employees. A count or grouping by name fragment includes every match and never selects"
+            + " one silently.",
             "For the next upcoming birthday, call upcoming_birthday; use the source-provided result and do not calculate it from employee birth data.",
             "Use the conversation history to resolve follow-ups: when a message refers back to an earlier turn"
             + " (for example 'esa persona', 'the person you mentioned' or an unnamed employee), take the referenced"
@@ -232,14 +259,29 @@ public sealed class ChatOrchestrator(
             {
                 case "search_employees":
                     {
+                        var name = arguments.GetString("name");
+                        var office = arguments.GetString("office");
+                        var surname = arguments.GetString("surname_contains");
+                        if (string.IsNullOrWhiteSpace(name)
+                            && string.IsNullOrWhiteSpace(office)
+                            && string.IsNullOrWhiteSpace(surname))
+                        {
+                            return ToolError(
+                                "Provide at least one of name, surname_contains or office;"
+                                + " for counts or groupings use query_hr_data.");
+                        }
+
                         var employees = await searchEmployees.ExecuteAsync(
                             new EmployeeSearchQuery(
-                                Name: arguments.GetString("name"),
-                                OfficeId: arguments.GetString("office"),
+                                Name: name,
+                                OfficeId: office,
                                 Language: language,
-                                SurnameContains: arguments.GetString("surname_contains")),
+                                SurnameContains: surname),
                             cancellationToken);
-                        return JsonSerializer.Serialize(employees, ToolResultSerializerOptions);
+                        var limited = employees.Count > MaximumDirectoryResults
+                            ? employees.Take(MaximumDirectoryResults).ToArray()
+                            : employees;
+                        return SerializeToolResult(limited, "search_employees");
                     }
 
                 case "upcoming_birthday":
@@ -249,7 +291,7 @@ public sealed class ChatOrchestrator(
                                 DateOnly.FromDateTime(DateTime.Today),
                                 language),
                             cancellationToken);
-                        return JsonSerializer.Serialize(birthdays, ToolResultSerializerOptions);
+                        return SerializeToolResult(birthdays, "upcoming_birthday");
                     }
 
                 case "presence":
@@ -270,7 +312,7 @@ public sealed class ChatOrchestrator(
                         var snapshot = await getEmployeePresence.ExecuteAsync(
                             new PresenceQuery(date, language),
                             cancellationToken);
-                        return JsonSerializer.Serialize(snapshot, ToolResultSerializerOptions);
+                        return SerializeToolResult(snapshot, "presence");
                     }
 
                 case "timeoff":
@@ -281,7 +323,7 @@ public sealed class ChatOrchestrator(
                                 arguments.GetString("name"),
                                 language),
                             cancellationToken);
-                        return JsonSerializer.Serialize(requests, ToolResultSerializerOptions);
+                        return SerializeToolResult(requests, "timeoff");
                     }
 
                 case "tasks":
@@ -292,7 +334,7 @@ public sealed class ChatOrchestrator(
                                 arguments.GetString("name"),
                                 language),
                             cancellationToken);
-                        return JsonSerializer.Serialize(tasks, ToolResultSerializerOptions);
+                        return SerializeToolResult(tasks, "tasks");
                     }
 
                 case "attendance_insights":
@@ -309,18 +351,14 @@ public sealed class ChatOrchestrator(
                         var insights = await getAttendanceInsights.ExecuteAsync(
                             new AttendanceInsightQuery(from, to, null, language),
                             cancellationToken);
-                        return JsonSerializer.Serialize(insights, ToolResultSerializerOptions);
+                        return SerializeToolResult(insights, "attendance_insights");
                     }
 
                 case "query_hr_data":
                     {
                         var request = arguments.GetHcmDataQueryRequest(language);
                         var result = await queryHcmData.ExecuteAsync(request, cancellationToken);
-                        var resultJson = JsonSerializer.Serialize(result, ToolResultSerializerOptions);
-                        return Encoding.UTF8.GetByteCount(resultJson) > MaximumQueryResultBytes
-                            ? ToolError(
-                                "The query result exceeds the response limit; narrow the selected fields or filters.")
-                            : resultJson;
+                        return SerializeToolResult(result, "query_hr_data");
                     }
 
                 default:
@@ -369,6 +407,15 @@ public sealed class ChatOrchestrator(
     {
         Encoder = JavaScriptEncoder.UnsafeRelaxedJsonEscaping
     };
+
+    private static string SerializeToolResult(object? value, string toolName)
+    {
+        var json = JsonSerializer.Serialize(value, ToolResultSerializerOptions);
+        return Encoding.UTF8.GetByteCount(json) > MaximumToolResultBytes
+            ? ToolError(
+                $"The {toolName} result exceeds the response limit; narrow the query or filters.")
+            : json;
+    }
 
     private static string ToolError(string message) =>
         JsonSerializer.Serialize(new { error = message }, ToolResultSerializerOptions);

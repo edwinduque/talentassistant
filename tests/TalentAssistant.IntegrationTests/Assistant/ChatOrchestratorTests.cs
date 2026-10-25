@@ -482,6 +482,54 @@ public sealed class ChatOrchestratorTests
         Assert.Equal(["h3", "h4", "h5"], trimmedHistory);
     }
 
+    [Fact]
+    public async Task HistoryIsTrimmedByByteBudgetKeepingTheNewestTurns()
+    {
+        var huge = new string('x', 40 * 1024);
+        var model = new ScriptedLanguageModel();
+        model.Enqueue(new AssistantCompletion("ok", []));
+        var orchestrator = CreateOrchestrator(model);
+
+        IReadOnlyList<ChatMessage> history =
+        [
+            new("assistant", huge),
+            new("user", "small")
+        ];
+
+        await orchestrator.ExecuteAsync(
+            new ChatQuery("latest question", history, Language: "es"));
+
+        var messages = model.Requests[0].Messages;
+        Assert.Equal(3, messages.Count);
+        Assert.Equal("small", messages[1].Content);
+        Assert.Equal("latest question", messages[2].Content);
+        Assert.DoesNotContain(messages, message => message.Content == huge);
+    }
+
+    [Fact]
+    public async Task UnfilteredEmployeeSearchReturnsAToolError()
+    {
+        var model = new ScriptedLanguageModel();
+        model.Enqueue(new AssistantCompletion(
+            Content: null,
+            ToolCalls:
+            [
+                new AssistantToolCall("call-1", "search_employees", "{}")
+            ]));
+        model.Enqueue(new AssistantCompletion("Necesito un filtro.", []));
+        var orchestrator = CreateOrchestrator(model);
+
+        var result = await orchestrator.ExecuteAsync(
+            new ChatQuery("Lista todos los empleados", History: [], Language: "es"));
+
+        Assert.True(result.Completed);
+        var toolMessage = Assert.Single(
+            model.Requests[1].Messages,
+            message => message.Role == "tool");
+        Assert.Contains("Provide at least one of name", toolMessage.Content);
+        Assert.Contains("query_hr_data", toolMessage.Content);
+    }
+
     private static ChatOrchestrator CreateOrchestrator(
         ScriptedLanguageModel model,
         AssistantOrchestratorOptions? options = null,
