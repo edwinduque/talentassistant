@@ -17,11 +17,14 @@ public abstract class PostgresSourceTestBase : IAsyncLifetime
 
     protected PostgresAttendanceSource Attendance { get; private set; } = null!;
 
+    protected PostgresHcmDataQuerySource DataQuery { get; private set; } = null!;
+
     public Task InitializeAsync()
     {
         _dataSource = NpgsqlDataSource.Create(HcmPostgresTestEnvironment.ConnectionString());
         Workforce = new PostgresWorkforceSource(_dataSource, HcmPostgresAdapterOptions.Default);
         Attendance = new PostgresAttendanceSource(_dataSource, HcmPostgresAdapterOptions.Default);
+        DataQuery = new PostgresHcmDataQuerySource(_dataSource, HcmPostgresAdapterOptions.Default);
         return Task.CompletedTask;
     }
 

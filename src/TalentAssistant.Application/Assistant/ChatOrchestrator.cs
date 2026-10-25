@@ -1,4 +1,5 @@
 using System.Text.Encodings.Web;
+using System.Text;
 using System.Text.Json;
 using TalentAssistant.Application.Attendance;
 using TalentAssistant.Application.Workforce;
@@ -40,11 +41,14 @@ public sealed class ChatOrchestrator(
     GetEmployeeTimeOff getEmployeeTimeOff,
     GetEmployeeTasks getEmployeeTasks,
     GetAttendanceInsights getAttendanceInsights,
+    QueryHcmData queryHcmData,
     AssistantOrchestratorOptions options)
 {
+    private const int MaximumQueryResultBytes = 64 * 1024;
+
     /// <summary>
-    /// The closed catalog (SPEC-009 §6): search_employees, presence, timeoff,
-    /// tasks, attendance_insights and upcoming_birthday. The model cannot extend it.
+    /// Closed tool catalog with one composable HR data query capability and
+    /// source-owned domain tools. The model cannot extend the catalog.
     /// </summary>
     public static IReadOnlyList<AssistantToolDefinition> ToolCatalog { get; } =
         Array.AsReadOnly<AssistantToolDefinition>(
@@ -72,7 +76,11 @@ public sealed class ChatOrchestrator(
             new(
                 "upcoming_birthday",
                 "Get employees with the next upcoming birthday and date from the HCM source, plus AgeOnNextBirthday (the age the employee turns on that date); ties are included and birth year is omitted.",
-                """{"type":"object","properties":{},"required":[]}""")
+                """{"type":"object","properties":{},"required":[]}"""),
+            new(
+                "query_hr_data",
+                "Read-only structured HR/HCM query over approved fields; never send SQL or code. Datasets and field ids: employees (employee_id, display_name, office_ids, birthday_month, birthday_day, job_title, last_name, hire_date, age_on_next_birthday); presence (presence_date, employee_id, employee_display_name, employee_office_ids, state); timeoff (reference, employee_id, type, status, starts_on, ends_before, duration, duration_unit, summary); tasks (reference, employee_id, title, status, due_on, summary); attendance_insights (incident_id, employee_id, employee_display_name, employee_office_ids, office_id, office_country, office_city, office_iana_time_zone, incident_at_utc, work_date, schedule_starts_at, schedule_ends_at, punches, rule_reference, rule_requires_review, rule_summary, rule_evaluated_at_utc, rule_evidence, rule_review_items, related_timeoff_reference, related_starts_on, related_ends_before, related_summary, related_type, related_status, related_duration, related_duration_unit). Salary, account number and raw birth year are not queryable. Select only required fields; max 250 rows and 64 KiB per result.",
+                """{"type":"object","properties":{"dataset":{"type":["string","null"],"enum":["employees","presence","timeoff","tasks","attendance_insights",null]},"fields":{"type":["array","null"],"items":{"type":"string"}},"filters":{"type":["array","null"],"items":{"type":"object","properties":{"field":{"type":["string","null"]},"operator":{"type":["string","null"],"enum":["equals","contains","greater_than","greater_than_or_equal","less_than","less_than_or_equal",null]},"value":{"type":["string","null"]}},"required":["field","operator","value"],"additionalProperties":false}},"aggregate":{"type":["string","null"],"enum":["count","min","max",null]},"aggregate_field":{"type":["string","null"]},"group_by":{"type":["array","null"],"items":{"type":"string"}},"order_by":{"type":["string","null"]},"order_direction":{"type":["string","null"],"enum":["asc","desc",null]},"limit":{"type":["integer","null"]}},"required":["dataset"],"additionalProperties":false}""")
         ]);
 
     // Names for the requested language in system-prompt instructions (SPEC-009 S1).
@@ -183,37 +191,20 @@ public sealed class ChatOrchestrator(
             + " decline politely in the user's language: first remind them you are their HR/HCM assistant limited"
             + " to people and team data, then offer to help with an HR/HCM question instead; never provide the"
             + " unrelated content.",
-            "For factual questions about employees or the organization, call a tool and wait for its result; job-offer drafts use the user's supplied requirements and do not require a data tool.",
+            "For factual HR/HCM questions, use query_hr_data with the exact dataset and field ids from its tool description for flexible source-side selection, filters, counts, grouping, ranking and sorting; use domain tools when the source owns a specialized result such as upcoming birthdays. Never send SQL or code to a tool.",
+            "The query_hr_data tool accepts a structured plan and is read-only; it accepts only approved data sets and non-sensitive fields. Request only fields needed to answer; for aggregates ask the source to compute the result instead of counting or ranking a large set of returned people in the model. If a result says Truncated is true, do not present its rows as a complete list; narrow the query or explain the limit.",
+            "For factual questions about employees or the organization, call a data tool and wait for its result; job-offer drafts use the user's supplied requirements and do not require a data tool.",
             "Job-offer drafting is an allowed HR writing task: use only user-provided requirements. Include role, location, shift, salary, benefits, and work modality only when supplied; ask one concise follow-up if a missing detail is essential, otherwise omit it rather than inventing it. When requested, aim for about 500 characters and return the draft in chat only; never save or publish it.",
             "Employee salaries and bank account details remain restricted: never disclose or infer them, and say the information is unavailable if asked. A salary explicitly supplied by the user as an offer term may be repeated only in that job-offer draft.",
-            "For questions about a specific person, first call search_employees with the name from the question;"
-            + " if it matches several employees, list the matching candidates (display name and office) and ask"
-            + " which one you mean before answering; never pick one silently.",
-            "For hire-date questions, use the employee's name with search_employees and report the returned HireDate;"
-            + " for surname-fragment questions, use search_employees with surname_contains and report all matches.",
-            "Use presence for who is present, absent or on leave right now (for example which employees"
-            + " are on vacation today): the presence state answers those who-questions. Use timeoff for one"
-            + " person's leave details - duration, dates and return date - and a vacation-days question must"
-            + " call timeoff too, because the day count lives in its Duration field; resolve the employee"
-            + " through search_employees first and pass its id. If that lookup returns several employees,"
-            + " ask which one you mean before answering instead of picking one.",
+            "For a question seeking one employee's details, first call search_employees to resolve identity; if it returns several candidates, list them and ask which one before querying details. A count or grouping by name fragment includes every match and never selects one silently.",
             "For the next upcoming birthday, call upcoming_birthday; use the source-provided result and do not calculate it from employee birth data.",
             "Use the conversation history to resolve follow-ups: when a message refers back to an earlier turn"
             + " (for example 'esa persona', 'the person you mentioned' or an unnamed employee), take the referenced"
             + " name or value from the history and call the tools with those concrete values; ask which one only"
             + " when the history itself is ambiguous.",
-            "You are not limited to a fixed list of question shapes: identify which data the question needs, call"
-            + " the tools that provide it (several calls in sequence when needed), and answer only from what they"
-            + " return.",
-            "You may derive simple aggregates over the records the tools return - counting, grouping, sorting,"
-            + " ranking (earliest, latest, most, least) and min/max values - provided every input comes from those"
-            + " records; do not invent values outside the tool data.",
-            "When a filter returns no rows, broaden the query instead of concluding the data does not exist:"
-            + " call search_employees without the office filter and match OfficeIds against the requested office.",
-            "When a tool result does not yet contain the answer, call the next tool that provides it (for"
-            + " example timeoff or tasks with the employee id from search_employees) instead of replying that"
-            + " the information is unavailable; only when every relevant tool has been tried may you say the"
-            + " information is not available.",
+            "Do not rely on a memorized list of question templates: translate the requested HR/HCM result into a structured query over the available data sets, using multiple bounded calls only when the question spans data sets.",
+            "Do not broaden or change a user's filters silently. A valid query with no matches is different from an invalid, unsupported or unavailable query; explain the observed outcome and never report a false zero.",
+            "If a query is rejected or a field is unavailable, do not retry through another tool to bypass the restriction; state that the information is unavailable.",
             "When a question asks about age, report AgeOnNextBirthday exactly as the tool returned it (the age the"
             + " person turns at their next birthday); if it is null, say the information is not available.");
     }
@@ -311,6 +302,17 @@ public sealed class ChatOrchestrator(
                         return JsonSerializer.Serialize(insights, ToolResultSerializerOptions);
                     }
 
+                case "query_hr_data":
+                    {
+                        var request = arguments.GetHcmDataQueryRequest(language);
+                        var result = await queryHcmData.ExecuteAsync(request, cancellationToken);
+                        var resultJson = JsonSerializer.Serialize(result, ToolResultSerializerOptions);
+                        return Encoding.UTF8.GetByteCount(resultJson) > MaximumQueryResultBytes
+                            ? ToolError(
+                                "The query result exceeds the response limit; narrow the selected fields or filters.")
+                            : resultJson;
+                    }
+
                 default:
                     return ToolError(
                         $"Unknown tool '{toolCall.Name}'. Available tools: "
@@ -373,5 +375,149 @@ public sealed class ChatOrchestrator(
             && value.ValueKind == JsonValueKind.String
                 ? value.GetString()
                 : null;
+
+        public HcmDataQueryRequest GetHcmDataQueryRequest(string language)
+        {
+            if (element is not { ValueKind: JsonValueKind.Object })
+            {
+                throw new HcmDataQueryValidationException("The query plan must be an object.");
+            }
+
+            EnsureProperties(
+                element.Value,
+                "dataset",
+                "fields",
+                "filters",
+                "aggregate",
+                "aggregate_field",
+                "group_by",
+                "order_by",
+                "order_direction",
+                "limit");
+
+            var dataSet = RequiredString(element.Value, "dataset");
+            return new HcmDataQueryRequest(
+                dataSet,
+                GetStringArray(element.Value, "fields"),
+                GetFilters(element.Value),
+                GetOptionalString(element.Value, "aggregate"),
+                GetOptionalString(element.Value, "aggregate_field"),
+                GetStringArray(element.Value, "group_by"),
+                GetOptionalString(element.Value, "order_by"),
+                GetOptionalString(element.Value, "order_direction"),
+                GetOptionalInt32(element.Value, "limit"),
+                language);
+        }
+
+        private static string RequiredString(JsonElement root, string property)
+        {
+            if (!root.TryGetProperty(property, out var value)
+                || value.ValueKind != JsonValueKind.String
+                || string.IsNullOrWhiteSpace(value.GetString()))
+            {
+                throw new HcmDataQueryValidationException("The query data set is required.");
+            }
+
+            return value.GetString()!;
+        }
+
+        private static string? GetOptionalString(JsonElement root, string property)
+        {
+            if (!root.TryGetProperty(property, out var value)
+                || value.ValueKind == JsonValueKind.Null)
+            {
+                return null;
+            }
+
+            if (value.ValueKind != JsonValueKind.String)
+            {
+                throw new HcmDataQueryValidationException("A query option has an invalid type.");
+            }
+
+            return value.GetString();
+        }
+
+        private static int? GetOptionalInt32(JsonElement root, string property)
+        {
+            if (!root.TryGetProperty(property, out var value)
+                || value.ValueKind == JsonValueKind.Null)
+            {
+                return null;
+            }
+
+            if (value.ValueKind != JsonValueKind.Number || !value.TryGetInt32(out var result))
+            {
+                throw new HcmDataQueryValidationException("The query limit has an invalid type.");
+            }
+
+            return result;
+        }
+
+        private static IReadOnlyList<string>? GetStringArray(JsonElement root, string property)
+        {
+            if (!root.TryGetProperty(property, out var value)
+                || value.ValueKind == JsonValueKind.Null)
+            {
+                return null;
+            }
+
+            if (value.ValueKind != JsonValueKind.Array)
+            {
+                throw new HcmDataQueryValidationException("A query field list has an invalid type.");
+            }
+
+            var values = new List<string>();
+            foreach (var item in value.EnumerateArray())
+            {
+                if (item.ValueKind != JsonValueKind.String || string.IsNullOrWhiteSpace(item.GetString()))
+                {
+                    throw new HcmDataQueryValidationException("A query field list has an invalid item.");
+                }
+
+                values.Add(item.GetString()!);
+            }
+
+            return values;
+        }
+
+        private static IReadOnlyList<HcmDataQueryFilter>? GetFilters(JsonElement root)
+        {
+            if (!root.TryGetProperty("filters", out var value)
+                || value.ValueKind == JsonValueKind.Null)
+            {
+                return null;
+            }
+
+            if (value.ValueKind != JsonValueKind.Array)
+            {
+                throw new HcmDataQueryValidationException("The query filters have an invalid type.");
+            }
+
+            var filters = new List<HcmDataQueryFilter>();
+            foreach (var filter in value.EnumerateArray())
+            {
+                if (filter.ValueKind != JsonValueKind.Object)
+                {
+                    throw new HcmDataQueryValidationException("A query filter has an invalid shape.");
+                }
+
+                EnsureProperties(filter, "field", "operator", "value");
+                filters.Add(new HcmDataQueryFilter(
+                    RequiredString(filter, "field"),
+                    RequiredString(filter, "operator"),
+                    RequiredString(filter, "value")));
+            }
+
+            return filters;
+        }
+
+        private static void EnsureProperties(JsonElement value, params string[] allowed)
+        {
+            var allowedProperties = new HashSet<string>(allowed, StringComparer.Ordinal);
+            if (value.EnumerateObject().Any(property => !allowedProperties.Contains(property.Name)))
+            {
+                throw new HcmDataQueryValidationException("The query plan contains an unsupported property.");
+            }
+        }
     }
 }

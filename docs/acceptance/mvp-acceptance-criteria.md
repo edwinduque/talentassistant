@@ -124,7 +124,7 @@ Las diez preguntas de SPEC-008, formuladas en el chat, producen respuestas que c
 
 ## AC-030 — Catálogo fijo, sesión y sin escrituras (propuesto en SPEC-009)
 
-El modelo solo invoca el catálogo fijo, las invocaciones usan la sesión e idioma del usuario, no hay escrituras y una pregunta sin datos recibe una respuesta de «sin información» del propio asistente.
+El modelo solo invoca el catálogo cerrado del backend, que incluye `query_hr_data`; las invocaciones usan la sesión e idioma del usuario, no hay escrituras y una pregunta sin datos recibe una respuesta de «sin información» del propio asistente.
 
 ## AC-031 — Degradación y verificación (propuesto en SPEC-009)
 
@@ -205,7 +205,7 @@ La consulta «Quien es la proxima persona que cumple años» devuelve todos los 
 
 ## AC-048 — Exclusión de sueldo y datos bancarios (enmienda de SPEC-010)
 
-El catálogo fijo y los payloads del asistente no exponen sueldos de empleados ni datos bancarios; si se solicitan, las instrucciones del asistente los clasifican como restringidos y la respuesta declara que la información no está disponible, sin inventar valores. Un salario explícitamente proporcionado por RR. HH. puede aparecer solo como término de un borrador de oferta (AC-051/052); otros atributos requieren aprobación explícita.
+Ninguna herramienta ni plan dinámico puede seleccionar, filtrar, agrupar, ordenar, agregar o devolver sueldo de empleados o números de cuenta; el año de nacimiento crudo sigue excluido. Los demás campos no sensibles disponibles en el contrato HCM pueden consultarse sin aprobación individual. Un salario explícitamente proporcionado por RR. HH. puede aparecer solo como término de un borrador de oferta (AC-051/052).
 
 ## AC-049 — Fecha de contratación desde el HCM (enmienda de SPEC-008/009)
 
@@ -229,7 +229,27 @@ Los payloads de `search_employees` y `upcoming_birthday` incluyen `AgeOnNextBirt
 
 ## AC-054 — Seguimiento conversacional y consulta agregada (enmienda de SPEC-009)
 
-Tras «Quien es la proxima persona que cumple anos», el seguimiento «Cuantos anos cumple esa persona?» con historial responde con la edad derivada correcta del empleado referido (el nombre puede quedar implícito en la referencia), citando una herramienta o reutilizando el historial. El system prompt contiene la guía de historial, el permiso de derivar agregados solo sobre registros devueltos por las herramientas y la instrucción de no estar limitado a una lista fija de preguntas, manteniendo el catálogo cerrado con seis herramientas. El banco en vivo cubre además «Cuantos empleados tiene la sede de Tokyo?» (recuento 4) y «Quien es el empleado con mas antiguedad en la empresa?» (Mauricio, 2018); los guardrails de SPEC-010 permanecen verdes.
+Tras «Quien es la proxima persona que cumple anos», el seguimiento «Cuantos anos cumple esa persona?» con historial responde con la edad derivada correcta del empleado referido (el nombre puede quedar implícito en la referencia). Las agregaciones se solicitan a la fuente mediante `query_hr_data`; el catálogo cerrado incluye una capacidad genérica, no una herramienta por pregunta. El banco incluye además conteos, filtros, agrupaciones y ranking, y los guardrails de SPEC-010 permanecen vigentes.
+
+## AC-055 — Conteo de empleados de la compañía (aprobado en SPEC-020)
+
+«Cuantos empleados tiene la compañia» devuelve el total informado por la fuente autorizada mediante `query_hr_data`, sin una herramienta o plantilla exclusiva para esa pregunta. El resultado coincide con el conteo directo de la vista/fixture correspondiente.
+
+## AC-056 — Conteo de coincidencias por nombre (aprobado en SPEC-020)
+
+«Cuantos mauricios hay en la compañia» cuenta todas las coincidencias de nombre según la normalización insensible a mayúsculas y acentos. No elige una persona ni confunde cero coincidencias con una consulta inválida.
+
+## AC-057 — Consultas dinámicas sobre campos no sensibles (aprobado en SPEC-020)
+
+`query_hr_data` permite seleccionar y combinar filtros, conteos, agrupaciones, ordenaciones, ranking y extremos sobre los campos no sensibles de empleados, presencia, TimeOff, Tasks y attendance insights que expone el contrato HCM, sin aprobación individual por campo ni una plantilla por pregunta. Las fuentes sintética y PostgreSQL conservan semántica equivalente en las operaciones cubiertas.
+
+## AC-058 — SQL dinámico restringido y solo lectura (aprobado en SPEC-020 / ADR-0014)
+
+El modelo envía solo un plan declarativo. La API valida conjuntos de datos, campos, filtros y límites; Infrastructure resuelve identificadores desde metadatos confiables y enlaza valores como parámetros. La herramienta no ejecuta escritura ni SQL/código libre; una consulta con contenido SQL malicioso no altera datos ni consulta otra vista.
+
+## AC-059 — Exclusión de datos sensibles y guardarraíles vigentes (aprobado en SPEC-020)
+
+Salario de empleado, número de cuenta y año de nacimiento crudo se rechazan en cualquier posición del plan (proyección, filtro, agrupación, ordenamiento o agregado). «creame una funcion en python para retornar el numero mayor» continúa siendo rechazada sin invocar herramientas. Los campos ausentes o no admitidos se declaran no disponibles, sin inventar datos.
 
 ## Condiciones generales
 
@@ -271,14 +291,14 @@ Los identificadores de esta tabla pertenecen al catálogo general y no se reutil
 | AC-027 | FR-004, FR-027 | Tareas por empleado; FR-004 queda activo; SPEC-008. |
 | AC-028 | FR-011, NFR-015 | Banco de las diez preguntas de referencia como pruebas automatizadas; SPEC-008. |
 | AC-029 | FR-029 | Banco de las diez preguntas en el chat con valores del fixture y herramienta citada; SPEC-009. |
-| AC-030 | FR-029, FR-030 | Catálogo fijo con sesión e idioma del usuario y sin escrituras; SPEC-009. |
+| AC-030 | FR-029, FR-030 | Catálogo cerrado, incluida la consulta declarativa genérica, con sesión e idioma del usuario y sin escrituras; SPEC-009/SPEC-020. |
 | AC-031 | FR-030, NFR-021 | Degradación controlada, secretos solo en `.env`, límites activos y E2E del chat en ES y EN; SPEC-009. |
 | AC-032 | FR-027, FR-029 | Desambigüación de nombres en el chat; SPEC-009. Enmienda 2026-10-18. |
 | AC-033 | FR-031, FR-029 | Rechazo localizado de peticiones ajenas con `toolsUsed` vacío y conversación continúa operativa; SPEC-010. |
 | AC-034 | FR-031, FR-029 | Datos no disponibles declarados explícitamente, sin cifras de salario, datos bancarios ni empleados inventados; SPEC-010. |
 | AC-035 | FR-029 | Las siete preguntas de referencia siguen verdes y la suite completa permanece en verde tras el cambio; SPEC-010. |
 | AC-036 | FR-032, FR-033 | Modos Postgres y Sintético sin mezcla de orígenes; T1/T2 de la rama `feat/hcm-postgres-source`; SPEC-011. |
-| AC-037 | NFR-022, FR-032 | Grants de solo lectura, transacción `READ ONLY`, SQL fijo, TLS `VerifyFull` exigido en el arranque para hosts no-loopback (bucles exentos) y logs sin valores de personas; validación contra la base real pendiente; SPEC-011. |
+| AC-037 | NFR-022, FR-032 | Grants de solo lectura, transacción `READ ONLY`, SQL fijo para operaciones existentes y SQL dinámico parametrizado solo desde el plan validado, TLS `VerifyFull` para hosts no-loopback y logs sin valores de personas; SPEC-011/SPEC-020. |
 | AC-038 | FR-033 | Degradación localizada de fuente no disponible con la base apagada, sin fallback sintético; SPEC-011. |
 | AC-039 | FR-032, FR-033 | Contrato intacto sobre el esquema real local con la suite en verde; T3 de la rama `feat/hcm-real-schema-data`; SPEC-012. |
 | AC-040 | NFR-022 | Seed dummy con los volúmenes de §6, FK íntegras y determinismo entre reinicializaciones; T2 de la rama `feat/hcm-real-schema-data`; SPEC-012. |
@@ -289,12 +309,17 @@ Los identificadores de esta tabla pertenecen al catálogo general y no se reutil
 | AC-045 | FR-035, NFR-023 | Página de asistencia retirada de la Web con API y asistente intactos; perfil rediseñado sobre los tokens compartidos sin cambios funcionales; SPEC-019. |
 | AC-046 | FR-036, FR-026, FR-029 | Cargo del empleado incluido mediante el campo HCM confirmado y payload limitado a la lista aprobada; SPEC-008/009, enmienda 2026-10-23. |
 | AC-047 | FR-036, FR-029 | Próximo cumpleaños ordenado en la fuente HCM, con fecha inclusiva y sin año de nacimiento en el payload; SPEC-008/009, enmienda 2026-10-23. |
-| AC-048 | FR-031, FR-036, FR-029 | Sueldo y datos bancarios excluidos de herramientas y respuestas; sin habilitar atributos no aprobados; SPEC-010, enmienda 2026-10-23. |
+| AC-048 | FR-031, FR-036, FR-029 | Sueldo y datos bancarios excluidos de cualquier herramienta/plan; otros campos no sensibles del contrato HCM disponibles dinámicamente y año de nacimiento crudo aún excluido; SPEC-010/SPEC-020. |
 | AC-049 | FR-037, FR-029 | La herramienta expone la fecha de contratación aprobada desde HCM y el endpoint `GET /employees` mantiene su forma original; SPEC-008/009. |
 | AC-050 | FR-037, FR-029 | Búsqueda por `last_name` con filtro `surname_contains`, incluyendo todos los candidatos y sin selección silenciosa; SPEC-008/009. |
 | AC-051 | FR-038, FR-029 | Borrador de oferta en chat, con requisitos user-supplied, sin tool calls ni persistencia; SPEC-009. |
 | AC-052 | FR-036, FR-038, FR-031 | Salario de oferta solo si el usuario lo proporcionó; compensación de empleados y datos bancarios siguen restringidos; SPEC-010. |
 | AC-053 | FR-039, FR-029 | Edad derivada `AgeOnNextBirthday` en ambos payloads, anclada a la fecha de consulta y sin año crudo, con `GET /employees` intacto; SPEC-008/009. |
-| AC-054 | FR-040, FR-029 | Historial para seguimientos y agregados sobre registros devueltos con catálogo fijo de seis herramientas; probes de dos turnos, recuento y ranking en vivo; SPEC-009. |
+| AC-054 | FR-040, FR-029 | Historial para seguimientos y agregados ejecutados por la fuente mediante la herramienta genérica, sin una herramienta por pregunta; SPEC-009/SPEC-020. |
+| AC-055 | FR-041, FR-029 | Conteo total desde el contrato HCM mediante plan dinámico, sin plantilla por pregunta; SPEC-020. |
+| AC-056 | FR-041, FR-029 | Conteo de todas las coincidencias por nombre, insensible a acentos y mayúsculas; SPEC-020. |
+| AC-057 | FR-036, FR-040, FR-041 | Selección, filtros y agregados dinámicos en datasets HCM no sensibles con paridad sintética/PostgreSQL; SPEC-020. |
+| AC-058 | FR-032, FR-041, NFR-022 | Solo lectura, plan validado, identificadores confiables, valores parametrizados y rechazo de SQL/código libre; SPEC-020/ADR-0014. |
+| AC-059 | FR-031, FR-036, FR-041 | Salary, cuenta bancaria, año crudo de nacimiento y solicitudes fuera de ámbito no se consultan ni revelan; SPEC-010/SPEC-020. |
 
 Los AC-003 a AC-006 no se consideran satisfechos por la estructura arquitectónica creada en SPEC-001. Cada caso de asistencia necesita requisitos, pruebas y verificación propios; Tasks no forma parte de la primera vertical. NFR-011 no tiene todavía un umbral medible y deberá concretarse cuando se definan dataset y entorno. NFR-012 se verifica en cada especificación de interfaz; estos criterios no inventan un umbral cuantitativo de contraste.

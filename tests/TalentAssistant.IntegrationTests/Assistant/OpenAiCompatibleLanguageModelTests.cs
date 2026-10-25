@@ -81,7 +81,8 @@ public sealed class OpenAiCompatibleLanguageModelTests
                 "timeoff",
                 "tasks",
                 "attendance_insights",
-                "upcoming_birthday"
+                "upcoming_birthday",
+                "query_hr_data"
             },
             names!);
         Assert.All(tools, tool =>

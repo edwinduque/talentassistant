@@ -9,11 +9,8 @@ namespace TalentAssistant.IntegrationTests.HcmPostgres;
 
 /// <summary>
 /// SPEC-011 S3 no-mixed-mode proof: with <c>Hcm:Source=Postgres</c> the DI
-/// container exposes exactly one registration per port and both are the
-/// Postgres adapters - the in-app workforce source and the synthetic/dataset
-/// attendance sources are not registered at all. The default Synthetic mode is
-/// pinned by the pre-existing suite (e.g. ChatHttpContractTests serving the
-/// synthetic directory with no Hcm environment variable).
+/// container exposes exactly one registration per HCM port and query source,
+/// all backed by PostgreSQL. Synthetic and dataset adapters are not registered.
 /// </summary>
 public sealed class PostgresModeRegistrationTests : IClassFixture<DegradedPostgresModeApiFactory>
 {
@@ -34,6 +31,9 @@ public sealed class PostgresModeRegistrationTests : IClassFixture<DegradedPostgr
 
         var attendance = Assert.Single(_factory.Services.GetServices<IHcmAttendanceSource>());
         Assert.IsType<PostgresAttendanceSource>(attendance);
+
+        var querySource = Assert.Single(_factory.Services.GetServices<IHcmDataQuerySource>());
+        Assert.IsType<PostgresHcmDataQuerySource>(querySource);
 
         // The connection pool is registered as a singleton from the configured
         // connection string; building it does not open a connection, and the

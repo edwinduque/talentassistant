@@ -316,7 +316,9 @@ public sealed class SyntheticWorkforceSource : IHcmWorkforceSource
                     insight.Employee.OfficeIds,
                     profile?.JobTitle,
                     profile?.LastName,
-                    profile?.HireDate);
+                    profile?.HireDate,
+                    BirthdayMonth: profile?.BirthdayMonth,
+                    BirthdayDay: profile?.BirthdayDay);
             })
             .DistinctBy(employee => employee.Id);
 
@@ -329,7 +331,9 @@ public sealed class SyntheticWorkforceSource : IHcmWorkforceSource
                 Array.AsReadOnly([employee.OfficeId]),
                 profile.JobTitle,
                 profile.LastName,
-                profile.HireDate);
+                profile.HireDate,
+                BirthdayMonth: profile.BirthdayMonth,
+                BirthdayDay: profile.BirthdayDay);
         });
 
         return Array.AsReadOnly([.. fromCatalog, .. demoEmployees]);

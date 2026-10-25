@@ -379,7 +379,7 @@ Configuración de medidas de GitHub que el propietario debe activar con consenti
 
 ## Asistente conversacional
 
-Desde SPEC-009, la Web incluye la página `/assistant` (ES/EN, con sesión) y la API el endpoint `POST /chat`: el usuario escribe en lenguaje natural, el modelo pide herramientas de un catálogo fijo de cinco (`search_employees`, `presence`, `timeoff`, `tasks`, `attendance_insights`) y la API las ejecuta en proceso con la sesión e idioma del usuario, devolviendo `answer` junto a `toolsUsed` y `sources`. En preguntas de una persona, `search_employees` se llama siempre primero: con varios candidatos el asistente los lista (nombre y oficina) y pregunta cuál antes de responder; con uno solo continúa con la herramienta de datos. La búsqueda de personas es insensible a mayúsculas y acentos, y el asistente no escribe datos.
+Desde SPEC-009, la Web incluye `/assistant` (ES/EN, con sesión) y la API `POST /chat`: el usuario pregunta en lenguaje natural y la API ejecuta un catálogo cerrado con la sesión e idioma del usuario. Incluye las herramientas de dominio (`search_employees`, `presence`, `timeoff`, `tasks`, `attendance_insights`, `upcoming_birthday`) y `query_hr_data`, un plan declarativo para filtros y agregados dinámicos sobre campos no sensibles del contrato HCM. El backend valida el plan y compone SQL parametrizado de solo lectura; el modelo no envía SQL ni tiene acceso directo a la base. La respuesta incluye `answer`, `toolsUsed` y `sources`. En preguntas sobre una persona concreta se desambigua antes de consultar sus detalles; los conteos por nombre incluyen todas las coincidencias. Salario, número de cuenta y año de nacimiento crudo permanecen restringidos; el asistente no escribe datos.
 
 ### Clave y modelo del proveedor
 
