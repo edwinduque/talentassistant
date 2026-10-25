@@ -361,7 +361,8 @@ app.MapPost("/admin/users", async (
         FullName = string.IsNullOrWhiteSpace(request.FullName)
             ? null
             : request.FullName.Trim(),
-        PreferredLanguage = request.PreferredLanguage,
+        PreferredLanguage = request.PreferredLanguage
+            ?? ApplicationUser.DefaultPreferredLanguage,
     };
 
     var createResult = await userManager.CreateAsync(user, request.Password);
@@ -396,7 +397,7 @@ app.MapPost("/admin/users", async (
         user.Id,
         user.UserName ?? string.Empty,
         user.FullName ?? string.Empty,
-        user.PreferredLanguage,
+        user.PreferredLanguage ?? ApplicationUser.DefaultPreferredLanguage,
         roles.Contains(InitializeLocalAuthenticationData.AdminRoleName)));
 }).WithName("AdminCreateUser").RequireAuthorization(AdminPolicy);
 
@@ -622,7 +623,8 @@ app.MapPost("/chat", async (
     }
 
     // The client holds the history; the server caps it so a client cannot
-    // inflate the provider payload (SPEC-009 §8.1, §8.5).
+    // inflate the provider payload (SPEC-009 §8.1, §8.5). The conversation id
+    // is optional and only drives provider stickiness (SPEC-022 S2/S3).
     var historyTurns = request.History ?? Array.Empty<ChatTurn>();
     var history = historyTurns
         .Where(turn => turn is not null
@@ -631,6 +633,11 @@ app.MapPost("/chat", async (
         .TakeLast(orchestratorOptions.MaxHistoryMessages)
         .Select(turn => new ChatMessage(turn.Role, turn.Content))
         .ToArray();
+    var conversationId = request.ConversationId?.Trim();
+    if (string.IsNullOrWhiteSpace(conversationId) || conversationId.Length > 64)
+    {
+        conversationId = null;
+    }
 
     try
     {
@@ -639,7 +646,7 @@ app.MapPost("/chat", async (
         var user = await userManager.GetUserAsync(principal);
         var language = user?.PreferredLanguage ?? ApplicationUser.DefaultPreferredLanguage;
         var result = await chatOrchestrator.ExecuteAsync(
-            new ChatQuery(request.Message, history, language),
+            new ChatQuery(request.Message, history, language, conversationId),
             cancellationToken);
         return Results.Ok(result);
     }
@@ -694,7 +701,10 @@ internal sealed record AdminCreateUserRequest(
     string? FullName,
     string? PreferredLanguage,
     bool IsAdmin = false);
-internal sealed record ChatRequest(string Message, IReadOnlyList<ChatTurn>? History);
+internal sealed record ChatRequest(
+    string Message,
+    IReadOnlyList<ChatTurn>? History,
+    string? ConversationId = null);
 internal sealed record ChatTurn(string Role, string Content);
 
 // Top-level-statements entry point marker: exposes the generated Program class

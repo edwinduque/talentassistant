@@ -39,6 +39,7 @@ public sealed class ChatOutOfScopeGuardrailTests : IClassFixture<OutOfScopeChatA
         await scope.ServiceProvider
             .GetRequiredService<InitializeLocalAuthenticationData>()
             .InitializeAsync();
+        _factory.LanguageModel.Reset();
     }
 
     public Task DisposeAsync() => Task.CompletedTask;
@@ -70,6 +71,28 @@ public sealed class ChatOutOfScopeGuardrailTests : IClassFixture<OutOfScopeChatA
             message => message.Role == "system");
         Assert.Contains("outside HR/HCM", system.Content);
         Assert.Contains("never provide the unrelated content", system.Content);
+    }
+
+    [Fact]
+    public async Task ChatForwardsTheConversationIdToTheProvider()
+    {
+        const string conversationId = "conversation-http-1";
+        var client = _factory.CreateClient();
+        var token = await LoginAsync(client);
+        using var request = new HttpRequestMessage(HttpMethod.Post, "/chat")
+        {
+            Content = JsonContent.Create(new
+            {
+                message = "Hola",
+                conversationId
+            })
+        };
+        request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", token);
+
+        var response = await client.SendAsync(request);
+
+        Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+        Assert.Equal(conversationId, _factory.LanguageModel.LastRequest?.ConversationId);
     }
 
     private static async Task<string> LoginAsync(HttpClient client)
@@ -132,6 +155,12 @@ public sealed class GuardrailLanguageModel : IAssistantLanguageModel
     public int CallCount { get; private set; }
 
     public AssistantRequest? LastRequest { get; private set; }
+
+    public void Reset()
+    {
+        CallCount = 0;
+        LastRequest = null;
+    }
 
     public Task<AssistantCompletion> CompleteAsync(
         AssistantRequest request,

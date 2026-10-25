@@ -162,11 +162,17 @@ public sealed class ChatHttpContractTests : IClassFixture<ChatContractApiFactory
         Assert.True(
             string.IsNullOrEmpty(configuration["AI:ApiKey"]),
             "The integration factory must keep AI:ApiKey empty so no test can reach the provider.");
-
-        var providerOptions = _factory.Services.GetRequiredService<AssistantProviderOptions>();
         Assert.True(
-            string.IsNullOrEmpty(providerOptions.ApiKey),
-            "The registered provider options must carry an empty API key.");
+            string.IsNullOrEmpty(configuration["AI:Gemini:ApiKey"]),
+            "The integration factory must keep AI:Gemini:ApiKey empty so no test can reach Gemini.");
+
+        var providers = _factory.Services.GetRequiredService<AssistantProviderConfiguration>();
+        Assert.True(
+            string.IsNullOrEmpty(providers.Groq.ApiKey),
+            "The parsed Groq provider must carry an empty API key.");
+        Assert.True(
+            string.IsNullOrEmpty(providers.Gemini.ApiKey),
+            "The parsed Gemini provider must carry an empty API key.");
     }
 
     private async Task<string> LoginAsync(HttpClient client)
