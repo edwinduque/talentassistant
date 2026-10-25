@@ -2,6 +2,7 @@ using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging.Abstractions;
+using Microsoft.Extensions.Options;
 using TalentAssistant.Infrastructure.Authentication;
 using TalentAssistant.Infrastructure.Persistence;
 
@@ -218,6 +219,49 @@ public sealed class AuthenticationPersistenceTests
         await Assert.ThrowsAsync<InvalidOperationException>(() => initializer.InitializeAsync());
     }
 
+    [Fact]
+    public async Task SeedInitializer_SwallowsAdminRoleAssignmentRace()
+    {
+        // A concurrent initializer can insert the AspNetUserRoles join row between
+        // IsInRoleAsync and AddToRoleAsync; PostgreSQL raises 23505 on
+        // PK_AspNetUserRoles. The loser must detach the failed join row and accept
+        // the role only when the second check observes it.
+        await using var provider = await BuildProviderAsync(ConnectionString());
+        using var scope = provider.CreateScope();
+        var context = scope.ServiceProvider
+            .GetRequiredService<TalentAssistantIdentityDbContext>();
+        var realUserManager = scope.ServiceProvider
+            .GetRequiredService<UserManager<ApplicationUser>>();
+        var roleManager = scope.ServiceProvider
+            .GetRequiredService<RoleManager<IdentityRole>>();
+        var store = scope.ServiceProvider.GetRequiredService<IUserStore<ApplicationUser>>();
+        var options = new AuthenticationStoreOptions(
+            5,
+            TimeSpan.FromMinutes(5),
+            $"integration-role-assignment-race-{Guid.NewGuid():N}",
+            SeedPassword: Password);
+
+        var userManager = new RoleAssignmentRaceLosingUserManager(
+            store,
+            scope.ServiceProvider.GetRequiredService<IOptions<IdentityOptions>>(),
+            scope.ServiceProvider.GetRequiredService<IPasswordHasher<ApplicationUser>>(),
+            scope.ServiceProvider.GetServices<IUserValidator<ApplicationUser>>(),
+            scope.ServiceProvider.GetServices<IPasswordValidator<ApplicationUser>>(),
+            scope.ServiceProvider.GetRequiredService<ILookupNormalizer>(),
+            scope.ServiceProvider.GetRequiredService<IdentityErrorDescriber>(),
+            scope.ServiceProvider,
+            NullLogger<UserManager<ApplicationUser>>.Instance);
+        var initializer = new InitializeLocalAuthenticationData(
+            userManager,
+            roleManager,
+            context,
+            options);
+
+        await initializer.InitializeAsync();
+
+        Assert.NotNull(await realUserManager.FindByNameAsync(options.SeedUserName));
+    }
+
     // Simulates the SPEC-016 admin-role race: the role reads as absent on the first
     // check, CreateAsync loses to a concurrent writer with a "RoleNameIndex" unique
     // violation, and the role reads as present on the recovery check.
@@ -245,6 +289,49 @@ public sealed class AuthenticationPersistenceTests
                     "An error occurred while saving the entity changes.",
                     new Exception(
                         "duplicate key value violates unique constraint \"RoleNameIndex\"")));
+        }
+    }
+
+    // Simulates the admin-role assignment race: the first membership check is
+    // false, the insert loses to a concurrent writer on PK_AspNetUserRoles, and
+    // the recovery check observes the role already assigned.
+    private sealed class RoleAssignmentRaceLosingUserManager(
+        IUserStore<ApplicationUser> store,
+        IOptions<IdentityOptions> optionsAccessor,
+        IPasswordHasher<ApplicationUser> passwordHasher,
+        IEnumerable<IUserValidator<ApplicationUser>> userValidators,
+        IEnumerable<IPasswordValidator<ApplicationUser>> passwordValidators,
+        ILookupNormalizer keyNormalizer,
+        IdentityErrorDescriber errors,
+        IServiceProvider services,
+        Microsoft.Extensions.Logging.ILogger<UserManager<ApplicationUser>> logger)
+        : UserManager<ApplicationUser>(
+            store,
+            optionsAccessor,
+            passwordHasher,
+            userValidators,
+            passwordValidators,
+            keyNormalizer,
+            errors,
+            services,
+            logger)
+    {
+        private int _isInRoleCalls;
+
+        public override Task<bool> IsInRoleAsync(ApplicationUser user, string role)
+        {
+            // First call: not assigned (so the initializer attempts the insert).
+            // Recovery call inside the race handler: assigned by the winner.
+            return Task.FromResult(Interlocked.Increment(ref _isInRoleCalls) > 1);
+        }
+
+        public override Task<IdentityResult> AddToRoleAsync(ApplicationUser user, string role)
+        {
+            return Task.FromException<IdentityResult>(
+                new DbUpdateException(
+                    "An error occurred while saving the entity changes.",
+                    new Exception(
+                        "duplicate key value violates unique constraint \"PK_AspNetUserRoles\"")));
         }
     }
 }
