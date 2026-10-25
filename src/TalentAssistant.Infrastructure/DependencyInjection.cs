@@ -2,6 +2,8 @@ using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.DependencyInjection.Extensions;
+using Microsoft.Extensions.Logging;
 using Npgsql;
 using TalentAssistant.Application.Assistant;
 using TalentAssistant.Application.Attendance;
@@ -83,34 +85,58 @@ public static class DependencyInjection
         ArgumentNullException.ThrowIfNull(services);
         ArgumentNullException.ThrowIfNull(aiConfiguration);
 
-        var baseUrl = aiConfiguration["BaseUrl"];
-        if (string.IsNullOrWhiteSpace(baseUrl))
-        {
-            baseUrl = "https://api.groq.com/openai/v1";
-        }
+        var configuration = AssistantProviderConfiguration.Load(aiConfiguration);
+        services.AddSingleton(configuration);
+        services.TryAddSingleton(TimeProvider.System);
+        services.AddSingleton(provider => new AssistantProviderHealth(
+            provider.GetRequiredService<TimeProvider>(),
+            configuration.Routing.FailureThreshold,
+            TimeSpan.FromSeconds(configuration.Routing.CooldownSeconds)));
 
-        var apiKey = aiConfiguration["ApiKey"] ?? string.Empty;
-        var model = aiConfiguration["Model"] ?? string.Empty;
-        var timeoutSeconds = aiConfiguration.GetValue<int?>("TimeoutSeconds") ?? 30;
         var maxTokens = aiConfiguration.GetValue<int?>("MaxTokens") ?? 700;
         var maxToolRounds = aiConfiguration.GetValue<int?>("MaxToolRounds") ?? 4;
         var maxHistoryMessages = aiConfiguration.GetValue<int?>("MaxHistoryMessages") ?? 20;
-
-        services.AddSingleton(new AssistantProviderOptions(apiKey, model));
         services.AddSingleton(new AssistantOrchestratorOptions(
             maxToolRounds,
             maxHistoryMessages,
             maxTokens));
-        services.AddHttpClient<IAssistantLanguageModel, OpenAiCompatibleLanguageModel>(
-            client =>
-            {
-                // The trailing slash keeps relative "chat/completions" URIs from
-                // replacing the last base path segment (e.g. "v1").
-                client.BaseAddress = new Uri(baseUrl.TrimEnd('/') + "/");
-                client.Timeout = TimeSpan.FromSeconds(timeoutSeconds);
-            });
+
+        services.AddHttpClient("assistant-groq", client =>
+            ConfigureProviderClient(client, configuration.Groq));
+        services.AddHttpClient("assistant-gemini", client =>
+            ConfigureProviderClient(client, configuration.Gemini));
+
+        services.AddScoped<IAssistantLanguageModel>(provider =>
+        {
+            var factory = provider.GetRequiredService<IHttpClientFactory>();
+            var logger = provider.GetRequiredService<ILogger<OpenAiCompatibleLanguageModel>>();
+            var slots = configuration.EnabledProviders()
+                .Select(settings => new AssistantProviderSlot(
+                    settings.Name,
+                    configuration.Routing.WeightFor(settings.Name),
+                    new OpenAiCompatibleLanguageModel(
+                        factory.CreateClient($"assistant-{settings.Name}"),
+                        settings.ToClientOptions(),
+                        logger)))
+                .ToArray();
+
+            return new RoutingLanguageModel(
+                slots,
+                provider.GetRequiredService<AssistantProviderHealth>(),
+                provider.GetRequiredService<ILogger<RoutingLanguageModel>>());
+        });
 
         return services;
+    }
+
+    private static void ConfigureProviderClient(
+        HttpClient client,
+        AssistantProviderSettings settings)
+    {
+        // The trailing slash keeps relative "chat/completions" URIs from
+        // replacing the last base path segment (e.g. "v1").
+        client.BaseAddress = new Uri(settings.BaseUrl.TrimEnd('/') + "/");
+        client.Timeout = TimeSpan.FromSeconds(settings.TimeoutSeconds);
     }
 
     public static IServiceCollection AddIdentityInfrastructure(

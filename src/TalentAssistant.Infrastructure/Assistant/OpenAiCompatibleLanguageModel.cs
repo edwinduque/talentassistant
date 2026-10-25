@@ -10,11 +10,12 @@ namespace TalentAssistant.Infrastructure.Assistant;
 
 /// <summary>
 /// OpenAI-compatible language model client over raw HttpClient (SPEC-009 S2,
-/// ADR-0011): POST {BaseUrl}/chat/completions with Bearer auth and function
-/// tools, no SDK and no new packages. Groq is the default provider by
-/// configuration; any OpenAI-compatible endpoint works by changing AI__BaseUrl.
-/// Provider failures translate into <see cref="AssistantProviderUnavailableException"/>;
-/// no exception escapes untranslated and no secret is ever logged (NFR-004).
+/// ADR-0011, SPEC-022): POST {BaseUrl}/chat/completions with Bearer auth and
+/// function tools, no SDK and no new packages. Groq and Gemini share this
+/// client; provider settings select the base URL, model, retry budget and the
+/// optional schema normalization. Provider failures translate into
+/// <see cref="AssistantProviderUnavailableException"/>; no exception escapes
+/// untranslated and no secret is ever logged (NFR-004).
 /// Un 400 de Groq con code tool_use_failed se reintenta una vez: es un fallo
 /// transitorio de la generación de la llamada de herramienta, no del prompt.
 /// </summary>
@@ -22,7 +23,6 @@ public sealed class OpenAiCompatibleLanguageModel : IAssistantLanguageModel
 {
     private const int MaximumProviderErrorBodyBytes = 8 * 1024;
     private const int MaximumProviderErrorDetailLength = 300;
-    private const int MaximumAttempts = 2;
 
     private static readonly JsonSerializerOptions SerializerOptions =
         new(JsonSerializerDefaults.Web);
@@ -60,7 +60,8 @@ public sealed class OpenAiCompatibleLanguageModel : IAssistantLanguageModel
         }
 
         var requestBody = BuildRequestBody(request);
-        for (var attempt = 1; attempt <= MaximumAttempts; attempt++)
+        var maximumAttempts = Math.Max(1, _options.MaxAttempts);
+        for (var attempt = 1; attempt <= maximumAttempts; attempt++)
         {
             using var httpRequest = new HttpRequestMessage(
                 HttpMethod.Post,
@@ -118,7 +119,8 @@ public sealed class OpenAiCompatibleLanguageModel : IAssistantLanguageModel
                 var statusCode = (int)httpResponse.StatusCode;
                 var providerError = await ReadProviderErrorAsync(httpResponse, cancellationToken);
                 _logger.LogWarning(
-                    "The assistant provider returned HTTP {StatusCode} on attempt {Attempt}: {Code} {Message}",
+                    "The assistant provider {Provider} returned HTTP {StatusCode} on attempt {Attempt}: {Code} {Message}",
+                    _options.Name,
                     statusCode,
                     attempt,
                     providerError.Code,
@@ -127,7 +129,7 @@ public sealed class OpenAiCompatibleLanguageModel : IAssistantLanguageModel
                 // Groq's tool_use_failed is a transient generation failure: the
                 // same request often succeeds on a second attempt. A 5xx is
                 // also retried once; 4xx configuration errors are not.
-                var retryable = attempt < MaximumAttempts
+                var retryable = attempt < maximumAttempts
                     && ((httpResponse.StatusCode == HttpStatusCode.BadRequest
                             && providerError.IsToolUseFailed)
                         || statusCode >= 500);
@@ -238,6 +240,12 @@ public sealed class OpenAiCompatibleLanguageModel : IAssistantLanguageModel
         var tools = new JsonArray();
         foreach (var tool in request.Tools)
         {
+            var parameters = JsonNode.Parse(tool.ParametersJson);
+            if (_options.NormalizeToolSchemas)
+            {
+                parameters = ToolSchemaNormalizer.Normalize(parameters);
+            }
+
             tools.Add(new JsonObject
             {
                 ["type"] = "function",
@@ -245,8 +253,9 @@ public sealed class OpenAiCompatibleLanguageModel : IAssistantLanguageModel
                 {
                     ["name"] = tool.Name,
                     ["description"] = tool.Description,
-                    // The hand-written JSON Schema is embedded verbatim.
-                    ["parameters"] = JsonNode.Parse(tool.ParametersJson)
+                    // The hand-written JSON Schema is embedded verbatim unless
+                    // the provider needs the normalized subset.
+                    ["parameters"] = parameters
                 }
             });
         }
@@ -259,6 +268,11 @@ public sealed class OpenAiCompatibleLanguageModel : IAssistantLanguageModel
             ["max_tokens"] = request.MaxTokens,
             ["temperature"] = 0.1
         };
+
+        if (!string.IsNullOrWhiteSpace(_options.ReasoningEffort))
+        {
+            body["reasoning_effort"] = _options.ReasoningEffort;
+        }
 
         return body.ToJsonString(SerializerOptions);
     }
