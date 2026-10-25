@@ -173,14 +173,62 @@ public sealed class InitializeLocalAuthenticationData(
             return;
         }
 
-        var result = await userManager.AddToRoleAsync(user, AdminRoleName);
-        if (!result.Succeeded)
+        try
         {
-            var descriptions = string.Join(
-                " ",
-                result.Errors.Select(error => error.Description));
-            throw new InvalidOperationException(
-                $"The seed user could not be assigned the admin role: {descriptions}");
+            var result = await userManager.AddToRoleAsync(user, AdminRoleName);
+            if (!result.Succeeded)
+            {
+                DetachFailedUserRoleEntries();
+                if (await IsAdminNowAsync(user))
+                {
+                    return;
+                }
+
+                var descriptions = string.Join(
+                    " ",
+                    result.Errors.Select(error => error.Description));
+                throw new InvalidOperationException(
+                    $"The seed user could not be assigned the admin role: {descriptions}");
+            }
+        }
+        catch (DbUpdateException)
+        {
+            // A concurrent initializer can assign the role between the check and
+            // the update; PostgreSQL then raises a duplicate key on
+            // "PK_AspNetUserRoles". Detach the failed join row (otherwise a later
+            // SaveChanges replays it), accept the assignment only when the role is
+            // now present, and otherwise preserve the original failure.
+            DetachFailedUserRoleEntries();
+            if (await IsAdminNowAsync(user))
+            {
+                return;
+            }
+
+            throw;
+        }
+    }
+
+    private async Task<bool> IsAdminNowAsync(ApplicationUser user)
+    {
+        try
+        {
+            return await userManager.IsInRoleAsync(user, AdminRoleName);
+        }
+        catch (DbException)
+        {
+            // The original DbUpdateException carries the actionable failure.
+            return false;
+        }
+    }
+
+    private void DetachFailedUserRoleEntries()
+    {
+        foreach (var entry in identityDbContext.ChangeTracker
+            .Entries<IdentityUserRole<string>>()
+            .Where(entry => entry.State == EntityState.Added)
+            .ToArray())
+        {
+            entry.State = EntityState.Detached;
         }
     }
 }
