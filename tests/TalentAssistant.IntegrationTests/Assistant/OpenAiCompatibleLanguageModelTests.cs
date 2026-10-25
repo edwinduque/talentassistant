@@ -160,6 +160,47 @@ public sealed class OpenAiCompatibleLanguageModelTests
     }
 
     [Fact]
+    public async Task Http400ToolUseFailedIsRetriedOnceAndSucceeds()
+    {
+        var calls = 0;
+        var handler = new StubHttpMessageHandler(_ =>
+        {
+            calls++;
+            return calls == 1
+                ? new HttpResponseMessage(HttpStatusCode.BadRequest)
+                {
+                    Content = new StringContent(
+                        """{"error":{"code":"tool_use_failed","message":"Failed to call a function."}}""")
+                }
+                : Json(CannedContentResponse);
+        });
+        var client = CreateClient(handler);
+
+        var completion = await client.CompleteAsync(SimpleRequest());
+
+        Assert.Equal("Synthetic answer.", completion.Content);
+        Assert.Equal(2, handler.CallCount);
+    }
+
+    [Fact]
+    public async Task Http400InvalidRequestIsNotRetried()
+    {
+        var handler = new StubHttpMessageHandler(_ => new HttpResponseMessage(
+            HttpStatusCode.BadRequest)
+        {
+            Content = new StringContent(
+                """{"error":{"code":"invalid_request_error","message":"Invalid request."}}""")
+        });
+        var client = CreateClient(handler);
+
+        var exception = await Assert.ThrowsAsync<AssistantProviderUnavailableException>(
+            () => client.CompleteAsync(SimpleRequest()));
+
+        Assert.Equal(AssistantProviderFailureReason.InvalidResponse, exception.Reason);
+        Assert.Equal(1, handler.CallCount);
+    }
+
+    [Fact]
     public async Task DelayedRequestMapsToTimeout()
     {
         var handler = new StubHttpMessageHandler(
@@ -237,7 +278,8 @@ public sealed class OpenAiCompatibleLanguageModelTests
         };
         return new OpenAiCompatibleLanguageModel(
             httpClient,
-            new AssistantProviderOptions(apiKey, "test-model"));
+            new AssistantProviderOptions(apiKey, "test-model"),
+            Microsoft.Extensions.Logging.Abstractions.NullLogger<OpenAiCompatibleLanguageModel>.Instance);
     }
 
     private static HttpResponseMessage Json(string json) => new(HttpStatusCode.OK)

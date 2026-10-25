@@ -83,7 +83,12 @@ public static class DependencyInjection
         ArgumentNullException.ThrowIfNull(services);
         ArgumentNullException.ThrowIfNull(aiConfiguration);
 
-        var baseUrl = aiConfiguration["BaseUrl"] ?? "https://api.groq.com/openai/v1";
+        var baseUrl = aiConfiguration["BaseUrl"];
+        if (string.IsNullOrWhiteSpace(baseUrl))
+        {
+            baseUrl = "https://api.groq.com/openai/v1";
+        }
+
         var apiKey = aiConfiguration["ApiKey"] ?? string.Empty;
         var model = aiConfiguration["Model"] ?? string.Empty;
         var timeoutSeconds = aiConfiguration.GetValue<int?>("TimeoutSeconds") ?? 30;
