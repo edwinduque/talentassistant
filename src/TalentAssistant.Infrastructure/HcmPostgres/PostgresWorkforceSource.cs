@@ -33,18 +33,29 @@ public sealed class PostgresWorkforceSource(
     private const string ReadOnlyTransactionSql = "SET TRANSACTION READ ONLY";
 
     private const string SearchEmployeesSql = """
-        SELECT employee_id, display_name, office_ids, job_title, last_name, hire_date
+        SELECT employee_id, display_name, office_ids, job_title, last_name, hire_date,
+               age_on_next_birthday
         FROM hcm_contract.talentassistant_employees
         WHERE @office_id IS NULL OR office_ids && ARRAY[@office_id]
         ORDER BY employee_id
         """;
 
+    // The first lateral anchors the next birthday to @as_of_date (the query's
+    // date); the second re-reads the same occurrence from CURRENT_DATE to
+    // recover the birth year from the view's approved derived age:
+    // birth_year = year(next_current) - age_on_next_birthday, so the reported
+    // age = year(next_asof) - birth_year pairs exactly with next_birthday_on
+    // for any query date, without ever exposing the raw birth year
+    // (SPEC-008 §3, approved 2026-10-24).
     private const string UpcomingBirthdaysSql = """
         WITH candidates AS (
             SELECT
                 employees.employee_id,
                 employees.display_name,
-                next_birthday.next_birthday_on
+                next_birthday.next_birthday_on,
+                (EXTRACT(YEAR FROM next_birthday.next_birthday_on)
+                    - EXTRACT(YEAR FROM current_birthday.next_birthday_on)
+                    + employees.age_on_next_birthday)::integer AS age_on_next_birthday
             FROM hcm_contract.talentassistant_employees AS employees
             CROSS JOIN LATERAL (
                 SELECT dates.next_birthday_on
@@ -71,15 +82,41 @@ public sealed class PostgresWorkforceSource(
                 ORDER BY dates.next_birthday_on
                 LIMIT 1
             ) AS next_birthday
+            CROSS JOIN LATERAL (
+                SELECT dates.next_birthday_on
+                FROM (
+                    SELECT CASE
+                        WHEN employees.birthday_month = 2
+                         AND employees.birthday_day = 29
+                         AND NOT (
+                             years.candidate_year % 400 = 0
+                             OR (years.candidate_year % 4 = 0
+                                 AND years.candidate_year % 100 <> 0))
+                        THEN NULL::date
+                        ELSE make_date(
+                            years.candidate_year,
+                            employees.birthday_month,
+                            employees.birthday_day)
+                    END AS next_birthday_on
+                    FROM generate_series(
+                        EXTRACT(YEAR FROM CURRENT_DATE)::integer,
+                        EXTRACT(YEAR FROM CURRENT_DATE)::integer + 8)
+                        AS years(candidate_year)
+                ) AS dates
+                WHERE dates.next_birthday_on >= CURRENT_DATE
+                ORDER BY dates.next_birthday_on
+                LIMIT 1
+            ) AS current_birthday
         ), ranked AS (
             SELECT
                 employee_id,
                 display_name,
                 next_birthday_on,
+                age_on_next_birthday,
                 MIN(next_birthday_on) OVER () AS earliest_birthday
             FROM candidates
         )
-        SELECT employee_id, display_name, next_birthday_on
+        SELECT employee_id, display_name, next_birthday_on, age_on_next_birthday
         FROM ranked
         WHERE next_birthday_on = earliest_birthday
         ORDER BY employee_id
@@ -142,7 +179,8 @@ public sealed class PostgresWorkforceSource(
                         reader.GetFieldValue<string[]>(2),
                         reader.IsDBNull(3) ? null : reader.GetString(3),
                         reader.IsDBNull(4) ? null : reader.GetString(4),
-                        reader.IsDBNull(5) ? null : reader.GetFieldValue<DateOnly>(5));
+                        reader.IsDBNull(5) ? null : reader.GetFieldValue<DateOnly>(5),
+                        reader.IsDBNull(6) ? null : reader.GetFieldValue<int>(6));
 
                     // Name and surname-fragment filters run in C# with the shared
                     // matcher; the office filter above runs in SQL.
@@ -195,7 +233,8 @@ public sealed class PostgresWorkforceSource(
                     birthdays.Add(new HcmUpcomingBirthday(
                         reader.GetString(0),
                         reader.GetString(1),
-                        reader.GetFieldValue<DateOnly>(2)));
+                        reader.GetFieldValue<DateOnly>(2),
+                        reader.IsDBNull(3) ? null : reader.GetFieldValue<int>(3)));
                 }
             }
 

@@ -75,11 +75,25 @@ public sealed class ChatOrchestratorTests
             .ToArray();
 
         Assert.Equal(
-            ["DisplayName", "HireDate", "Id", "JobTitle", "LastName", "OfficeIds"],
+            ["AgeOnNextBirthday", "DisplayName", "HireDate", "Id", "JobTitle", "LastName", "OfficeIds"],
             fields);
         Assert.Equal("Técnico de nómina", employee.GetProperty("JobTitle").GetString());
         Assert.Equal("Cardenas", employee.GetProperty("LastName").GetString());
         Assert.Equal("2018-09-17", employee.GetProperty("HireDate").GetString());
+
+        // Derived age approved 2026-10-24: the age Mauricio turns at his next
+        // birthday (Nov 30; born 1988). The raw birth year must never appear.
+        var today = DateOnly.FromDateTime(DateTime.Today);
+        var nextNovember30 = new DateOnly(today.Year, 11, 30);
+        if (nextNovember30 < today)
+        {
+            nextNovember30 = nextNovember30.AddYears(1);
+        }
+
+        Assert.Equal(
+            nextNovember30.Year - 1988,
+            employee.GetProperty("AgeOnNextBirthday").GetInt32());
+        Assert.DoesNotContain("BirthYear", toolMessage.Content, StringComparison.OrdinalIgnoreCase);
         Assert.DoesNotContain("salary", toolMessage.Content, StringComparison.OrdinalIgnoreCase);
         Assert.DoesNotContain("bankAccount", toolMessage.Content, StringComparison.OrdinalIgnoreCase);
         Assert.DoesNotContain("iban", toolMessage.Content, StringComparison.OrdinalIgnoreCase);
@@ -151,15 +165,15 @@ public sealed class ChatOrchestratorTests
         var today = DateOnly.FromDateTime(DateTime.Today);
         var expected = new[]
             {
-                (DisplayName: "Juan Pérez", Month: 4, Day: 12),
-                (DisplayName: "Pedro Rojas", Month: 7, Day: 23),
-                (DisplayName: "Mauricio Cardenas", Month: 11, Day: 30),
-                (DisplayName: "Juan Herrera", Month: 2, Day: 18),
-                (DisplayName: "Empleado sintético 001", Month: 0, Day: 0),
-                (DisplayName: "Empleado sintético 005", Month: 5, Day: 9),
-                (DisplayName: "Empleado sintético 004", Month: 9, Day: 27),
-                (DisplayName: "Empleado sintético 002", Month: 12, Day: 2),
-                (DisplayName: "Empleado sintético 003", Month: 3, Day: 14)
+                (DisplayName: "Juan Pérez", Month: 4, Day: 12, Year: 1985),
+                (DisplayName: "Pedro Rojas", Month: 7, Day: 23, Year: 1990),
+                (DisplayName: "Mauricio Cardenas", Month: 11, Day: 30, Year: 1988),
+                (DisplayName: "Juan Herrera", Month: 2, Day: 18, Year: 1992),
+                (DisplayName: "Empleado sintético 001", Month: 0, Day: 0, Year: 0),
+                (DisplayName: "Empleado sintético 005", Month: 5, Day: 9, Year: 1995),
+                (DisplayName: "Empleado sintético 004", Month: 9, Day: 27, Year: 1996),
+                (DisplayName: "Empleado sintético 002", Month: 12, Day: 2, Year: 1997),
+                (DisplayName: "Empleado sintético 003", Month: 3, Day: 14, Year: 1998)
             }
             .Where(birthday => birthday.Month > 0)
             .Select(birthday =>
@@ -170,16 +184,22 @@ public sealed class ChatOrchestratorTests
                     nextBirthday = nextBirthday.AddYears(1);
                 }
 
-                return (birthday.DisplayName, NextBirthdayOn: nextBirthday);
+                return (birthday.DisplayName, NextBirthdayOn: nextBirthday, birthday.Year);
             })
             .OrderBy(birthday => birthday.NextBirthdayOn)
             .First();
 
-        Assert.Equal(["DisplayName", "EmployeeId", "NextBirthdayOn"], fields);
+        Assert.Equal(["AgeOnNextBirthday", "DisplayName", "EmployeeId", "NextBirthdayOn"], fields);
         Assert.Equal(expected.DisplayName, employee.GetProperty("DisplayName").GetString());
         Assert.Equal(
             expected.NextBirthdayOn.ToString("yyyy-MM-dd"),
             employee.GetProperty("NextBirthdayOn").GetString());
+
+        // Derived age approved 2026-10-24: age turned AT NextBirthdayOn
+        // (year(next) - birth year of the winning fixture).
+        Assert.Equal(
+            expected.NextBirthdayOn.Year - expected.Year,
+            employee.GetProperty("AgeOnNextBirthday").GetInt32());
         Assert.DoesNotContain("BirthdayDate", toolMessage.Content, StringComparison.OrdinalIgnoreCase);
         Assert.DoesNotContain("salary", toolMessage.Content, StringComparison.OrdinalIgnoreCase);
         Assert.DoesNotContain("bankAccount", toolMessage.Content, StringComparison.OrdinalIgnoreCase);
@@ -356,6 +376,36 @@ public sealed class ChatOrchestratorTests
         Assert.Contains("bank account", system.Content, StringComparison.OrdinalIgnoreCase);
         Assert.Contains("hire-date questions", system.Content);
         Assert.Contains("surname_contains", system.Content);
+    }
+
+    [Fact]
+    public async Task SystemPromptTeachesFollowUpsAggregationAndDerivedAge()
+    {
+        // Clarification 2026-10-24 (S6): fluid queries without a fixed recipe
+        // per question - resolve references from the conversation history and
+        // derive aggregates ONLY over records the tools returned; report the
+        // approved derived age instead of computing birth data.
+        var model = new ScriptedLanguageModel();
+        model.Enqueue(new AssistantCompletion("ok", []));
+        var orchestrator = CreateOrchestrator(model);
+
+        var result = await orchestrator.ExecuteAsync(
+            new ChatQuery("Hola", History: [], Language: "es"));
+
+        Assert.True(result.Completed);
+        var system = model.Requests[0].Messages[0];
+        Assert.Equal("system", system.Role);
+        Assert.Contains("conversation history", system.Content);
+        Assert.Contains("not limited to a fixed list", system.Content);
+        Assert.Contains("aggregates", system.Content);
+        Assert.Contains("AgeOnNextBirthday", system.Content);
+
+        // Live-observed regression 2026-10-24 (Q4): after a search_employees
+        // round the model answered "unavailable" without calling timeoff, so
+        // the prompt must require the follow-up tool before an unavailable
+        // answer.
+        Assert.Contains("call the next tool", system.Content);
+        Assert.Contains("must call timeoff too", system.Content);
     }
 
     [Fact]

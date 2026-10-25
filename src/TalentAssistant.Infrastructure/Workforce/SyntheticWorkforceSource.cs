@@ -29,7 +29,8 @@ public sealed class SyntheticWorkforceSource : IHcmWorkforceSource
         string? LastName,
         DateOnly? HireDate,
         int? BirthdayMonth,
-        int? BirthdayDay);
+        int? BirthdayDay,
+        int? BirthYear);
 
     // Proper nouns are data and stay identical across languages (SPEC-007 §6).
     // Juan Herrera exists only to share the first name "Juan" with Juan Pérez
@@ -45,27 +46,30 @@ public sealed class SyntheticWorkforceSource : IHcmWorkforceSource
 
     // Explicit synthetic HCM fields approved for assistant employee search and
     // the upcoming-birthday query. No other employee columns are projected.
+    // BirthYear mirrors db/hcm-real/seed.sql and only feeds the derived
+    // AgeOnNextBirthday (SPEC-008 §3, approved 2026-10-24): it never reaches a
+    // payload or an assistant-facing contract.
     private static readonly IReadOnlyDictionary<string, EmployeeProfile> EmployeeProfiles =
         new Dictionary<string, EmployeeProfile>(StringComparer.Ordinal)
         {
             ["employee-demo-juan"] = new(
-                "Responsable de equipo", "Pérez", new DateOnly(2019, 2, 11), 4, 12),
+                "Responsable de equipo", "Pérez", new DateOnly(2019, 2, 11), 4, 12, 1985),
             ["employee-demo-pedro"] = new(
-                "Especialista de soporte", "Rojas", new DateOnly(2020, 6, 1), 7, 23),
+                "Especialista de soporte", "Rojas", new DateOnly(2020, 6, 1), 7, 23, 1990),
             ["employee-demo-mauricio"] = new(
-                "Técnico de nómina", "Cardenas", new DateOnly(2018, 9, 17), 11, 30),
+                "Técnico de nómina", "Cardenas", new DateOnly(2018, 9, 17), 11, 30, 1988),
             ["employee-demo-herrera"] = new(
-                "Analista de jornada", "Herrera", new DateOnly(2021, 3, 22), 2, 18),
+                "Analista de jornada", "Herrera", new DateOnly(2021, 3, 22), 2, 18, 1992),
             ["employee-demo-madrid"] = new(
-                "Operario de planta", "sintético 001", new DateOnly(2022, 1, 10), null, null),
+                "Operario de planta", "sintético 001", new DateOnly(2022, 1, 10), null, null, null),
             ["employee-demo-tokyo-002"] = new(
-                "Operario de planta", "sintético 005", new DateOnly(2022, 5, 16), 5, 9),
+                "Operario de planta", "sintético 005", new DateOnly(2022, 5, 16), 5, 9, 1995),
             ["employee-demo-madrid-004"] = new(
-                null, "sintético 004", new DateOnly(2023, 4, 3), 9, 27),
+                null, "sintético 004", new DateOnly(2023, 4, 3), 9, 27, 1996),
             ["employee-demo-tokyo"] = new(
-                "Mozo de almacén", "sintético 002", new DateOnly(2023, 8, 21), 12, 2),
+                "Mozo de almacén", "sintético 002", new DateOnly(2023, 8, 21), 12, 2, 1997),
             ["employee-demo-madrid-002"] = new(
-                null, "sintético 003", new DateOnly(2024, 11, 5), 3, 14)
+                null, "sintético 003", new DateOnly(2024, 11, 5), 3, 14, 1998)
         };
 
     // Presentation texts for the workforce capabilities (SPEC-008 §6).
@@ -207,7 +211,17 @@ public sealed class SyntheticWorkforceSource : IHcmWorkforceSource
                     string.Equals(id, query.OfficeId, StringComparison.OrdinalIgnoreCase)));
         }
 
-        return Task.FromResult<IReadOnlyList<HcmEmployeeDirectoryEntry>>(employees.ToArray());
+        // Derived age (SPEC-008 §3, approved 2026-10-24): computed per call from
+        // this source's own today, mirroring how presence anchors to the local
+        // date; null when the fixture has no birthday.
+        var today = DateOnly.FromDateTime(DateTime.Today);
+        return Task.FromResult<IReadOnlyList<HcmEmployeeDirectoryEntry>>(
+            employees
+                .Select(employee => employee with
+                {
+                    AgeOnNextBirthday = ComputeAgeOnNextBirthday(employee.Id, today)
+                })
+                .ToArray());
     }
 
     public Task<IReadOnlyList<HcmUpcomingBirthday>> GetUpcomingBirthdaysAsync(
@@ -224,13 +238,18 @@ public sealed class SyntheticWorkforceSource : IHcmWorkforceSource
             .Select(employee =>
             {
                 var profile = EmployeeProfiles[employee.Id];
+                var next = NextBirthday(
+                    query.AsOfDate,
+                    profile.BirthdayMonth!.Value,
+                    profile.BirthdayDay!.Value);
+
+                // Derived age (SPEC-008 §3): turned AT the returned date and
+                // anchored to the query date, not to the wall clock.
                 return new HcmUpcomingBirthday(
                     employee.Id,
                     employee.DisplayName,
-                    NextBirthday(
-                        query.AsOfDate,
-                        profile.BirthdayMonth!.Value,
-                        profile.BirthdayDay!.Value));
+                    next,
+                    profile.BirthYear is { } birthYear ? next.Year - birthYear : null);
             })
             .OrderBy(employee => employee.NextBirthdayOn)
             .ToArray();
@@ -335,6 +354,24 @@ public sealed class SyntheticWorkforceSource : IHcmWorkforceSource
         }
 
         throw new InvalidOperationException("No upcoming birthday could be found.");
+    }
+
+    /// <summary>
+    /// Derived age approved 2026-10-24 (SPEC-008 §3): the age the employee
+    /// turns at their next birthday from <paramref name="asOfDate"/>; null when
+    /// the fixture has no birthday. The birth year never leaves this method.
+    /// </summary>
+    private static int? ComputeAgeOnNextBirthday(string employeeId, DateOnly asOfDate)
+    {
+        if (!EmployeeProfiles.TryGetValue(employeeId, out var profile)
+            || profile.BirthdayMonth is not { } month
+            || profile.BirthdayDay is not { } day
+            || profile.BirthYear is not { } birthYear)
+        {
+            return null;
+        }
+
+        return NextBirthday(asOfDate, month, day).Year - birthYear;
     }
 
     private static IReadOnlyDictionary<string, HcmEmployeeReference> BuildReferences(string language)

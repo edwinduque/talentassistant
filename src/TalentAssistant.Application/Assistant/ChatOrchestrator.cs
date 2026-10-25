@@ -51,7 +51,7 @@ public sealed class ChatOrchestrator(
         [
             new(
                 "search_employees",
-                "Search by display name, surname fragment, and/or office id; results include approved surname, hire date, and job title fields.",
+                "Search by display name, surname fragment, and/or office id (the office is an exact id like office-demo-tokyo; if the id is unknown, call without filters and match OfficeIds); results include approved surname, hire date, job title and derived AgeOnNextBirthday fields.",
                 """{"type":"object","properties":{"name":{"type":["string","null"]},"office":{"type":["string","null"]},"surname_contains":{"type":["string","null"],"description":"Substring in the employee's surname"}},"required":[]}"""),
             new(
                 "presence",
@@ -71,7 +71,7 @@ public sealed class ChatOrchestrator(
                 """{"type":"object","properties":{"from":{"type":["string","null"],"description":"Inclusive start date as yyyy-MM-dd"},"to":{"type":["string","null"],"description":"Exclusive end date as yyyy-MM-dd"}},"required":["from","to"]}"""),
             new(
                 "upcoming_birthday",
-                "Get employees with the next upcoming birthday and date from the HCM source; ties are included and birth year is omitted.",
+                "Get employees with the next upcoming birthday and date from the HCM source, plus AgeOnNextBirthday (the age the employee turns on that date); ties are included and birth year is omitted.",
                 """{"type":"object","properties":{},"required":[]}""")
         ]);
 
@@ -191,9 +191,31 @@ public sealed class ChatOrchestrator(
             + " which one you mean before answering; never pick one silently.",
             "For hire-date questions, use the employee's name with search_employees and report the returned HireDate;"
             + " for surname-fragment questions, use search_employees with surname_contains and report all matches.",
-            "For leave or return-date questions use timeoff; use presence only for who is present, absent"
-            + " or on leave right now.",
-            "For the next upcoming birthday, call upcoming_birthday; use the source-provided result and do not calculate it from employee birth data.");
+            "Use presence for who is present, absent or on leave right now (for example which employees"
+            + " are on vacation today): the presence state answers those who-questions. Use timeoff for one"
+            + " person's leave details - duration, dates and return date - and a vacation-days question must"
+            + " call timeoff too, because the day count lives in its Duration field; resolve the employee"
+            + " through search_employees first and pass its id. If that lookup returns several employees,"
+            + " ask which one you mean before answering instead of picking one.",
+            "For the next upcoming birthday, call upcoming_birthday; use the source-provided result and do not calculate it from employee birth data.",
+            "Use the conversation history to resolve follow-ups: when a message refers back to an earlier turn"
+            + " (for example 'esa persona', 'the person you mentioned' or an unnamed employee), take the referenced"
+            + " name or value from the history and call the tools with those concrete values; ask which one only"
+            + " when the history itself is ambiguous.",
+            "You are not limited to a fixed list of question shapes: identify which data the question needs, call"
+            + " the tools that provide it (several calls in sequence when needed), and answer only from what they"
+            + " return.",
+            "You may derive simple aggregates over the records the tools return - counting, grouping, sorting,"
+            + " ranking (earliest, latest, most, least) and min/max values - provided every input comes from those"
+            + " records; do not invent values outside the tool data.",
+            "When a filter returns no rows, broaden the query instead of concluding the data does not exist:"
+            + " call search_employees without the office filter and match OfficeIds against the requested office.",
+            "When a tool result does not yet contain the answer, call the next tool that provides it (for"
+            + " example timeoff or tasks with the employee id from search_employees) instead of replying that"
+            + " the information is unavailable; only when every relevant tool has been tried may you say the"
+            + " information is not available.",
+            "When a question asks about age, report AgeOnNextBirthday exactly as the tool returned it (the age the"
+            + " person turns at their next birthday); if it is null, say the information is not available.");
     }
 
     private async Task<string> ExecuteToolAsync(

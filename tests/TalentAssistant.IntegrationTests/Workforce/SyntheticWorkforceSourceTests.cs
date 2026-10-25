@@ -111,12 +111,61 @@ public sealed class SyntheticWorkforceSourceTests
         Assert.Equal("employee-demo-mauricio", next.EmployeeId);
         Assert.Equal("Mauricio Cardenas", next.DisplayName);
         Assert.Equal(new DateOnly(2026, 11, 30), next.NextBirthdayOn);
+        Assert.Equal(38, next.AgeOnNextBirthday); // 2026-11-30 minus birth year 1988.
 
         var birthdayToday = await Source.GetUpcomingBirthdaysAsync(
             new UpcomingBirthdayQuery(new DateOnly(2026, 11, 30)));
         var today = Assert.Single(birthdayToday);
         Assert.Equal("employee-demo-mauricio", today.EmployeeId);
         Assert.Equal(new DateOnly(2026, 11, 30), today.NextBirthdayOn);
+        Assert.Equal(38, today.AgeOnNextBirthday);
+    }
+
+    [Theory]
+    [InlineData(2026, 9, 1, 2026, 9, 27, "employee-demo-madrid-004", 30)]
+    [InlineData(2027, 12, 1, 2027, 12, 2, "employee-demo-tokyo", 30)]
+    public async Task UpcomingBirthdayAgeAnchorsToTheQueryDateNotTheWallClock(
+        int year,
+        int month,
+        int day,
+        int nextYear,
+        int nextMonth,
+        int nextDay,
+        string expectedId,
+        int expectedAge)
+    {
+        // Fixed query dates pin both the winner and the derived age no matter
+        // when the test runs: 004 (born 1996) turns 30 on 2026-09-27 and 002
+        // (born 1997) turns 30 on 2027-12-02. An age computed from the wall
+        // clock instead of the query date fails both rows (L4/L6).
+        var birthdays = await Source.GetUpcomingBirthdaysAsync(
+            new UpcomingBirthdayQuery(new DateOnly(year, month, day)));
+
+        var next = Assert.Single(birthdays);
+        Assert.Equal(expectedId, next.EmployeeId);
+        Assert.Equal(new DateOnly(nextYear, nextMonth, nextDay), next.NextBirthdayOn);
+        Assert.Equal(expectedAge, next.AgeOnNextBirthday);
+    }
+
+    [Fact]
+    public async Task DirectoryReportsTheDerivedAgeAndNullWithoutABirthday()
+    {
+        var today = DateOnly.FromDateTime(DateTime.Today);
+        var nextNovember30 = new DateOnly(today.Year, 11, 30);
+        if (nextNovember30 < today)
+        {
+            nextNovember30 = nextNovember30.AddYears(1);
+        }
+
+        var mauricio = Assert.Single(await Source.SearchEmployeesAsync(
+            new EmployeeSearchQuery(Name: "Mauricio")));
+        Assert.Equal(nextNovember30.Year - 1988, mauricio.AgeOnNextBirthday);
+
+        // Employee 001 has no birthday in the source: the derived age is null,
+        // never an inferred value.
+        var withoutBirthday = Assert.Single(await Source.SearchEmployeesAsync(
+            new EmployeeSearchQuery(Name: "Empleado sintético 001")));
+        Assert.Null(withoutBirthday.AgeOnNextBirthday);
     }
 
     [Fact]

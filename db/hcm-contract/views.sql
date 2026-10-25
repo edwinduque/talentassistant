@@ -35,9 +35,11 @@
 CREATE SCHEMA IF NOT EXISTS hcm_contract;
 
 -- 1) Directorio (solo fixtures; display name = name + last_name). Job title,
---    surname, hire date and birthday month/day are explicit approved
---    projections; birth year and every other employee column remain outside
---    the contract.
+--    surname, hire date, birthday month/day and the DERIVED age_on_next_birthday
+--    (age turned at the next birthday from CURRENT_DATE; approved 2026-10-24)
+--    are explicit approved projections; birth year and every other employee
+--    column remain outside the contract. Sobre un volumen existente hay que
+--    re-aplicar este fichero (ver docs/development/local-setup.md).
 CREATE OR REPLACE VIEW hcm_contract.talentassistant_employees AS
 SELECT
     aliases.employee_id,
@@ -47,7 +49,8 @@ SELECT
     aliases.birthday_month,
     aliases.birthday_day,
     aliases.last_name,
-    aliases.hire_date
+    aliases.hire_date,
+    aliases.age_on_next_birthday
 FROM (
     SELECT
         CASE
@@ -67,8 +70,39 @@ FROM (
         EXTRACT(MONTH FROM e.birthday_date)::integer AS birthday_month,
         EXTRACT(DAY FROM e.birthday_date)::integer AS birthday_day,
         e.last_name AS last_name,
-        e.hire_date::date AS hire_date
+        e.hire_date::date AS hire_date,
+        -- Derived age (SPEC-008 §3, approved 2026-10-24): age turned at the
+        -- next birthday occurrence from CURRENT_DATE, with the same Feb-29
+        -- rule as the adapter laterals (Feb 29 only on Feb 29); NULL when the
+        -- source has no birthday. The birth year never leaves this expression.
+        (EXTRACT(YEAR FROM next_birthday.next_birthday_on)
+            - EXTRACT(YEAR FROM e.birthday_date))::integer AS age_on_next_birthday
     FROM public.employee AS e
+    LEFT JOIN LATERAL (
+        SELECT dates.next_birthday_on
+        FROM (
+            SELECT CASE
+                WHEN EXTRACT(MONTH FROM e.birthday_date) = 2
+                 AND EXTRACT(DAY FROM e.birthday_date) = 29
+                 AND NOT (
+                     years.candidate_year % 400 = 0
+                     OR (years.candidate_year % 4 = 0
+                         AND years.candidate_year % 100 <> 0))
+                THEN NULL::date
+                ELSE make_date(
+                    years.candidate_year,
+                    EXTRACT(MONTH FROM e.birthday_date)::integer,
+                    EXTRACT(DAY FROM e.birthday_date)::integer)
+            END AS next_birthday_on
+            FROM generate_series(
+                EXTRACT(YEAR FROM CURRENT_DATE)::integer,
+                EXTRACT(YEAR FROM CURRENT_DATE)::integer + 8)
+                AS years(candidate_year)
+        ) AS dates
+        WHERE dates.next_birthday_on >= CURRENT_DATE
+        ORDER BY dates.next_birthday_on
+        LIMIT 1
+    ) AS next_birthday ON true
     WHERE e.department LIKE 'office-demo-%'
       AND e.deleted_on IS NULL
       AND e.status_id <> 3

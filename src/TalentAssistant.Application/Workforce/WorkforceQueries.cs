@@ -50,23 +50,32 @@ public sealed record HcmTask(
     DateOnly? DueOn,
     string? Summary);
 
-/// <summary>Directory entry with only employee fields approved for assistant search.</summary>
+/// <summary>
+/// Directory entry with only employee fields approved for assistant search.
+/// <c>AgeOnNextBirthday</c> is the approved derived age (SPEC-008 §3): the age
+/// the employee turns at their next birthday, computed by the source; null when
+/// the source has no birthday. The raw birth year is never a field here.
+/// </summary>
 public sealed record HcmEmployeeDirectoryEntry(
     string Id,
     string DisplayName,
     IReadOnlyList<string> OfficeIds,
     string? JobTitle = null,
     string? LastName = null,
-    DateOnly? HireDate = null);
+    DateOnly? HireDate = null,
+    int? AgeOnNextBirthday = null);
 
 /// <summary>
-/// The next birthday occurrence supplied by the HCM source. The birth year is
-/// intentionally never part of this assistant-facing result.
+/// The next birthday occurrence supplied by the HCM source. The raw birth year
+/// is intentionally never part of this assistant-facing result; the derived
+/// age the employee turns at that birthday is the approved projection
+/// (SPEC-008 §3, amendment 2026-10-24).
 /// </summary>
 public sealed record HcmUpcomingBirthday(
     string EmployeeId,
     string DisplayName,
-    DateOnly NextBirthdayOn);
+    DateOnly NextBirthdayOn,
+    int? AgeOnNextBirthday = null);
 
 /// <summary>
 /// Presence state supplied by the source (values such as working,

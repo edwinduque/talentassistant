@@ -12,6 +12,9 @@ namespace TalentAssistant.IntegrationTests.HcmPostgres;
 /// task):
 /// * "today": each source anchors presence to its own clock (synthetic fixtures
 ///   to the host's local date, the seed to the database's CURRENT_DATE/UTC day).
+/// * "age": the derived AgeOnNextBirthday follows the same per-source anchor
+///   (synthetic: the host's local date; the contract view: CURRENT_DATE), while
+///   upcoming-birthday ages must match exactly for an explicit query date.
 /// Office ids match exactly: the seed was corrected to the fixtures'
 /// 'office-demo-*' convention during the T2 reconciliation.
 /// </summary>
@@ -22,6 +25,9 @@ public sealed class PostgresWorkforceSourceParityTests : PostgresSourceTestBase
     [Fact]
     public async Task DirectoryParityOverIdsNamesAndOffices()
     {
+        var syntheticToday = DateOnly.FromDateTime(DateTime.Today);
+        var databaseToday = await ReadDatabaseCurrentDateAsync();
+
         var synthetic = await Synthetic.SearchEmployeesAsync(new EmployeeSearchQuery());
         var postgres = await Workforce.SearchEmployeesAsync(new EmployeeSearchQuery());
 
@@ -42,6 +48,48 @@ public sealed class PostgresWorkforceSourceParityTests : PostgresSourceTestBase
             Assert.Equal(expected.LastName, entry.LastName);
             Assert.Equal(expected.HireDate, entry.HireDate);
         }
+
+        // Derived age (approved 2026-10-24) per source anchor, like presence
+        // "today": Mauricio (born 1988) and employee 001 without a birthday.
+        Assert.Equal(
+            NextBirthdayOn(syntheticToday, 11, 30).Year - 1988,
+            synthetic.Single(employee => employee.Id == "employee-demo-mauricio")
+                .AgeOnNextBirthday);
+        Assert.Equal(
+            NextBirthdayOn(databaseToday, 11, 30).Year - 1988,
+            postgres.Single(employee => employee.Id == "employee-demo-mauricio")
+                .AgeOnNextBirthday);
+        Assert.Null(
+            synthetic.Single(employee => employee.Id == "employee-demo-madrid")
+                .AgeOnNextBirthday);
+        Assert.Null(
+            postgres.Single(employee => employee.Id == "employee-demo-madrid")
+                .AgeOnNextBirthday);
+    }
+
+    [Theory]
+    [InlineData(2026, 9, 1, "employee-demo-madrid-004", 30)]
+    [InlineData(2027, 12, 1, "employee-demo-tokyo", 30)]
+    public async Task UpcomingBirthdayAgeIsIdenticalAcrossSourcesForAFixedQueryDate(
+        int year,
+        int month,
+        int day,
+        string expectedId,
+        int expectedAge)
+    {
+        // Killer dates for a CURRENT_DATE-anchored age (L4/L6): 004 (born
+        // 1996) turns 30 on 2026-09-27 seen from a past query date, 002 (born
+        // 1997) turns 30 on 2027-12-02 seen from a future one. Both sources
+        // must report the SAME age for the same explicit query date.
+        var query = new UpcomingBirthdayQuery(new DateOnly(year, month, day));
+
+        var synthetic = await Synthetic.GetUpcomingBirthdaysAsync(query);
+        var postgres = await Workforce.GetUpcomingBirthdaysAsync(query);
+
+        Assert.Equal(synthetic, postgres);
+        var next = Assert.Single(postgres);
+        Assert.Equal(expectedId, next.EmployeeId);
+        Assert.Equal(expectedAge, next.AgeOnNextBirthday);
     }
 
     [Fact]
@@ -74,6 +122,7 @@ public sealed class PostgresWorkforceSourceParityTests : PostgresSourceTestBase
         Assert.Equal("employee-demo-mauricio", next.EmployeeId);
         Assert.Equal("Mauricio Cardenas", next.DisplayName);
         Assert.Equal(new DateOnly(2026, 11, 30), next.NextBirthdayOn);
+        Assert.Equal(38, next.AgeOnNextBirthday); // 2026-11-30 minus birth year 1988.
     }
 
     [Theory]
@@ -257,6 +306,27 @@ public sealed class PostgresWorkforceSourceParityTests : PostgresSourceTestBase
 
     private static IReadOnlyList<HcmTask> ByReference(IReadOnlyList<HcmTask> tasks) =>
         tasks.OrderBy(task => task.Reference, StringComparer.Ordinal).ToArray();
+
+    // Mirror of the sources' next-occurrence rule (Feb 29 only on Feb 29) so
+    // expected ages derive from each source's own anchor date.
+    private static DateOnly NextBirthdayOn(DateOnly asOfDate, int month, int day)
+    {
+        for (var year = asOfDate.Year; year <= asOfDate.Year + 8; year++)
+        {
+            if (month == 2 && day == 29 && !DateTime.IsLeapYear(year))
+            {
+                continue;
+            }
+
+            var candidate = new DateOnly(year, month, day);
+            if (candidate >= asOfDate)
+            {
+                return candidate;
+            }
+        }
+
+        throw new InvalidOperationException("No upcoming birthday found for the test anchor.");
+    }
 
     private static Dictionary<string, string> StateMap(HcmPresenceSnapshot snapshot) =>
         snapshot.Entries.ToDictionary(
