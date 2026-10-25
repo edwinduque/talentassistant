@@ -507,6 +507,34 @@ public sealed class ChatOrchestratorTests
     }
 
     [Fact]
+    public async Task DynamicQueryAcceptsCompactArrayFiltersAndNumericValues()
+    {
+        var model = new ScriptedLanguageModel();
+        model.Enqueue(new AssistantCompletion(
+            Content: null,
+            ToolCalls:
+            [
+                new AssistantToolCall(
+                    "call-1",
+                    "query_hr_data",
+                    """{"dataset":"employees","filters":[["birthday_month","equals",11]],"aggregate":"count"}""")
+            ]));
+        model.Enqueue(new AssistantCompletion("Hay 1.", []));
+        var orchestrator = CreateOrchestrator(model);
+
+        await orchestrator.ExecuteAsync(
+            new ChatQuery("Cuantos cumplen en noviembre", [], "es"));
+
+        var toolMessage = Assert.Single(
+            model.Requests[1].Messages,
+            message => message.Role == "tool");
+        using var payload = JsonDocument.Parse(toolMessage.Content);
+        Assert.Equal(
+            1,
+            payload.RootElement.GetProperty("Rows")[0].GetProperty("count").GetInt32());
+    }
+
+    [Fact]
     public async Task UnfilteredEmployeeSearchReturnsAToolError()
     {
         var model = new ScriptedLanguageModel();
