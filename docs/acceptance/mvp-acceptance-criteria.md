@@ -220,6 +220,14 @@ Ante la petición «Por ejemplo: quiero que crees una oferta de vigilante para l
 
 El asistente puede repetir en un borrador el salario que RR. HH. proporcionó como término de la oferta; no revela ni infiere el sueldo de empleados ni datos bancarios.
 
+## AC-053 — Edad derivada en los payloads (enmienda de SPEC-008/009)
+
+Los payloads de `search_employees` y `upcoming_birthday` incluyen `AgeOnNextBirthday` (entero; `null` cuando la fuente no tiene cumpleaños), con `AgeOnNextBirthday == year(NextBirthdayOn) − año de nacimiento` para cualquier fecha de consulta en ambas fuentes. Ningún payload del modelo contiene el año de nacimiento crudo y `GET /employees` conserva exactamente `id`, `displayName`, `officeIds`.
+
+## AC-054 — Seguimiento conversacional y consulta agregada (enmienda de SPEC-009)
+
+Tras «Quien es la proxima persona que cumple anos», el seguimiento «Cuantos anos cumple esa persona?» con historial responde con la edad derivada correcta del empleado referido (el nombre puede quedar implícito en la referencia), citando una herramienta o reutilizando el historial. El system prompt contiene la guía de historial, el permiso de derivar agregados solo sobre registros devueltos por las herramientas y la instrucción de no estar limitado a una lista fija de preguntas, manteniendo el catálogo cerrado con seis herramientas. El banco en vivo cubre además «Cuantos empleados tiene la sede de Tokyo?» (recuento 4) y «Quien es el empleado con mas antiguedad en la empresa?» (Mauricio, 2018); los guardrails de SPEC-010 permanecen verdes.
+
 ## Condiciones generales
 
 Los criterios deberán verificarse con pruebas automatizadas cuando sea razonable y con pruebas de aceptación documentadas cuando la automatización no aporte suficiente valor.
@@ -283,5 +291,7 @@ Los identificadores de esta tabla pertenecen al catálogo general y no se reutil
 | AC-050 | FR-037, FR-029 | Búsqueda por `last_name` con filtro `surname_contains`, incluyendo todos los candidatos y sin selección silenciosa; SPEC-008/009. |
 | AC-051 | FR-038, FR-029 | Borrador de oferta en chat, con requisitos user-supplied, sin tool calls ni persistencia; SPEC-009. |
 | AC-052 | FR-036, FR-038, FR-031 | Salario de oferta solo si el usuario lo proporcionó; compensación de empleados y datos bancarios siguen restringidos; SPEC-010. |
+| AC-053 | FR-039, FR-029 | Edad derivada `AgeOnNextBirthday` en ambos payloads, anclada a la fecha de consulta y sin año crudo, con `GET /employees` intacto; SPEC-008/009. |
+| AC-054 | FR-040, FR-029 | Historial para seguimientos y agregados sobre registros devueltos con catálogo fijo de seis herramientas; probes de dos turnos, recuento y ranking en vivo; SPEC-009. |
 
 Los AC-003 a AC-006 no se consideran satisfechos por la estructura arquitectónica creada en SPEC-001. Cada caso de asistencia necesita requisitos, pruebas y verificación propios; Tasks no forma parte de la primera vertical. NFR-011 no tiene todavía un umbral medible y deberá concretarse cuando se definan dataset y entorno. NFR-012 se verifica en cada especificación de interfaz; estos criterios no inventan un umbral cuantitativo de contraste.

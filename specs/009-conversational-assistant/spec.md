@@ -122,3 +122,15 @@ Se añaden `HireDate`, `LastName` y el filtro opcional `surname_contains` a la p
 ## 13. Enmienda: borrador de oferta laboral (2026-10-24)
 
 El usuario aclaró que RR. HH. debe poder pedir un borrador inicial de oferta a partir de requisitos, mostrarlo en el chat y no guardarlo ni publicarlo todavía. El modelo usa solo los datos proporcionados, pregunta de forma breve cuando falta un detalle esencial, omite términos opcionales desconocidos y apunta a unos 500 caracteres cuando se solicite. El sueldo de un empleado sigue restringido; un salario provisto expresamente para la oferta puede repetirse únicamente en su borrador.
+
+## 14. Enmienda: seguimiento conversacional y consulta fluida (2026-10-24)
+
+Verbatim del usuario: «No se que haces pero llevas dos horas dando vueltas, ademas parece que no estas haciendo lo de hacerlo mas natural, veo que estas enfocado en el ejemplo que te di pero si la pregunta fuera, cuantos empleados tiene la sede de tokio o cuantos son se sexo masculino y de sexo femenino o quien es el empleado mas antiguo o quien es el empleado mas joven o quien lleva mas años en la compañia o ese tipo de preguntas, no quiero que simplemente te las aprendas o que tengas un select para cada una. quiero que la ia tenga mas fluides al consultar cosas y no solo las preguntas predeterminadas. pero necesito calidad».
+
+Cambios aprobados:
+
+- El system prompt pasa de lista de recetas por tipo de pregunta a orientarse por capacidades: resuelve seguimientos con el historial («esa persona»), deriva agregados (contar, agrupar, ordenar, ranking, min/máx) **solo** sobre los registros que devuelven las herramientas, encadena varias llamadas y, si un filtro no devuelve filas, amplía la consulta en vez de concluir que no hay datos.
+- El catálogo **no crece**: sigue cerrado con las seis herramientas del §6. La fluidez no añade un `select` por pregunta; «Cuantos empleados tiene la sede de tokio?» se responde con `search_employees` + recuento sobre los registros, y «quién es el empleado más antiguo / quién lleva más años» con `search_employees` + ordenación por `HireDate`.
+- `search_employees` y `upcoming_birthday` proyectan la EDAD DERIVADA `AgeOnNextBirthday` (aprobación «Edad derivada (Recomendado)», 2026-10-24): la edad que cumple en el próximo cumpleaños, anclada a la fecha de consulta de cada fuente; `null` cuando la fuente no tiene cumpleaños. El año de nacimiento crudo sigue prohibido en cualquier payload del modelo y `GET /employees` conserva exactamente `id`, `displayName`, `officeIds`.
+- Banco en vivo: +3 probes (seguimiento de dos turnos con historial, recuento por oficina, ranking de antigüedad). SPEC-010 y sus guardrails no cambian.
+- Dato inexistente: el shape real (`db/hcm-real/upstream.sql`) no contiene columna de sexo/gender; hasta aprobación explícita de un atributo nuevo (SPEC-010 §11) esas preguntas se responden con «información no disponible», verificado en vivo.

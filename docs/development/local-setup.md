@@ -261,6 +261,14 @@ Desde SPEC-012, `hcm-postgres` sirve el contrato sobre una réplica local con la
 
 Orden del pipeline de init (`db/hcm-contract/local/01_init.sh`, con `ON_ERROR_STOP=1`): `/real/schema.sql` → `/real/seed.sql` → `local_tables.sql` (sustitución reducida) → `views.sql` → `local_seed.sql` (filas de sustitución) → `roles.sql` → contraseña del rol de aplicación desde el entorno → `grants.sql`. Al terminar imprime el marcador `hcm contract initialized`.
 
+**Re-aplicar las vistas sobre un volumen existente (enmienda 2026-10-24):** `01_init.sh` solo se ejecuta en el primer arranque de un volumen vacío. Cuando cambie `db/hcm-contract/views.sql`, el bind-mount lo hace visible al contenedor al instante y basta con re-aplicarlas sin borrar datos:
+
+```powershell
+docker exec talentassistant-local-hcm-postgres-1 psql -U talentassistant_hcm_admin -d talentassistant_hcm -f /contract/views.sql
+```
+
+`CREATE OR REPLACE VIEW` no borra la vista, así que los privilegios del rol de aplicación se conservan y no hay que repetir `grants.sql`; la suite (prueba de legibilidad como rol de aplicación) lo verifica. Las pruebas y la API local apuntan a este mismo contenedor (`127.0.0.1:5433`), así que un único re-aplicado cubre ambos.
+
 **Cuando el usuario comparta un shape nuevo** (la información puede cambiar; misma revisión, sin atajos):
 
 1. Reemplaza `db/hcm-real/upstream.sql` por el nuevo DDL verbatim.

@@ -45,6 +45,8 @@ Estado inicial: Propuesto. La aprobación del alcance convierte los requisitos s
 | FR-036 | El asistente consultará solo atributos del HCM aprobados explícitamente por sus herramientas: en esta enmienda, cargo y próximo cumpleaños. El sueldo de empleados y los datos bancarios son restringidos; un salario proporcionado por RR. HH. como término de una oferta laboral puede aparecer únicamente en ese borrador. Los campos no aprobados no se enviarán al modelo ni se presentarán como datos disponibles. | Must |
 | FR-037 | El asistente podrá consultar la fecha de contratación y buscar empleados por fragmento de apellido mediante campos explícitos de la fuente HCM; los resultados serán los informados por el HCM y no ampliarán el contrato HTTP existente de `/employees`. | Must |
 | FR-038 | El asistente podrá redactar en el chat un borrador de oferta laboral con requisitos provistos por RR. HH., pedir una aclaración breve si falta un dato esencial y no guardar ni publicar el texto. Cuando se solicite, apuntará a unos 500 caracteres y no inventará condiciones no proporcionadas. | Must |
+| FR-039 | El asistente expondrá una edad derivada (`AgeOnNextBirthday`): la edad que el empleado cumple en su próximo cumpleaños, calculada por la fuente desde su fecha de consulta y `null` cuando no hay cumpleaños; el año de nacimiento crudo no se expondrá en ningún payload del modelo ni cambiará el contrato HTTP de `GET /employees`. | Must |
+| FR-040 | El asistente resolverá preguntas de seguimiento con el historial de la conversación y consultas agregadas (conteos, agrupaciones, ordenaciones, ranking y extremos) derivándolas solo sobre los registros devueltos por sus herramientas, sin ampliar el catálogo de herramientas ni añadir una consulta por pregunta. | Must |
 
 FR-020 fue aprobado mediante SPEC-004 y está implementado y verificado (commits en `main`); el perfil local Compose sirve los fixtures desde PostgreSQL (motor sustituido por ADR-0013/SPEC-013).
 
@@ -71,6 +73,10 @@ FR-036 fue aprobado mediante las enmiendas 2026-10-23 y 2026-10-24 de SPEC-008/0
 FR-037 fue aprobado mediante la enmienda 2026-10-23 de SPEC-008/009: el asistente puede consultar `hire_date` y filtrar por `last_name`; el contrato HTTP de `GET /employees` conserva su forma original.
 
 FR-038 fue aprobado mediante la enmienda 2026-10-24 de SPEC-009/010: se permite redactar ofertas laborales en el chat como texto efímero, basado en los requisitos escritos por RR. HH., sin guardar ni publicar.
+
+FR-039 fue aprobado mediante la enmienda «edad derivada» 2026-10-24 de SPEC-008/009: la vista de contrato expone solo la edad derivada `AgeOnNextBirthday` (anclada a la fecha de consulta) y nunca el año de nacimiento crudo, en `search_employees` y `upcoming_birthday`.
+
+FR-040 fue aprobado mediante la enmienda 2026-10-24 de SPEC-009 (§14): el asistente resuelve seguimientos con el historial y deriva agregados solo sobre registros devueltos por sus herramientas, con el catálogo de seis herramientas intacto y todas las frases de SPEC-010 sin cambios.
 
 
 ## Reglas de negocio iniciales

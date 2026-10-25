@@ -39,7 +39,7 @@ Reanclar el proyecto en su norte —un asistente para responsables de RR. HH. qu
 - El HCM sigue siendo el sistema de verdad: los estados de presencia, los tipos y estados de TimeOff y los estados de tareas llegan como valores de la fuente; Talent Assistant no deriva ni infiere reglas (consistente con FR-008 y SPEC-002).
 - El directorio puede exponer `job_title` desde la columna de HCM confirmada `"job:title"`; ningún otro campo de empleado se promueve automáticamente.
 - El directorio puede exponer `last_name` y `hire_date` para las consultas aprobadas; un filtro `SurnameContains` busca en el apellido de origen y devuelve todas las coincidencias.
-- La fuente devuelve el próximo cumpleaños usando la fecha local de consulta, incluyendo hoy y devolviendo todos los empates. Solo se envían al asistente la identidad mínima y la fecha de la próxima ocurrencia, nunca el año de nacimiento; un nacimiento el 29 de febrero solo ocurre en años bisiestos, sin fecha sustituta inferida.
+- La fuente devuelve el próximo cumpleaños usando la fecha local de consulta, incluyendo hoy y devolviendo todos los empates. Solo se envían al asistente la identidad mínima y la fecha de la próxima ocurrencia, nunca el año de nacimiento; un nacimiento el 29 de febrero solo ocurre en años bisiestos, sin fecha sustituta inferida. *(Enmienda 2026-10-24: se añade la edad derivada `AgeOnNextBirthday` —la edad que cumple en esa próxima ocurrencia, anclada a la fecha de consulta de cada fuente y `null` sin cumpleaños—; el año de nacimiento crudo sigue excluido de todo payload.)*
 - Sueldo y datos bancarios son restringidos. Las herramientas y sus DTOs usan una lista explícita de atributos aprobados; los campos nuevos o no aprobados permanecen fuera del payload del modelo.
 - Las capacidades se exponen como operaciones tipadas detrás de `IHcmWorkforceSource` (nombre propuesto), sin romper el puerto existente de asistencia; Application no depende de Infrastructure ni de la interfaz (NFR-001/NFR-002).
 - Los endpoints nuevos exigen sesión (política de autorización vigente); serán las herramientas que el asistente invocará, con autorización siempre en el backend.
@@ -77,8 +77,8 @@ Cada escenario se automatiza en pruebas contra los fixtures, con la misma forma 
 
 ## 6. Contratos propuestos (Application)
 
-- `HcmEmployeeDirectoryEntry`: `Id`, `DisplayName`, `OfficeIds`, `JobTitle`, `LastName` y `HireDate` opcionales.
-- `UpcomingBirthdayQuery`: `AsOfDate`, `Language`; `HcmUpcomingBirthday`: `EmployeeId`, `DisplayName`, `NextBirthdayOn`.
+- `HcmEmployeeDirectoryEntry`: `Id`, `DisplayName`, `OfficeIds`, `JobTitle`, `LastName`, `HireDate` y `AgeOnNextBirthday` opcionales.
+- `UpcomingBirthdayQuery`: `AsOfDate`, `Language`; `HcmUpcomingBirthday`: `EmployeeId`, `DisplayName`, `NextBirthdayOn`, `AgeOnNextBirthday`.
 - `HcmEmployeePresence`: `Employee` (referencia), `State` (valor de la fuente, p. ej. `working`, `not-arrived`, `vacation`, `absent`), `Summary` opcional de la fuente.
 - `HcmPresenceSnapshot`: `Date` y colección de `HcmEmployeePresence`.
 - `HcmTimeOffRequest`: `Reference`, `EmployeeId`, `Type`, `Status`, `StartsOn`, `EndsBefore`, `Duration`, `DurationUnit`, `Summary`.
@@ -128,6 +128,10 @@ El usuario pidió responder «Quien es la proxima persona que cumple años» y �
 ### Enmienda aprobada por el usuario: contratación y apellidos (2026-10-23)
 
 El usuario añadió que el asistente debe tener acceso a «fecha de contratacion» y reportó la pregunta literal «hay alguien con apellido que tenga z». Se aprueba proyectar `hire_date` y `last_name` mediante `search_employees`, con un filtro opcional `surname_contains`. El sueldo, los datos bancarios y los demás campos no aprobados siguen excluidos.
+
+### Enmienda aprobada por el usuario: edad derivada (2026-10-24)
+
+El usuario eligió «Edad derivada (Recomendado)»: «La vista de contrato calcula la edad que cumple en el próximo cumpleaños y expone solo eso. Responde la pregunta sin exponer el año de nacimiento crudo; coherente con cómo ya derivamos las duraciones de ausencias. Requiere añadir año de nacimiento al fixture sintético.» Se aprueba proyectar `AgeOnNextBirthday` (entero; `null` sin cumpleaños) en `search_employees` y `upcoming_birthday`, anclado a la fecha de consulta de cada fuente; el fixture sintético incorpora `BirthYear` (espejo de `db/hcm-real/seed.sql`) que nunca abandona la fuente. El sueldo, los datos bancarios y los demás atributos no aprobados siguen excluidos, y `GET /employees` conserva exactamente `id`, `displayName`, `officeIds`.
 
 ## 11. Verificación de T3
 
