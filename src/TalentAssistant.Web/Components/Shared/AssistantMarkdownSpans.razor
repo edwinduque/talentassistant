@@ -1,0 +1,26 @@
+@using TalentAssistant.Web.Formatting
+
+@foreach (var span in Spans)
+{
+    if (span is AssistantStrongSpan strong)
+    {
+        <strong><AssistantMarkdownSpans Spans="strong.Spans" /></strong>
+    }
+    else if (span is AssistantEmphasisSpan emphasis)
+    {
+        <em><AssistantMarkdownSpans Spans="emphasis.Spans" /></em>
+    }
+    else if (span is AssistantCodeSpan code)
+    {
+        <code>@(code.Text)</code>
+    }
+    else if (span is AssistantTextSpan text)
+    {
+        <text>@text.Text</text>
+    }
+}
+
+@code {
+    [Parameter, EditorRequired]
+    public IReadOnlyList<AssistantSpan> Spans { get; set; } = [];
+}

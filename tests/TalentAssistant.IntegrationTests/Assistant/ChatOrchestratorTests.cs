@@ -394,6 +394,27 @@ public sealed class ChatOrchestratorTests
     }
 
     [Fact]
+    public async Task SystemPromptRequestsAChatFriendlyAnswerFormat()
+    {
+        // SPEC-009 §15: the Web renders a safe markdown subset, so the prompt
+        // asks for exactly that subset and forbids structures the renderer does
+        // not support (tables, links, images, HTML, fenced code).
+        var model = new ScriptedLanguageModel();
+        model.Enqueue(new AssistantCompletion("ok", []));
+        var orchestrator = CreateOrchestrator(model);
+
+        var result = await orchestrator.ExecuteAsync(
+            new ChatQuery("Hola", History: [], Language: "es"));
+
+        Assert.True(result.Completed);
+        var system = model.Requests[0].Messages[0].Content;
+        Assert.Contains("chat interface", system);
+        Assert.Contains("**bold**", system);
+        Assert.Contains("Do not use tables", system);
+        Assert.Contains("fenced code blocks", system);
+    }
+
+    [Fact]
     public async Task SystemPromptTeachesFollowUpsAggregationAndDerivedAge()
     {
         // SPEC-020 and ADR-0014: resolve follow-ups from history and ask the
