@@ -449,7 +449,7 @@ public sealed class ChatOrchestratorTests
     [Fact]
     public async Task HistoryIsTrimmedToMaxHistoryMessagesKeepingTheMostRecent()
     {
-        var options = new AssistantOrchestratorOptions(MaxHistoryMessages: 3);
+        var options = new AssistantOrchestratorOptions(MaxHistoryMessages: 4);
         var model = new ScriptedLanguageModel();
         model.Enqueue(new AssistantCompletion("ok", []));
         var orchestrator = CreateOrchestrator(model, options);
@@ -460,7 +460,8 @@ public sealed class ChatOrchestratorTests
             new("assistant", "h2"),
             new("user", "h3"),
             new("assistant", "h4"),
-            new("user", "h5")
+            new("user", "h5"),
+            new("assistant", "h6")
         ];
 
         var result = await orchestrator.ExecuteAsync(
@@ -479,7 +480,7 @@ public sealed class ChatOrchestratorTests
             .Take(options.MaxHistoryMessages)
             .Select(message => message.Content)
             .ToArray();
-        Assert.Equal(["h3", "h4", "h5"], trimmedHistory);
+        Assert.Equal(["h3", "h4", "h5", "h6"], trimmedHistory);
     }
 
     [Fact]
@@ -492,17 +493,20 @@ public sealed class ChatOrchestratorTests
 
         IReadOnlyList<ChatMessage> history =
         [
+            new("user", "old"),
             new("assistant", huge),
-            new("user", "small")
+            new("user", "small"),
+            new("assistant", "small answer")
         ];
 
         await orchestrator.ExecuteAsync(
             new ChatQuery("latest question", history, Language: "es"));
 
         var messages = model.Requests[0].Messages;
-        Assert.Equal(3, messages.Count);
+        Assert.Equal(4, messages.Count);
         Assert.Equal("small", messages[1].Content);
-        Assert.Equal("latest question", messages[2].Content);
+        Assert.Equal("small answer", messages[2].Content);
+        Assert.Equal("latest question", messages[3].Content);
         Assert.DoesNotContain(messages, message => message.Content == huge);
     }
 
@@ -532,6 +536,32 @@ public sealed class ChatOrchestratorTests
         Assert.Equal(
             1,
             payload.RootElement.GetProperty("Rows")[0].GetProperty("count").GetInt32());
+    }
+
+    [Fact]
+    public async Task HistoryDropsUnansweredUserTurns()
+    {
+        var model = new ScriptedLanguageModel();
+        model.Enqueue(new AssistantCompletion("ok", []));
+        var orchestrator = CreateOrchestrator(model);
+
+        IReadOnlyList<ChatMessage> history =
+        [
+            new("user", "old unanswered"),
+            new("user", "old answered"),
+            new("assistant", "old answer"),
+            new("user", "failed follow-up")
+        ];
+
+        await orchestrator.ExecuteAsync(
+            new ChatQuery("current", history, Language: "es"));
+
+        var messages = model.Requests[0].Messages;
+        Assert.Equal(4, messages.Count);
+        Assert.Equal("system", messages[0].Role);
+        Assert.Equal("old answered", messages[1].Content);
+        Assert.Equal("old answer", messages[2].Content);
+        Assert.Equal("current", messages[3].Content);
     }
 
     [Fact]
