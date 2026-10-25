@@ -1,4 +1,6 @@
 # Repository-wide eol rules: this repo runs Linux containers from working-tree
 # mounts on Windows clones, so shell scripts must never carry CRLF (a CRLF
-# shebang fails with "/bin/sh^M: bad interpreter").
+# shebang fails with "/bin/sh^M: bad interpreter") and psql scripts with `\ir`
+# commands must retain LF for portable bundle execution.
 *.sh text eol=lf
+*.psql text eol=lf

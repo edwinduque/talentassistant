@@ -241,7 +241,7 @@ Desde SPEC-011 la aplicación puede consultar el HCM real desde su PostgreSQL de
 
 ### Servicio local de pruebas (`hcm-postgres`)
 
-El perfil Compose incluye un servicio `postgres:17-alpine` publicado **solo en loopback** (`127.0.0.1:5433`) que aplica el contrato de `db/hcm-contract/` sobre tablas de sustitución y lo siembra con filas sintéticas en el primer inicio de un volumen vacío. La base real del HCM nunca se toca desde este servicio y el servicio no lleva TLS por diseño: es una excepción local documentada, no la postura de la base real.
+El perfil Compose incluye un servicio `postgres:17-alpine` publicado **solo en loopback** (`127.0.0.1:5433`) que aplica el contrato de `db/hcm-contract/` sobre la réplica local del shape real (`public.*`) y las tablas legadas ficticias `hcm.*` de tareas/insights. La semilla contiene 209 empleados (197 activos), al menos 2.000 ausencias visibles, 20.000 marcajes en 45 días y 2.000 tareas, con nombres inventados plausibles; nunca copia datos personales reales. La base real del HCM no se toca desde este servicio y este no lleva TLS por diseño: es una excepción local documentada, no la postura de la base real.
 
 Para restablecer por completo la base de pruebas del contrato:
 
@@ -257,17 +257,17 @@ Desde SPEC-012, `hcm-postgres` sirve el contrato sobre una réplica local con la
 |---|---|
 | `db/hcm-real/upstream.sql` | DDL del usuario **verbatim** (2026-10-20). No se ejecuta: es la fuente de verdad del shape cambiante. |
 | `db/hcm-real/schema.sql` | Adaptación ejecutable a PostgreSQL: identidades deterministas, `timestamp` (`time_check_date_utc` como `timestamptz`), `smallint`, `boolean`, `text`, `"job:title"` entrecomillado; añade 9 FK locales y 5 índices de apoyo (ambos documentados como añadidos locales en su cabecera). |
-| `db/hcm-real/seed.sql` | Semilla dummy determinista, 100 % ficticia y sin `random()`: todo procede de `generate_series`, aritmética de índice y constantes. Se ejecuta una sola vez por volumen; no es idempotente a propósito. |
+| `db/hcm-real/seed.sql` | Semilla base ficticia, determinista por día UTC y de una sola ejecución; incluye `demo-scale.sql` para completar nombres y volúmenes. No se ejecuta otra vez sobre una base ya inicializada. |
 
-Orden del pipeline de init (`db/hcm-contract/local/01_init.sh`, con `ON_ERROR_STOP=1`): `/real/schema.sql` → `/real/seed.sql` → `local_tables.sql` (sustitución reducida) → `views.sql` → `local_seed.sql` (filas de sustitución) → `roles.sql` → contraseña del rol de aplicación desde el entorno → `grants.sql`. Al terminar imprime el marcador `hcm contract initialized`.
+Orden del pipeline de init (`db/hcm-contract/local/01_init.sh`, con `ON_ERROR_STOP=1`): `/real/schema.sql` → `/real/seed.sql` (incluye el top-up `demo-scale.sql`) → `local_tables.sql` → `views.sql` → `local_seed.sql` (empleados de FK, tareas e insight) → `roles.sql` → contraseña del rol de aplicación desde el entorno → `grants.sql` → `/real/verify-demo-data.sql`. Al terminar imprime el marcador `hcm contract initialized`.
 
-**Re-aplicar las vistas sobre un volumen existente (enmienda 2026-10-24):** `01_init.sh` solo se ejecuta en el primer arranque de un volumen vacío. Cuando cambie `db/hcm-contract/views.sql`, el bind-mount lo hace visible al contenedor al instante y basta con re-aplicarlas sin borrar datos:
+**Re-aplicar las vistas en la réplica local:** `01_init.sh` solo se ejecuta en el primer arranque de un volumen vacío. Cuando cambie `db/hcm-contract/views.sql`, el bind-mount lo hace visible al contenedor al instante y basta con re-aplicarlas sin borrar filas:
 
 ```powershell
 docker exec talentassistant-local-hcm-postgres-1 psql -U talentassistant_hcm_admin -d talentassistant_hcm -f /contract/views.sql
 ```
 
-`CREATE OR REPLACE VIEW` no borra la vista, así que los privilegios del rol de aplicación se conservan y no hay que repetir `grants.sql`; la suite (prueba de legibilidad como rol de aplicación) lo verifica. Las pruebas y la API local apuntan a este mismo contenedor (`127.0.0.1:5433`), así que un único re-aplicado cubre ambos.
+Cuando la lista de columnas coincide, `CREATE OR REPLACE VIEW` conserva la vista y sus privilegios. La vista antigua de producción tiene solo 3 columnas, así que **no** se debe usar este comando aislado allí; usa el bundle transaccional de la sección «Carga en la VPS».
 
 **Cuando el usuario comparta un shape nuevo** (la información puede cambiar; misma revisión, sin atajos):
 
@@ -291,7 +291,28 @@ Convenciones del shape (SPEC-012):
 Alcance y gaps documentados (no corregidos):
 
 - El catálogo servido abarca **todos los empleados activos** (`deleted_on IS NULL AND status_id <> 3`), con alias `employee-demo-*` para los nueve fixtures y `'employee-'||id` para el resto (ampliación decidida el 2026-10-25: «Ampliar a los 209 empleados reales»); la paridad con el fuente sintético se verifica sobre los nueve fixtures por id y el catálogo ampliado contra la tabla base.
-- El shape real **no expone tabla de tareas ni tabla de hallazgos de regla evaluados**: las vistas de tareas e insights siguen leyendo la sustitución legada (`hcm.tasks`, `hcm.attendance_incidents`) hasta que el usuario comparta esos DDLs; la aplicación nunca deriva reglas del HCM.
+- El shape real **no expone tabla de tareas ni tabla de hallazgos de regla evaluados**: las vistas siguen leyendo la sustitución legada (`hcm.tasks`, `hcm.attendance_incidents`); la demo local carga 2.000 tareas ficticias y un insight de fixture. La aplicación nunca deriva reglas del HCM.
+
+### Carga del dataset ficticio en la VPS
+
+La API se despliega por el workflow; no hace falta `git pull` ni clonar el repositorio en la VPS. Para actualizar la base, el bundle `db/hcm-contract/vps-demo-upgrade.psql` aplica las vistas y carga el dataset ficticio desde un preflight transaccional. Si la base no coincide con la semilla conocida de 209 empleados ficticios, el script aborta antes de modificar datos. No borra filas ni reinicializa volúmenes; actualiza solo los cinco nombres placeholder y los apellidos nulos reconocidos, y añade ausencias, marcajes y tareas hasta los mínimos de §6.
+
+Desde PowerShell en la raíz del repositorio, copia las dos carpetas conservando su estructura. Usa el mismo destino SSH que empleas normalmente para abrir la VPS (el nombre que muestra el prompt remoto puede no resolver desde tu PC):
+
+```powershell
+$sshDestination = Read-Host "Destino SSH habitual (usuario@host)"
+ssh $sshDestination "mkdir -p /tmp/hcm-demo"
+scp -r .\db\hcm-contract .\db\hcm-real "${sshDestination}:/tmp/hcm-demo/"
+```
+
+Después, en la VPS:
+
+```bash
+sudo -u postgres psql -X -v ON_ERROR_STOP=1 -d talentassistant_hcm \
+  -f /tmp/hcm-demo/hcm-contract/vps-demo-upgrade.psql
+```
+
+La transacción reemplaza la vista antigua de 3 columnas sin `CASCADE`, reaplica `grants.sql` y ejecuta `verify-demo-data.sql`. Debe terminar con el aviso `Validated fictional HCM demo dataset: employees=209, active=197, timeoff=2000, time_checks_45d=20000, tasks=2000` (los conteos pueden ser superiores). Si el preflight o la transacción fallan, no omitas las comprobaciones ni borres la base: comparte el error sin incluir credenciales. El usuario prueba después el chat y la presencia en la UI.
 
 ### Cómo obtienen las pruebas la cadena de conexión
 

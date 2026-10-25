@@ -62,11 +62,12 @@ Sin asignación (`working_day_assigment`) también cae en not-arrived. Empleados
 |---|---|---|
 | `employee` | ≥200 (verificado: 209) | ≥8 departamentos, `status_id` y `role_id` distribuidos, ~5% con `deleted_on`, correos/teléfonos/fotos parciales, supervisores referenciando a otros empleados, `language_id` mezclado, contratos de `hire_date` de10 años |
 | `timeoff_type` | ≥6 (verificado: 7) | tipos con `amount` distinto, ventanas de fiscal_year, algún tipo con `status_id` inactivo |
-| `timeoff` | ≥600 (verificado: 620) | estados mezclados, `by_hour` sí/no, notas largas, ventanas pasadas/futuras/cruzando años, supervisores y `date_supervised` |
+| `timeoff` | ≥2.000 visibles para empleados activos | estados mezclados, `by_hour` sí/no, notas, ventanas pasadas/futuras, supervisores y `date_supervised` |
 | `working_day` | ≥7 | variantes con `enable_delows`/`web_allowed`/`mobile_allowed` y un `is_default` |
 | `working_day_assigment` | 1 por empleado activo (verificado: 206 asignaciones) | algunos con asignación antigua duplicada (histórico) |
-| `time_check` | ≥3.000 (≈45 días; verificado: 18.651, ~45 días incluyendo hoy) | secuencias completas `1 → (1/2 pausa/almuerzo) → 2/3`, casos de jornada finalizada, geolocalización e IP plausibles, `timezone` por oficina, `photo_face_url` parcial, `delay_id` enlazado |
+| `time_check` | ≥20.000 en la ventana móvil UTC de 45 días | secuencias completas `1 → (1/2 pausa/almuerzo) → 2/3`, casos de jornada finalizada, geolocalización e IP plausibles, `timezone` por oficina, `photo_face_url` parcial, `delay_id` enlazado |
 | `time_check_delay` | ≥60 | estados de aprobación, `approved_by` sobre empleados, comentarios largos |
+| `hcm.tasks` (sustitución local) | ≥2.000 tareas visibles | 4 tareas de fixture + tareas bilingües ficticias repartidas entre empleados activos |
 
 Más casos límite obligatorios: empleados de demostración del banco (Juan Pérez, Pedro Rojas, Mauricio Cardenas, Juan Herrera) con los hechos equivalentes que la paridad exige (vacaciones de Juan13→16, Pedro15→20 con `checkout` cubriendo su patrón, tareas implícitas solo donde el banco lo verifica); un empleado sin ninguna marcación hoy; otro con `checkout_type_id=3` hoy; otro con `timeoff` hoy; el estado de cada `status_id` documentado como supuesto en §10.
 
@@ -76,9 +77,9 @@ Más casos límite obligatorios: empleados de demostración del banco (Juan Pér
 |---|---|---|
 | `db/hcm-real/upstream.sql` | DDL del usuario verbatim (entrada) | Trazabilidad del shape cambiante |
 | `db/hcm-real/schema.sql` | Adaptación PostgreSQL + FK locales | Nombres de tablas/columnas literales |
-| `db/hcm-real/seed.sql` | Generador determinista (§6) | Solo datos ficticios |
+| `db/hcm-real/seed.sql` + `demo-scale.sql` | Generador base de una ejecución + top-up idempotente (§6) | Solo datos ficticios; nombres plausibles y conteos objetivo |
 | `db/hcm-contract/views.sql` | Recableado sobre las tablas reales + §5 | Mismas cinco vistas y columnas (contrato intacto) |
-| `db/hcm-contract/local/*` | Init actualizado: schema+seed en vez de tablas de sustitución | Marcador «hcm contract initialized» y LF obligatorio |
+| `db/hcm-contract/local/*` | Init de shape real, escala y tareas/insight legados | Marcador «hcm contract initialized» y LF obligatorio |
 | Pruebas | Suite existente como detector de regresión | Adaptadores y puertos sin tocar |
 
 ## 8. Criterios de aceptación propuestos
@@ -86,7 +87,7 @@ Más casos límite obligatorios: empleados de demostración del banco (Juan Pér
 | ID | Criterio verificable | Evidencia futura |
 |---|---|---|
 | AC-039 | Con las vistas recableadas sobre el esquema real local, **cero cambios** en adaptadores, Application, Web y puertos, y la suite completa permanece verde (integración ≥132 con ambas bases) | `git diff` sin zonas prohibidas + suite completa (verificado: build 0/0, suite completa `SUITE_EXIT=0` con integración 132/132) |
-| AC-040 | El seed dummy cumple los volúmenes y casos límite de §6 con integridad referencial (FK) y es determinista (misma init → mismos conteos: `employees≥200`, `timeoff≥600`, `time_check≥3000`…) | Consultas de conteo y re-inicialización del volumen (verificado: 209/7/620/7/206/18.651/60, md5 idéntico entre dos reinicializaciones y 12 integridades a 0) |
+| AC-040 | La inicialización ficticia cumple los volúmenes y casos límite de §6 con integridad referencial e idempotencia; dos inicializaciones el mismo día UTC producen los mismos conteos: `employees=209`, activos `=197`, `timeoff≥2000`, `time_check≥20000` en 45 días y tareas `≥2000` | `verify-demo-data.sql`, suite, checksum de dos inicializaciones y segunda ejecución del cargador VPS sin duplicados |
 | AC-041 | La presencia derivada (§5) reproduce los estados esperados para hoy: los empleados sin registros de hoy figuran como `not-arrived`, los que tienen entrada sin fin de jornada como `working`, los de jornada finalizada como `absent` y los con `timeoff` aprobado como `vacation`; las preguntas del banco responden igual | Pruebas de la vista + pasada en vivo opcional de las siete preguntas con la clave (verificado: 9 estados de hoy alineados con el sintético corregido; la pasada en vivo opcional queda pendiente) |
 
 ## 9. Plan SDD propuesto
@@ -124,3 +125,5 @@ Correcciones de fixture aprobadas y aplicadas (2026-10-20): presencia de hoy de 
 Gaps conocidos (documentados, no corregidos): el shape real no expone tabla de tareas ni tabla de hallazgos de regla evaluados, por lo que esas dos vistas del contrato siguen leyendo la sustitución legada hasta que el usuario comparta sus DDLs. Siguen abiertas las decisiones de las FK añadidas localmente y el `date_end` nulo cubierto como «hasta nuevo aviso».
 
 Ampliación de alcance (2026-10-25, decisión literal del usuario: «Ampliar a los 209 empleados reales»): las vistas de personas, presencia y ausencias sirven ya a **todos los empleados activos** (`deleted_on IS NULL AND status_id <> 3`; 197 filas de las 209 de `public.employee`), no solo a los nueve fixtures con `department LIKE 'office-demo-%'`. Los nueve conservan sus alias `employee-demo-*` y el resto recibe `'employee-' || id`. El `display_name` se deriva de `name` + `last_name` tolerando apellidos nulos (95 empleados activos de la semilla no tienen `last_name`; antes la concatenación producía `NULL` y el conector fallaba) y `office_ids` de `department` sin `NULL`s dentro del array. En ausencias, `reference` de los tres fixtures se conserva y el resto usa `'timeoff-' || id` (la convención anticipada en SPEC-016); el tipo sale del catálogo `public.timeoff_type` con la traducción fija de esos siete tipos, el estado de `status_id` (1 Pendiente/Pending, 2 Aprobado/Approved, 3 Rechazado/Rejected) y `summary_es`/`summary_en` proyectan el mismo `note` para las ausencias reales (decisión literal del usuario: «Mismo texto en summary_es y summary_en»), conservando los textos bilingües literales de los tres fixtures de paridad. La paridad con el fuente sintético queda redefinida (SPEC-011 AC-036) a los nueve fixtures por id, porque `SyntheticWorkforceSource` no escala; el catálogo ampliado se verifica contra la tabla base (conteos, ids generados, tipo/estado/resumen de origen) en `PostgresCatalogScopeTests`.
+
+Enmienda de dataset de demostración (2026-10-25, texto del usuario: «dame nombres mas reales quiero que sea lo mas similar a un entorno productivo»; mínimos ratificados por «Si»): los cinco nombres de placeholder se sustituyen por nombres plausibles **ficticios**, y se corrigen apellidos nulos del generador. La carga local queda en 209 empleados (197 activos), `timeoff` visible ≥2.000, ≥20.000 `time_check` dentro de los últimos 45 días UTC y ≥2.000 tareas visibles. Las tareas siguen en `hcm.tasks`, porque el shape real no define tabla de tareas. `db/hcm-real/verify-demo-data.sql` valida los mínimos sin imprimir filas personales. `db/hcm-contract/vps-demo-upgrade.psql` es idempotente y no borra registros ni volúmenes; su preflight comprueba la firma de la semilla ficticia y aborta antes de mutar si la base no coincide. Verificado en contenedor local: seed limpio y dos ejecuciones del bundle mantienen `209/197/2000/20000/2000`; la carga en la VPS sigue pendiente del usuario.

@@ -1,7 +1,8 @@
 #!/bin/sh
 # Inicialización local de la base de pruebas del contrato HCM (SPEC-011 S1).
-# Orden explícito: tablas locales de sustitución -> vistas del contrato ->
-# semilla sintética -> roles -> contraseña del rol de aplicación (desde
+# Orden explícito: shape real -> semilla real (incluye escala ficticia) ->
+# sustituciones locales -> vistas -> tareas/insight locales -> roles ->
+# contraseña del rol de aplicación (desde
 # entorno, nunca en el repo) -> grants de solo lectura. Se ejecuta una sola
 # vez, en el primer arranque del volumen (docker-entrypoint-initdb.d).
 # SEC-003 (security-review 2026-10-19): pass the statement on stdin with the
@@ -26,5 +27,6 @@ psql -v ON_ERROR_STOP=1 -U "$POSTGRES_USER" -d "$POSTGRES_DB" \
 ALTER ROLE talentassistant_hcm_app WITH PASSWORD :'app_password';
 EOSQL
 psql -v ON_ERROR_STOP=1 -U "$POSTGRES_USER" -d "$POSTGRES_DB" -f /contract/grants.sql
+psql -v ON_ERROR_STOP=1 -U "$POSTGRES_USER" -d "$POSTGRES_DB" -f /real/verify-demo-data.sql
 
 echo "hcm contract initialized (synthetic local seed, read-only grants)"

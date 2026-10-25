@@ -170,13 +170,14 @@ Con las vistas recableadas sobre el esquema real local, **cero cambios** en adap
 
 ## AC-040 — Seed dummy robusto y determinista (propuesto en SPEC-012)
 
-El seed dummy cumple los volúmenes y casos límite de §6 con integridad referencial (FK) y es determinista (misma init → mismos conteos: `employees≥200`, `timeoff≥600`, `time_check≥3000`…)
+La inicialización ficticia cumple los volúmenes de SPEC-012 §6 con integridad referencial e idempotencia: 209 empleados (197 activos), `timeoff≥2000`, `time_check≥20000` en 45 días UTC y `hcm.tasks≥2000`; dos ejecuciones el mismo día no duplican filas.
 
 ## AC-041 — Presencia derivada sobre el shape real (propuesto en SPEC-012)
 
 La presencia derivada (§5) reproduce los estados esperados para hoy: los empleados sin registros de hoy figuran como `not-arrived`, los que tienen entrada sin fin de jornada como `working`, los de jornada finalizada como `absent` y los con `timeoff` aprobado como `vacation`; las preguntas del banco responden igual
 
 AC-039..AC-041 fueron propuestos por SPEC-012 (aprobada el 2026-10-20) y quedan implementados en la rama `feat/hcm-real-schema-data`. Evidencia observada: compilación sin errores (0/0) y suite completa en verde (`SUITE_EXIT=0`) con integridad de integración 132/132 sobre ambas bases; volúmenes sembrados de 209 empleados, 7 `timeoff_type`, 620 `timeoff`, 7 `working_day`, 206 asignaciones, 18.651 `time_check` (~45 días incluyendo hoy) y 60 retrasos; huellas md5 por tabla idénticas tras dos reinicializaciones completas y 12 sondas de integridad (FK y enlaces) a cero; los nueve identificadores exactos del contrato servidos desde `public.employee`; mapa de presencia de hoy de 9 estados alineado con el fuente sintético corregido (`ends_before` 16/17/20 con duraciones derivadas 3/1/5); tareas=4 e insights=1 servidos desde la sustitución legada; el rol de aplicación no lee las tablas físicas (`permission denied for table employee`) ni escribe a través de las vistas (códigos `42501` o `55000`). AC-041 queda verificado sobre la vista; la pasada en vivo opcional de las siete preguntas con la clave sigue pendiente (opcional según el criterio).
+*Ampliación 2026-10-25 de AC-040*: nombres visibles ficticios plausibles, suite **186/186**; `verify-demo-data.sql` pasó en una inicialización limpia con conteos 209/197/2000/20000/2000; el bundle `vps-demo-upgrade.psql` ejecutado dos veces en la base local mantuvo esos mismos conteos sin duplicar filas. La aplicación de ese bundle en la VPS queda pendiente de ejecución por el usuario.
 
 ## AC-042 — Landing pública (propuesto en SPEC-017)
 

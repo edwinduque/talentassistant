@@ -1,0 +1,26 @@
+-- Run from psql with this file and its sibling directories present.
+-- The outer transaction keeps the contract/view replacement and demo-data
+-- top-up atomic. No table or volume is dropped or truncated.
+\set ON_ERROR_STOP on
+
+BEGIN;
+SET LOCAL TIME ZONE 'UTC';
+
+-- Create only the legacy tables the real HCM schema does not provide.
+\ir local/local_tables.sql
+
+-- This checks the seeded-fictional-data signature before changing names, then
+-- updates only recognized placeholders and tops up absence/punch volumes.
+\ir ../hcm-real/demo-scale.sql
+
+-- The deployed employee view has three columns; CREATE OR REPLACE cannot widen
+-- its projection. Drop it without CASCADE; any dependency aborts and rolls back.
+DROP VIEW hcm_contract.talentassistant_employees;
+\ir views.sql
+
+\ir roles.sql
+\ir local/local_seed.sql
+\ir grants.sql
+\ir ../hcm-real/verify-demo-data.sql
+
+COMMIT;
