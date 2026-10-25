@@ -162,6 +162,8 @@ Si la base del HCM no responde en modo Postgres, los endpoints devuelven el erro
 
 AC-036..AC-038 fueron propuestos por SPEC-011; T1/T2 aportan evidencia y T3 completa la documentación. Evidencia observada en la rama `feat/hcm-postgres-source`: suite completa en verde (127/127: 10 unitarias + 117 de integración) con las dos bases de prueba activas, compilación sin errores, paridad exacta entre el contrato sembrado y las fuentes sintéticas, y sondas de solo lectura (lectura de vistas permitida, escritura sobre la vista denegada, lectura de tablas físicas denegada). Queda pendiente la validación contra la base real del HCM (requisitos previos de SPEC-011 §10): rol de solo lectura sobre las vistas, credenciales locales, TLS con `Ssl Mode=VerifyFull` (desde el 2026-10-19 el arranque lo exige para hosts no-loopback; SEC-001) y la decisión de egreso §10, resuelta el 2026-10-19 (Groq para la fase de prueba de concepto, reabre antes de fase productiva).
 
+*Ampliación 2026-10-25*: el contrato sirve ahora todos los empleados activos (SPEC-012, decisión literal «Ampliar a los 209 empleados reales»), así que la paridad con el fuente sintético queda acotada a los nueve fixtures por id y el catálogo ampliado tiene sus propias aserciones (`PostgresCatalogScopeTests`); AC-036 no cambia, sigue prohibida la mezcla de orígenes en una misma respuesta. Evidencia actualizada: suite completa en verde (185/185: 11 unitarias + 174 de integración).
+
 ## AC-039 — Contrato intacto sobre el shape real (propuesto en SPEC-012)
 
 Con las vistas recableadas sobre el esquema real local, **cero cambios** en adaptadores, Application, Web y puertos, y la suite completa permanece verde (integración ≥132 con ambas bases)

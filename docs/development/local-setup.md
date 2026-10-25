@@ -290,7 +290,7 @@ Convenciones del shape (SPEC-012):
 
 Alcance y gaps documentados (no corregidos):
 
-- El catálogo servido está acotado a los nueve empleados de fixture mediante el marcador `department LIKE 'office-demo-%'`; ampliarlo es retirar ese filtro en la vista, una línea, más la evolución de las pruebas.
+- El catálogo servido abarca **todos los empleados activos** (`deleted_on IS NULL AND status_id <> 3`), con alias `employee-demo-*` para los nueve fixtures y `'employee-'||id` para el resto (ampliación decidida el 2026-10-25: «Ampliar a los 209 empleados reales»); la paridad con el fuente sintético se verifica sobre los nueve fixtures por id y el catálogo ampliado contra la tabla base.
 - El shape real **no expone tabla de tareas ni tabla de hallazgos de regla evaluados**: las vistas de tareas e insights siguen leyendo la sustitución legada (`hcm.tasks`, `hcm.attendance_incidents`) hasta que el usuario comparta esos DDLs; la aplicación nunca deriva reglas del HCM.
 
 ### Cómo obtienen las pruebas la cadena de conexión
