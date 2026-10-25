@@ -4,8 +4,9 @@
   ficticios pero verosímiles a escala de cientos/miles, y cargar ese conjunto de forma segura en la
   VPS para que el asistente consulte personas, marcajes, ausencias y tareas.
 - **Rama**: `feat/hcm-production-like-demo-data` (desde `main` = `8ebd026`).
-- **Estrategia de entrega**: push directo a `main` + `workflow_dispatch` de `.github/workflows/deploy.yml`
-  con aprobación del Environment `production` (misma estrategia que la feature `assistant-followups-age`).
+- **Estrategia de entrega**: push directo a `main` (elección del usuario en L12). Esta ampliación es
+  de seed/vistas; el conector Postgres desplegado no cambia, por lo que no se despacha otro deploy.
+  El usuario aplica el bundle de datos/vistas en la VPS.
 - **Runner**: `dotnet test TalentAssistant.sln --configuration Debug --no-restore` con
   `ConnectionStrings__TalentAssistantTests` (puerto 5434) y `HcmPostgres__ConnectionString` (puerto 5433).
 - **Forecast de líneas autorizadas**: ~1.000–1.400 (semillas, generador VPS idempotente, pruebas,
@@ -350,3 +351,6 @@ elegida en L12 (push directo a `main`); commits work-unit en la rama indicada en
   harness negativo/idempotente y guía de transferencia; `dotnet test` 186/186 y
   `verify-hcm-demo-loader.ps1` PASS. T5 sigue pendiente: el usuario debe subir las carpetas con su
   destino SSH habitual y ejecutar el bundle en `talentassistant_hcm`.
+- **L32** (2026-10-25) No se ejecuta `workflow_dispatch`: el diff no cambia `PostgresWorkforceSource`
+  ni los contratos de API; la API desplegada ya consulta las vistas. T5 es solo el bundle SQL en
+  la VPS, ejecutado por el usuario.
