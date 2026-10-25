@@ -72,6 +72,12 @@ public sealed class PostgresCatalogScopeTests : PostgresSourceTestBase
                 new[] { "F", "M" }));
         Assert.All(
             directory,
+            employee => Assert.Contains("@example.com", employee.Email));
+        Assert.Equal(
+            directory.Count,
+            directory.Select(employee => employee.Email).Distinct(StringComparer.Ordinal).Count());
+        Assert.All(
+            directory,
             employee => Assert.All(
                 employee.OfficeIds,
                 office => Assert.False(string.IsNullOrWhiteSpace(office))));

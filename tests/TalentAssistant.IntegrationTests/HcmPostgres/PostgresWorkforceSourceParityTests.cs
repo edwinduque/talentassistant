@@ -64,6 +64,7 @@ public sealed class PostgresWorkforceSourceParityTests : PostgresSourceTestBase
             Assert.Equal(expected.Gender, entry.Gender);
             Assert.Equal(expected.ManagerEmployeeId, entry.ManagerEmployeeId);
             Assert.Equal(expected.ManagerDisplayName, entry.ManagerDisplayName);
+            Assert.Equal(expected.Email, entry.Email);
         }
 
         // Derived age (approved 2026-10-24) per source anchor, like presence

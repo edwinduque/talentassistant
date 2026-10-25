@@ -7,6 +7,8 @@ DECLARE
     total_employee_count bigint;
     active_employee_count bigint;
     distinct_visible_names bigint;
+    active_without_email bigint;
+    distinct_email_count bigint;
     active_without_gender bigint;
     active_without_manager bigint;
     unresolved_manager_count bigint;
@@ -32,6 +34,15 @@ BEGIN
     -- todos los activos salvo el máximo responsable.
     SELECT count(DISTINCT display_name)
     INTO distinct_visible_names
+    FROM hcm_contract.talentassistant_employees;
+
+    SELECT count(*)
+    INTO active_without_email
+    FROM hcm_contract.talentassistant_employees
+    WHERE email IS NULL OR email NOT LIKE '%@example.com';
+
+    SELECT count(DISTINCT email)
+    INTO distinct_email_count
     FROM hcm_contract.talentassistant_employees;
 
     SELECT count(*)
@@ -99,6 +110,12 @@ BEGIN
     IF distinct_visible_names <> 197 THEN
         failures := array_append(failures, format('distinct_display_names=%s (expected 197 unique)', distinct_visible_names));
     END IF;
+    IF active_without_email <> 0 THEN
+        failures := array_append(failures, format('active_employees_without_valid_email=%s', active_without_email));
+    END IF;
+    IF distinct_email_count <> 197 THEN
+        failures := array_append(failures, format('distinct_emails=%s (expected 197 unique)', distinct_email_count));
+    END IF;
     IF active_without_gender <> 0 THEN
         failures := array_append(failures, format('active_employees_without_gender=%s', active_without_gender));
     END IF;
@@ -135,10 +152,11 @@ BEGIN
             array_to_string(failures, '; ');
     END IF;
 
-    RAISE NOTICE 'Validated fictional HCM demo dataset: employees=%, active=%, distinct_names=%, areas=%, timeoff=%, time_checks_45d=%, tasks=%',
+    RAISE NOTICE 'Validated fictional HCM demo dataset: employees=%, active=%, distinct_names=%, distinct_emails=%, areas=%, timeoff=%, time_checks_45d=%, tasks=%',
         total_employee_count,
         active_employee_count,
         distinct_visible_names,
+        distinct_email_count,
         distinct_area_count,
         visible_timeoff_count,
         recent_time_check_count,

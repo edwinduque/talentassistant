@@ -40,6 +40,7 @@ public sealed class SyntheticHcmDataQuerySource(
         return employees.Select(employee => Row(
             ("employee_id", employee.Id),
             ("display_name", employee.DisplayName),
+            ("email", employee.Email),
             ("office_ids", employee.OfficeIds),
             ("area", employee.OfficeIds.FirstOrDefault()),
             ("gender", employee.Gender),

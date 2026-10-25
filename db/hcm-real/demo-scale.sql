@@ -34,7 +34,8 @@ BEGIN
     INTO matching_generated_emails
     FROM public.employee
     WHERE id BETWEEN 101 AND 300
-      AND (first_email = '' OR first_email = 'persona' || (id - 100)::text || '@example.com');
+      AND (first_email = ''
+           OR first_email ~ '^[a-z]+\.[a-z]+[0-9]{2}@example\.com$');
 
     SELECT count(*)
     INTO matching_fixture_names

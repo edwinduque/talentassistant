@@ -47,15 +47,18 @@ CREATE SCHEMA IF NOT EXISTS hcm_contract;
 --    (age turned at the next birthday from CURRENT_DATE; approved 2026-10-24)
 --    are explicit approved projections; birth year and every other employee
 --    column remain outside the contract. Desde 2026-10-25 el contrato añade
---    area (=department escalar), gender, years_in_company y el jefe directo
---    (manager_employee_id/manager_display_name desde vacancy_supervisor) para
---    las preguntas de headcount, antigüedad y jefe. gender es un añadido local
---    del dataset ficticio: el shape real pegado no lo expone. Sobre un volumen
---    existente hay que re-aplicar este fichero (ver docs/development/local-setup.md).
+--    area (=department escalar), gender, years_in_company, el jefe directo
+--    (manager_employee_id/manager_display_name desde vacancy_supervisor) y el
+--    correo corporativo (email = first_email; second_email queda fuera) para
+--    las preguntas de headcount, antigüedad, jefe y contacto. gender es un
+--    añadido local del dataset ficticio: el shape real pegado no lo expone.
+--    Sobre un volumen existente hay que re-aplicar este fichero
+--    (ver docs/development/local-setup.md).
 CREATE OR REPLACE VIEW hcm_contract.talentassistant_employees AS
 SELECT
     aliases.employee_id,
     aliases.display_name,
+    aliases.email,
     aliases.office_ids,
     aliases.area,
     aliases.gender,
@@ -89,6 +92,7 @@ FROM (
             'employee-' || e.id::text
         ) AS display_name,
         ARRAY_REMOVE(ARRAY[e.department]::text[], NULL) AS office_ids,
+        NULLIF(e.first_email, '') AS email,
         e.department AS area,
         e.gender AS gender,
         e."job:title" AS job_title,

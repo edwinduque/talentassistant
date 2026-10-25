@@ -92,12 +92,13 @@ public sealed class PostgresHcmDataQuerySourceTests : PostgresSourceTestBase
             new EmployeeSearchQuery(Name: "Pablo Molina")));
         var query = Validator.Validate(new HcmDataQueryRequest(
             "employees",
-            Fields: ["display_name", "area", "gender", "manager_display_name", "years_in_company"],
+            Fields: ["display_name", "email", "area", "gender", "manager_display_name", "years_in_company"],
             Filters: [new HcmDataQueryFilter("display_name", "contains", "Pablo Molina")]));
 
         var row = Assert.Single((await DataQuery.ExecuteAsync(query)).Rows);
 
         Assert.Equal("Pablo Molina", row["display_name"]);
+        Assert.Equal(pablo.Email, row["email"]);
         Assert.Equal(pablo.OfficeIds[0], row["area"]);
         Assert.Equal(pablo.Gender, row["gender"]);
         Assert.Equal(pablo.ManagerDisplayName, row["manager_display_name"]);

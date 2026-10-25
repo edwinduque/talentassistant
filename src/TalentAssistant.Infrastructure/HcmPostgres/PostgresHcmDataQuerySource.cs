@@ -377,6 +377,7 @@ public sealed class PostgresHcmDataQuerySource(
                 Columns(
                     ("employee_id", "employee_id"),
                     ("display_name", "display_name"),
+                    ("email", "email"),
                     ("office_ids", "office_ids"),
                     ("area", "area"),
                     ("gender", "gender"),

@@ -76,7 +76,7 @@ public sealed class ChatOrchestratorTests
 
         Assert.Equal(
             [
-                "AgeOnNextBirthday", "DisplayName", "Gender", "HireDate", "Id",
+                "AgeOnNextBirthday", "DisplayName", "Email", "Gender", "HireDate", "Id",
                 "JobTitle", "LastName", "ManagerDisplayName", "ManagerEmployeeId", "OfficeIds"
             ],
             fields);
@@ -84,6 +84,7 @@ public sealed class ChatOrchestratorTests
         Assert.Equal("Cardenas", employee.GetProperty("LastName").GetString());
         Assert.Equal("2018-09-17", employee.GetProperty("HireDate").GetString());
         Assert.Equal("M", employee.GetProperty("Gender").GetString());
+        Assert.Equal("mauricio.cardenas34@example.com", employee.GetProperty("Email").GetString());
         Assert.Equal("employee-demo-juan", employee.GetProperty("ManagerEmployeeId").GetString());
         Assert.Equal("Juan Pérez", employee.GetProperty("ManagerDisplayName").GetString());
 
@@ -380,6 +381,7 @@ public sealed class ChatOrchestratorTests
         Assert.Contains("decline politely", system.Content);
         Assert.Contains("never invent employees, dates or facts", system.Content);
         Assert.Contains("never shift, merge, reorder or invent values between rows", system.Content);
+        Assert.Contains("never construct or", system.Content);
         Assert.Contains("information is not available", system.Content);
         Assert.Contains("salary", system.Content, StringComparison.OrdinalIgnoreCase);
         Assert.Contains("bank account", system.Content, StringComparison.OrdinalIgnoreCase);

@@ -79,8 +79,9 @@ public sealed class HcmDataQueryValidatorTests
     {
         var projection = _validator.Validate(new HcmDataQueryRequest(
             "employees",
-            Fields: ["area", "gender", "manager_employee_id", "manager_display_name", "years_in_company"]));
+            Fields: ["email", "area", "gender", "manager_employee_id", "manager_display_name", "years_in_company"]));
         Assert.Contains(projection.Fields, field => field.Name == "years_in_company");
+        Assert.Contains(projection.Fields, field => field.Name == "email");
 
         var grouped = _validator.Validate(new HcmDataQueryRequest(
             "employees",

@@ -39,6 +39,10 @@ Test runner: `dotnet test TalentAssistant.sln --configuration Debug` (unidad + i
 - S10. Verificación: inicialización limpia local con los volúmenes y guardas nuevas; consultas
   de ejemplo (cargo, área, antigüedad, cantidad por área, hombres/mujeres, jefe) contra
   Postgres; compilación y suite completa en verde.
+- S11. Los correos del dataset ficticio siguen el formato `nombre.apellido{random}@example.com`
+  (minúsculas, sin acentos, sufijo numérico determinista) y el correo corporativo
+  (`first_email`) se expone como `email` en el directorio y en el dataset `employees` para
+  responder «el correo de un empleado». `second_email` no se expone.
 
 ## Tasks
 
@@ -50,6 +54,7 @@ Test runner: `dotnet test TalentAssistant.sln --configuration Debug` (unidad + i
 | T4 | S8 | inline | Completada | Prompt + pin en `ChatOrchestratorTests` |
 | T5 | S9 | inline | Completada | `local-setup.md`, SPEC-012 §11, AC-040 |
 | T6 | S10 | inline | Completada | Muestras SQL verificadas; suite y fallo ambiental documentados |
+| T7 | S11 | inline | Completada | Correos `nombre.apellidoNN@example.com` en 209 filas; `email` en contrato/dataset; init 197 emails únicos; integración 202/202 |
 
 ## Log
 
@@ -109,3 +114,16 @@ Test runner: `dotnet test TalentAssistant.sln --configuration Debug` (unidad + i
 - L7 (2026-10-25) La recarga de la VPS requiere recrear la base demo (columnas nuevas); la
   ejecuta el usuario. El bundle `vps-demo-upgrade.psql` no añade `gender` y no aplica sobre
   el shape anterior.
+- L8 (2026-10-25, usuario, verbatim): «podemos hacer que los correos sean algo como
+  nombre.apellido{random}@example.com para que sean mas realistas, ademas para que en caso de
+  pedir el correo de un empleado se vea mas realista».
+- L9 (2026-10-25) T7 implementada: los 209 `first_email` usan
+  `lower(translate(nombre))` + `.` + `lower(translate(apellido))` + sufijo determinista de dos
+  dígitos + `@example.com`; los fixtures pasan de `empleado.00N@example.com` a
+  `nombre.apellidoNN@example.com`. El contrato expone `email` (`NULLIF(first_email,'')`) en
+  `talentassistant_employees` y en el dataset `employees`; `second_email` queda fuera. Guard de
+  `demo-scale.sql` actualizado al nuevo patrón (regex). Init limpio:
+  `employees=209, active=197, distinct_names=197, distinct_emails=197, areas=11, timeoff=2000,
+  time_checks_45d=20000, tasks=2000`. Muestra: `Pablo Molina` →
+  `pablo.molina23@example.com`; `Lucía López` → `lucia.lopez31@example.com` (sin acento).
+  Build 0 errores; integración 202/202; la unitaria ambiental sigue igual.

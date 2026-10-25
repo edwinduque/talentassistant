@@ -33,7 +33,8 @@ public sealed class SyntheticWorkforceSource : IHcmWorkforceSource
         int? BirthYear,
         string? Gender,
         string? ManagerEmployeeId,
-        string? ManagerDisplayName);
+        string? ManagerDisplayName,
+        string? Email);
 
     // Proper nouns are data and stay identical across languages (SPEC-007 §6).
     // Juan Herrera exists only to share the first name "Juan" with Juan Pérez
@@ -57,31 +58,31 @@ public sealed class SyntheticWorkforceSource : IHcmWorkforceSource
         {
             ["employee-demo-juan"] = new(
                 "Responsable de equipo", "Pérez", new DateOnly(2019, 2, 11), 4, 12, 1985,
-                "M", null, null),
+                "M", null, null, "juan.perez12@example.com"),
             ["employee-demo-pedro"] = new(
                 "Especialista de soporte", "Rojas", new DateOnly(2020, 6, 1), 7, 23, 1990,
-                "M", "employee-demo-juan", "Juan Pérez"),
+                "M", "employee-demo-juan", "Juan Pérez", "pedro.rojas23@example.com"),
             ["employee-demo-mauricio"] = new(
                 "Técnico de nómina", "Cardenas", new DateOnly(2018, 9, 17), 11, 30, 1988,
-                "M", "employee-demo-juan", "Juan Pérez"),
+                "M", "employee-demo-juan", "Juan Pérez", "mauricio.cardenas34@example.com"),
             ["employee-demo-herrera"] = new(
                 "Analista de jornada", "Herrera", new DateOnly(2021, 3, 22), 2, 18, 1992,
-                "M", "employee-demo-juan", "Juan Pérez"),
+                "M", "employee-demo-juan", "Juan Pérez", "juan.herrera45@example.com"),
             ["employee-demo-madrid"] = new(
                 "Operario de planta", "Vidal", new DateOnly(2022, 1, 10), null, null, null,
-                "F", "employee-demo-herrera", "Juan Herrera"),
+                "F", "employee-demo-herrera", "Juan Herrera", "aitana.vidal56@example.com"),
             ["employee-demo-tokyo-002"] = new(
                 "Operario de planta", "Domínguez", new DateOnly(2022, 5, 16), 5, 9, 1995,
-                "M", "employee-demo-herrera", "Juan Herrera"),
+                "M", "employee-demo-herrera", "Juan Herrera", "gael.dominguez67@example.com"),
             ["employee-demo-madrid-004"] = new(
                 null, "Soler", new DateOnly(2023, 4, 3), 9, 27, 1996,
-                "F", "employee-demo-juan", "Juan Pérez"),
+                "F", "employee-demo-juan", "Juan Pérez", "nadia.soler78@example.com"),
             ["employee-demo-tokyo"] = new(
                 "Mozo de almacén", "Pardo", new DateOnly(2023, 8, 21), 12, 2, 1997,
-                "F", "employee-demo-herrera", "Juan Herrera"),
+                "F", "employee-demo-herrera", "Juan Herrera", "mireia.pardo89@example.com"),
             ["employee-demo-madrid-002"] = new(
                 null, "Castaño", new DateOnly(2024, 11, 5), 3, 14, 1998,
-                "M", "employee-demo-juan", "Juan Pérez")
+                "M", "employee-demo-juan", "Juan Pérez", "bruno.castano90@example.com")
         };
 
     // Presentation texts for the workforce capabilities (SPEC-008 §6).
@@ -332,6 +333,7 @@ public sealed class SyntheticWorkforceSource : IHcmWorkforceSource
                     Gender: profile?.Gender,
                     ManagerEmployeeId: profile?.ManagerEmployeeId,
                     ManagerDisplayName: profile?.ManagerDisplayName,
+                    Email: profile?.Email,
                     BirthdayMonth: profile?.BirthdayMonth,
                     BirthdayDay: profile?.BirthdayDay);
             })
@@ -350,6 +352,7 @@ public sealed class SyntheticWorkforceSource : IHcmWorkforceSource
                 Gender: profile.Gender,
                 ManagerEmployeeId: profile.ManagerEmployeeId,
                 ManagerDisplayName: profile.ManagerDisplayName,
+                Email: profile.Email,
                 BirthdayMonth: profile.BirthdayMonth,
                 BirthdayDay: profile.BirthdayDay);
         });

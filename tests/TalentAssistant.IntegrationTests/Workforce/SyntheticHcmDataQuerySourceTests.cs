@@ -93,10 +93,11 @@ public sealed class SyntheticHcmDataQuerySourceTests
     {
         var result = await ExecuteAsync(new HcmDataQueryRequest(
             "employees",
-            Fields: ["display_name", "area", "gender", "manager_display_name", "years_in_company"],
+            Fields: ["display_name", "email", "area", "gender", "manager_display_name", "years_in_company"],
             Filters: [new HcmDataQueryFilter("display_name", "contains", "Mauricio")]));
 
         var row = Assert.Single(result.Rows);
+        Assert.Equal("mauricio.cardenas34@example.com", row["email"]);
         Assert.Equal("Finanzas", row["area"]);
         Assert.Equal("M", row["gender"]);
         Assert.Equal("Juan Pérez", row["manager_display_name"]);

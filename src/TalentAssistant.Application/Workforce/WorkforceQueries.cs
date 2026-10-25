@@ -67,6 +67,7 @@ public sealed record HcmEmployeeDirectoryEntry(
     string? Gender = null,
     string? ManagerEmployeeId = null,
     string? ManagerDisplayName = null,
+    string? Email = null,
     [property: System.Text.Json.Serialization.JsonIgnore]
     int? BirthdayMonth = null,
     [property: System.Text.Json.Serialization.JsonIgnore]

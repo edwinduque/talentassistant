@@ -241,7 +241,7 @@ Desde SPEC-011 la aplicación puede consultar el HCM real desde su PostgreSQL de
 
 ### Servicio local de pruebas (`hcm-postgres`)
 
-El perfil Compose incluye un servicio `postgres:17-alpine` publicado **solo en loopback** (`127.0.0.1:5433`) que aplica el contrato de `db/hcm-contract/` sobre la réplica local del shape real (`public.*`) y las tablas legadas ficticias `hcm.*` de tareas/insights. La semilla contiene 209 empleados (197 activos), al menos 2.000 ausencias visibles, 20.000 marcajes en 45 días y 2.000 tareas, con **nombres completos únicos**, 11 áreas, género `F`/`M`, cargo plausible y jefe directo; nunca copia datos personales reales. `gender` es un añadido local del dataset ficticio: no está en el shape real pegado (`upstream.sql`) y el contrato de producción solo podrá servirlo si el HCM lo expone. La base real del HCM no se toca desde este servicio y este no lleva TLS por diseño: es una excepción local documentada, no la postura de la base real.
+El perfil Compose incluye un servicio `postgres:17-alpine` publicado **solo en loopback** (`127.0.0.1:5433`) que aplica el contrato de `db/hcm-contract/` sobre la réplica local del shape real (`public.*`) y las tablas legadas ficticias `hcm.*` de tareas/insights. La semilla contiene 209 empleados (197 activos), al menos 2.000 ausencias visibles, 20.000 marcajes en 45 días y 2.000 tareas, con **nombres completos únicos**, 11 áreas, género `F`/`M`, cargo plausible, jefe directo y correo `nombre.apellidoNN@example.com` expuesto como `email`; nunca copia datos personales reales. `gender` es un añadido local del dataset ficticio: no está en el shape real pegado (`upstream.sql`) y el contrato de producción solo podrá servirlo si el HCM lo expone. La base real del HCM no se toca desde este servicio y este no lleva TLS por diseño: es una excepción local documentada, no la postura de la base real.
 
 Para restablecer por completo la base de pruebas del contrato:
 
@@ -257,7 +257,7 @@ Desde SPEC-012, `hcm-postgres` sirve el contrato sobre una réplica local con la
 |---|---|
 | `db/hcm-real/upstream.sql` | DDL del usuario **verbatim** (2026-10-20). No se ejecuta: es la fuente de verdad del shape cambiante. |
 | `db/hcm-real/schema.sql` | Adaptación ejecutable a PostgreSQL: identidades deterministas, `timestamp` (`time_check_date_utc` como `timestamptz`), `smallint`, `boolean`, `text`, `"job:title"` entrecomillado; añade 9 FK locales, 5 índices de apoyo y la columna local `gender` (solo dataset ficticio), documentados en su cabecera. |
-| `db/hcm-real/seed.sql` | Semilla base ficticia, determinista por día UTC y de una sola ejecución; incluye `demo-scale.sql` para completar nombres y volúmenes. Nombres completos únicos, 11 áreas, género y jefe por área. No se ejecuta otra vez sobre una base ya inicializada. |
+| `db/hcm-real/seed.sql` | Semilla base ficticia, determinista por día UTC y de una sola ejecución; incluye `demo-scale.sql` para completar nombres y volúmenes. Nombres completos únicos, 11 áreas, género, jefe por área y correos `nombre.apellidoNN@example.com`. No se ejecuta otra vez sobre una base ya inicializada. |
 
 Orden del pipeline de init (`db/hcm-contract/local/01_init.sh`, con `ON_ERROR_STOP=1`): `/real/schema.sql` → `/real/seed.sql` (incluye el top-up `demo-scale.sql`) → `local_tables.sql` → `views.sql` → `local_seed.sql` (empleados de FK, tareas e insight) → `roles.sql` → contraseña del rol de aplicación desde el entorno → `grants.sql` → `/real/verify-demo-data.sql`. Al terminar imprime el marcador `hcm contract initialized`.
 

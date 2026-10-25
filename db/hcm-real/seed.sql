@@ -127,15 +127,15 @@ INSERT INTO public.employee (
     "job:title", updated_on, vacancy_supervisor, timecheck_supervisor,
     photo_url, second_email)
 VALUES
-    (1, TIMESTAMP '2026-01-05 09:00:00', NULL, 'juan.perez@example.com', '+34600000001', TIMESTAMP '1985-04-12 00:00:00', TIMESTAMP '2019-02-11 00:00:00', 'Juan', 'Dirección', 'Pérez', 'M', TIMESTAMP '2026-10-16 17:42:00', 1, 1, 2, 'Responsable de equipo', TIMESTAMP '2026-09-10 10:00:00', 0, 0, '/photos/employee/juan-perez.png', 'juan.perez.alt@example.com'),
-    (2, TIMESTAMP '2026-01-05 09:05:00', NULL, 'pedro.rojas@example.com', '+34600000002', TIMESTAMP '1990-07-23 00:00:00', TIMESTAMP '2020-06-01 00:00:00', 'Pedro', 'Soporte', 'Rojas', 'M', TIMESTAMP '2026-10-16 09:20:00', 2, 1, 2, 'Especialista de soporte', TIMESTAMP '2026-08-21 12:30:00', 1, 1, '/photos/employee/pedro-rojas.png', ''),
-    (3, TIMESTAMP '2026-01-05 09:10:00', NULL, 'mauricio.cardenas@example.com', '+34600000003', TIMESTAMP '1988-11-30 00:00:00', TIMESTAMP '2018-09-17 00:00:00', 'Mauricio', 'Finanzas', 'Cardenas', 'M', TIMESTAMP '2026-10-15 18:05:00', 1, 0, 2, 'Técnico de nómina', TIMESTAMP '2026-07-03 09:45:00', 1, 1, NULL, ''),
-    (4, TIMESTAMP '2026-01-05 09:15:00', NULL, 'juan.herrera@example.com', '+34600000004', TIMESTAMP '1992-02-18 00:00:00', TIMESTAMP '2021-03-22 00:00:00', 'Juan', 'Operaciones', 'Herrera', 'M', TIMESTAMP '2026-10-16 08:58:00', 2, 1, 2, 'Analista de jornada', TIMESTAMP '2026-09-01 16:20:00', 1, 1, '/photos/employee/juan-herrera.png', ''),
-     (5, TIMESTAMP '2026-01-05 09:20:00', NULL, 'empleado.001@example.com', '+34600000005', NULL, TIMESTAMP '2022-01-10 00:00:00', 'Aitana', 'Operaciones', 'Vidal', 'F', TIMESTAMP '2026-10-16 07:55:00', 1, 0, 2, 'Operario de planta', NULL, 4, 4, NULL, ''),
-     (6, TIMESTAMP '2026-01-05 09:25:00', NULL, 'empleado.005@example.com', '+34600000006', TIMESTAMP '1995-05-09 00:00:00', TIMESTAMP '2022-05-16 00:00:00', 'Gael', 'Operaciones', 'Domínguez', 'M', TIMESTAMP '2026-10-16 08:12:00', 2, 0, 2, 'Operario de planta', TIMESTAMP '2026-06-14 11:00:00', 4, 4, '/photos/employee/empleado-005.png', ''),
-     (7, TIMESTAMP '2026-01-05 09:30:00', NULL, 'empleado.004@example.com', '+34600000007', TIMESTAMP '1996-09-27 00:00:00', TIMESTAMP '2023-04-03 00:00:00', 'Nadia', 'Calidad', 'Soler', 'F', NULL, 1, 0, 2, NULL, NULL, 1, 1, NULL, ''),
-     (8, TIMESTAMP '2026-01-05 09:35:00', NULL, 'empleado.002@example.com', '+34600000008', TIMESTAMP '1997-12-02 00:00:00', TIMESTAMP '2023-08-21 00:00:00', 'Mireia', 'Operaciones', 'Pardo', 'F', TIMESTAMP '2026-10-16 09:05:00', 2, 0, 2, 'Mozo de almacén', TIMESTAMP '2026-05-20 13:10:00', 4, 4, NULL, ''),
-     (9, TIMESTAMP '2026-01-05 09:40:00', NULL, 'empleado.003@example.com', '', TIMESTAMP '1998-03-14 00:00:00', TIMESTAMP '2024-11-05 00:00:00', 'Bruno', 'Compras', 'Castaño', 'M', NULL, 1, 0, 2, NULL, NULL, 1, 1, NULL, '')
+    (1, TIMESTAMP '2026-01-05 09:00:00', NULL, 'juan.perez12@example.com', '+34600000001', TIMESTAMP '1985-04-12 00:00:00', TIMESTAMP '2019-02-11 00:00:00', 'Juan', 'Dirección', 'Pérez', 'M', TIMESTAMP '2026-10-16 17:42:00', 1, 1, 2, 'Responsable de equipo', TIMESTAMP '2026-09-10 10:00:00', 0, 0, '/photos/employee/juan-perez.png', 'juan.perez.alt@example.com'),
+    (2, TIMESTAMP '2026-01-05 09:05:00', NULL, 'pedro.rojas23@example.com', '+34600000002', TIMESTAMP '1990-07-23 00:00:00', TIMESTAMP '2020-06-01 00:00:00', 'Pedro', 'Soporte', 'Rojas', 'M', TIMESTAMP '2026-10-16 09:20:00', 2, 1, 2, 'Especialista de soporte', TIMESTAMP '2026-08-21 12:30:00', 1, 1, '/photos/employee/pedro-rojas.png', ''),
+    (3, TIMESTAMP '2026-01-05 09:10:00', NULL, 'mauricio.cardenas34@example.com', '+34600000003', TIMESTAMP '1988-11-30 00:00:00', TIMESTAMP '2018-09-17 00:00:00', 'Mauricio', 'Finanzas', 'Cardenas', 'M', TIMESTAMP '2026-10-15 18:05:00', 1, 0, 2, 'Técnico de nómina', TIMESTAMP '2026-07-03 09:45:00', 1, 1, NULL, ''),
+    (4, TIMESTAMP '2026-01-05 09:15:00', NULL, 'juan.herrera45@example.com', '+34600000004', TIMESTAMP '1992-02-18 00:00:00', TIMESTAMP '2021-03-22 00:00:00', 'Juan', 'Operaciones', 'Herrera', 'M', TIMESTAMP '2026-10-16 08:58:00', 2, 1, 2, 'Analista de jornada', TIMESTAMP '2026-09-01 16:20:00', 1, 1, '/photos/employee/juan-herrera.png', ''),
+     (5, TIMESTAMP '2026-01-05 09:20:00', NULL, 'aitana.vidal56@example.com', '+34600000005', NULL, TIMESTAMP '2022-01-10 00:00:00', 'Aitana', 'Operaciones', 'Vidal', 'F', TIMESTAMP '2026-10-16 07:55:00', 1, 0, 2, 'Operario de planta', NULL, 4, 4, NULL, ''),
+     (6, TIMESTAMP '2026-01-05 09:25:00', NULL, 'gael.dominguez67@example.com', '+34600000006', TIMESTAMP '1995-05-09 00:00:00', TIMESTAMP '2022-05-16 00:00:00', 'Gael', 'Operaciones', 'Domínguez', 'M', TIMESTAMP '2026-10-16 08:12:00', 2, 0, 2, 'Operario de planta', TIMESTAMP '2026-06-14 11:00:00', 4, 4, '/photos/employee/empleado-005.png', ''),
+     (7, TIMESTAMP '2026-01-05 09:30:00', NULL, 'nadia.soler78@example.com', '+34600000007', TIMESTAMP '1996-09-27 00:00:00', TIMESTAMP '2023-04-03 00:00:00', 'Nadia', 'Calidad', 'Soler', 'F', NULL, 1, 0, 2, NULL, NULL, 1, 1, NULL, ''),
+     (8, TIMESTAMP '2026-01-05 09:35:00', NULL, 'mireia.pardo89@example.com', '+34600000008', TIMESTAMP '1997-12-02 00:00:00', TIMESTAMP '2023-08-21 00:00:00', 'Mireia', 'Operaciones', 'Pardo', 'F', TIMESTAMP '2026-10-16 09:05:00', 2, 0, 2, 'Mozo de almacén', TIMESTAMP '2026-05-20 13:10:00', 4, 4, NULL, ''),
+     (9, TIMESTAMP '2026-01-05 09:40:00', NULL, 'bruno.castano90@example.com', '', TIMESTAMP '1998-03-14 00:00:00', TIMESTAMP '2024-11-05 00:00:00', 'Bruno', 'Compras', 'Castaño', 'M', NULL, 1, 0, 2, NULL, NULL, 1, 1, NULL, '')
 ;
 
 -- Empleados generados: n = 1..200 → ids 101..300 (hueco permitido).
@@ -162,6 +162,8 @@ WITH generated AS (
         n,
         name_index,
         last_name_index,
+        (ARRAY['Ana','Lucía','Marta','Elena','Carmen','Nora','Raquel','Alicia','Irene','Sara','Luis','Jorge','Diego','Pablo','Hugo','Álvaro','Sergio','Marcos','Rubén','Iván'])[name_index] AS first_name,
+        (ARRAY['García','López','Martínez','Sánchez','Romero','Navarro','Iglesias','Ortega','Vázquez','Molina'])[last_name_index] AS last_name,
         CASE
             WHEN area_rank < 34 THEN 'Ingeniería'
             WHEN area_rank < 66 THEN 'Ventas'
@@ -181,13 +183,18 @@ SELECT
     100 + n,
     TIMESTAMP '2026-01-04 09:00:00' + (n * interval '11 minutes'),
     CASE WHEN n % 16 = 0 THEN TIMESTAMP '2026-09-01 10:00:00' + (n * interval '3 hours') ELSE NULL END,
-    CASE WHEN n % 9 = 0 THEN '' ELSE 'persona' || n || '@example.com' END,
+    -- Correo corporativo ficticio nombre.apellidoNN@example.com (sin acentos,
+    -- minúsculas y sufijo determinista). Sustituye al patrón personaN@example.com.
+    lower(translate(first_name, 'ÁÉÍÓÚáéíóúÑñÜü', 'AEIOUaeiouNnUu'))
+        || '.' || lower(translate(last_name, 'ÁÉÍÓÚáéíóúÑñÜü', 'AEIOUaeiouNnUu'))
+        || lpad(((n * 37) % 90 + 10)::text, 2, '0')
+        || '@example.com',
     CASE WHEN n % 7 = 0 THEN '' ELSE '+346' || lpad(((n * 7919) % 1000000000)::text, 9, '0') END,
     CASE WHEN n % 5 = 0 THEN NULL ELSE TIMESTAMP '1970-01-01 00:00:00' + ((n * 37) % 12000) * interval '1 day' END,
     TIMESTAMP '2016-01-01 00:00:00' + ((n * 19) % 3650) * interval '1 day',
-    (ARRAY['Ana','Lucía','Marta','Elena','Carmen','Nora','Raquel','Alicia','Irene','Sara','Luis','Jorge','Diego','Pablo','Hugo','Álvaro','Sergio','Marcos','Rubén','Iván'])[name_index],
+    first_name,
     area,
-    (ARRAY['García','López','Martínez','Sánchez','Romero','Navarro','Iglesias','Ortega','Vázquez','Molina'])[last_name_index],
+    last_name,
     CASE WHEN name_index <= 10 THEN 'F' ELSE 'M' END,
     CASE WHEN n % 4 = 0 THEN NULL
          ELSE TIMESTAMP '2026-06-01 08:30:00' + ((n * 7) % 90) * interval '1 day' + ((n * 37) % 540) * interval '1 minute' END,

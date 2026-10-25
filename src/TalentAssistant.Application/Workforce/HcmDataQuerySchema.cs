@@ -34,6 +34,7 @@ public static class HcmDataQuerySchema
                 "employees",
                 Field("employee_id", HcmQueryFieldType.Text),
                 Field("display_name", HcmQueryFieldType.Text, accentInsensitive: true),
+                Field("email", HcmQueryFieldType.Text),
                 Field("office_ids", HcmQueryFieldType.TextArray),
                 Field("area", HcmQueryFieldType.Text),
                 Field("gender", HcmQueryFieldType.Text),
