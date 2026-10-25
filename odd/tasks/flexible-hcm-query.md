@@ -46,7 +46,7 @@ El usuario indicó: «que no se dañen los guarda rieles que ya se han creado co
 
 ## Tasks
 
-- T1 — S1–S5: implementar de extremo a extremo el plan declarativo, validación, ejecución en ambas fuentes, herramienta de chat, pruebas y documentación; ruta inline; verificación cerrada con recheck focal, commit pendiente; `Risk: item 2 (consulta dinámica, campos sensibles y solo lectura), item 3 (contratos Application y catálogo del asistente)`.
+- T1 — S1–S5: implementar de extremo a extremo el plan declarativo, validación, ejecución en ambas fuentes, herramienta de chat, pruebas y documentación; ruta inline; completo; commit `f9592f4`; `Risk: item 2 (consulta dinámica, campos sensibles y solo lectura), item 3 (contratos Application y catálogo del asistente)`.
 
 ## Log
 
@@ -113,3 +113,10 @@ El usuario aprobó explícitamente ADR-0014 para continuar con la implementació
 > feature-branch-chain (Recommended)
 
 El usuario eligió la cadena de ramas de feature. Se autoriza el work-unit commit local; no se crearán PRs, tracker ni se hará push sin autorización separada. La división en PR slices queda pendiente de esa autorización.
+
+### L9 — Cierre de T1 (2026-10-25)
+
+- Commit del work unit: `f9592f4` (`feat(assistant): add validated dynamic HCM queries`), en `feat/flexible-hcm-query`.
+- El commit contiene 3.014 adiciones y 129 eliminaciones (3.143 líneas de cambio). La implementación, documentación y pruebas forman una sola capacidad de extremo a extremo; no se forzó una división funcional solo para encajar la heurística de 400 líneas.
+- Suite completa del verificador: 195/196 antes de corregir una aserción obsoleta del catálogo; tras la corrección y el test HTTP de S4, el recheck acotado pasó 9/9. No se volvió a ejecutar una suite completa tras la corrección por el límite de recheck.
+- Revisión de seguridad read-only: sin vulnerabilidades confirmadas; queda el riesgo prompt-only y la política de egreso de datos reales descritos en L7. RDD permanece `disabled/unmanaged`; no hubo PR, push ni llamadas a Groq/base real.

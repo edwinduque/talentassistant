@@ -67,4 +67,4 @@ La autorización, la selección de fuente (`Sintética` o `Postgres`) y la ident
 
 ## Aprobación y vigencia
 
-El usuario aprobó explícitamente ADR-0014 el 2026-10-25. La implementación autorizada queda sujeta a los invariantes, pruebas negativas y límites definidos en este ADR y SPEC-020; no autoriza SQL libre, acceso directo del modelo a la base ni escritura de datos.
+El usuario aprobó explícitamente ADR-0014 el 2026-10-25. La decisión quedó implementada en `f9592f4`, sujeta a los invariantes, pruebas negativas y límites definidos en este ADR y SPEC-020; no autoriza SQL libre, acceso directo del modelo a la base ni escritura de datos.

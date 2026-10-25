@@ -1,6 +1,6 @@
 # SPEC-020 — Consulta flexible y controlada de datos de RR. HH.
 
-- **Estado:** Aprobada para implementación (2026-10-25); ADR-0014 aceptado; implementación en curso.
+- **Estado:** Implementada en `f9592f4` (2026-10-25); ADR-0014 aceptado; sin PR ni publicación.
 - **Fecha:** 2026-10-25.
 - **Requisitos relacionados:** FR-041; amplía FR-036 y FR-040.
 - **Criterios relacionados:** AC-055..AC-059.
@@ -130,4 +130,4 @@ No quedan decisiones de producto pendientes para comenzar las tareas; toda desvi
 
 ## 10. Estado y aprobación
 
-El usuario confirmó el 2026-10-25 que las consultas deben ser dinámicas y de solo lectura, que salario y número de cuenta son datos sensibles excluidos, y que los demás datos disponibles pueden consultarse. ADR-0014 fue aprobado explícitamente; la implementación de T1 está en curso según `odd/tasks/flexible-hcm-query.md`.
+El usuario confirmó el 2026-10-25 que las consultas deben ser dinámicas y de solo lectura, que salario y número de cuenta son datos sensibles excluidos, y que los demás datos disponibles pueden consultarse. ADR-0014 fue aprobado explícitamente; T1 quedó implementada en `f9592f4`. La evidencia y las limitaciones de verificación se registran en `odd/tasks/flexible-hcm-query.md`.
