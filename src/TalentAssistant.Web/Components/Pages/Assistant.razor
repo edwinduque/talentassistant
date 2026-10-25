@@ -15,8 +15,45 @@
         }
 
         .assistant-heading {
-            max-width: 42rem;
+            display: flex;
+            flex-wrap: wrap;
+            align-items: flex-start;
+            justify-content: space-between;
+            gap: 1rem;
+            max-width: 46rem;
             margin-bottom: 2rem;
+        }
+
+        .assistant-heading-body {
+            flex: 1 1 22rem;
+            max-width: 42rem;
+        }
+
+        .assistant-new-chat {
+            min-height: 2.5rem;
+            padding: 0.45rem 1rem;
+            border: 1px solid var(--action-background);
+            border-radius: var(--control-radius);
+            background: var(--surface);
+            color: var(--action-background);
+            font: inherit;
+            font-weight: 700;
+            cursor: pointer;
+        }
+
+        .assistant-new-chat:hover:not(:disabled) {
+            background: var(--action-background);
+            color: var(--action-foreground);
+        }
+
+        .assistant-new-chat:disabled {
+            cursor: not-allowed;
+            opacity: 0.5;
+        }
+
+        .assistant-new-chat:focus-visible {
+            outline: 3px solid var(--focus);
+            outline-offset: 2px;
         }
 
         .assistant-heading h1 {
@@ -191,9 +228,17 @@
     </style>
 
     <header class="assistant-heading">
-        <p class="eyebrow">@Local["Eyebrow"]</p>
-        <h1>@Local["Title"]</h1>
-        <p class="assistant-intro">@Local["Subtitle"]</p>
+        <div class="assistant-heading-body">
+            <p class="eyebrow">@Local["Eyebrow"]</p>
+            <h1>@Local["Title"]</h1>
+            <p class="assistant-intro">@Local["Subtitle"]</p>
+        </div>
+        <button type="button"
+                class="assistant-new-chat"
+                disabled="@(_isSending || !HasConversation)"
+                @onclick="StartNewChat">
+            @Local["NewChat"]
+        </button>
     </header>
 
     <section class="assistant-thread" aria-live="polite">
@@ -267,6 +312,23 @@
     private readonly List<ChatItem> _messages = [];
     private string _draft = string.Empty;
     private bool _isSending;
+
+    private bool HasConversation => _messages.Count > 0 || _draft.Length > 0;
+
+    // SPEC-009 §15: the thread is client-held, so this button only clears it in
+    // memory; nothing is stored or sent. While a request is in flight the
+    // button is disabled and this guard keeps a late answer out of the fresh
+    // conversation.
+    private void StartNewChat()
+    {
+        if (_isSending)
+        {
+            return;
+        }
+
+        _messages.Clear();
+        _draft = string.Empty;
+    }
 
     private async Task SendAsync()
     {

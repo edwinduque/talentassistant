@@ -1,6 +1,6 @@
 # SPEC-009 — Asistente conversacional con herramientas del backend
 
-- **Estado:** Aprobada e implementada (2026-10-17); enmiendas de nombres y consulta flexible aprobadas (2026-10-18, 2026-10-25); SPEC-020/ADR-0014 implementan la consulta dinámica.
+- **Estado:** Aprobada e implementada (2026-10-17); enmiendas de nombres y consulta flexible aprobadas (2026-10-18, 2026-10-25); SPEC-020/ADR-0014 implementan la consulta dinámica; enmienda de nuevo chat y presentación de respuestas aprobada (2026-10-25).
 - **Implementación:** T1 (orquestador y cliente de proveedor) y T2 (interfaz de chat) en `feat/conversational-assistant`; T3 (documentación) implementada.
 - **Requisitos relacionados:** FR-029, FR-030, FR-031, FR-040 y FR-041; NFR-021/022.
 - **Criterios relacionados:** AC-029..AC-032 y AC-051 (enmiendas previas); AC-055..AC-059 (SPEC-020).
@@ -142,3 +142,13 @@ El usuario indicó: «No modificacion de datos, consultas dinamicas pero que no 
 - Salario, número de cuenta y exclusiones previas como el año de nacimiento crudo siguen bloqueados en toda posición del plan. Otros campos no sensibles de las vistas HCM no necesitan aprobación individual.
 - Los agregados se calculan en la fuente; errores, campos ausentes y datos inexistentes se explican sin inventar. SPEC-010 conserva el rechazo de solicitudes ajenas como generar una función en Python.
 - La aprobación técnica y sus límites están en ADR-0014; SPEC-020 define AC-055..AC-059.
+
+## 15. Enmienda: nuevo chat y presentación de respuestas (2026-10-25)
+
+Verbatim del usuario: «Ayudame con un nuevo requerimiento, me gustaría que el asistente tuviera en alguna parte un boton para crear un nuevo chat, aunque no se guarde pues como para limpiar todo, por otro lado tambien veo que el chat responde como en un formato md, es posible que cuando se muesttra se viera bonito y no con *** o mejor lo retornamos plano». Ante la alternativa de devolver texto plano, el usuario eligió renderizar un subconjunto seguro de markdown.
+
+- La página `/assistant` incluye un botón «Nuevo chat» (EN «New chat») en la cabecera. Limpia en memoria la conversación y el borrador del campo de texto de esa sesión; no guarda, no recarga la página y no llama al backend. Se deshabilita mientras hay una respuesta en curso, de modo que una respuesta pendiente no aparece en la conversación nueva.
+- La Web presenta las respuestas del asistente con un subconjunto de markdown renderizado como componentes Blazor: párrafos, saltos de línea simples, encabezados `#`, `##` y `###`, listas con viñetas (`-`, `*`, `+`), listas numeradas, negrita `**texto**`, cursiva `*texto*` y código inline. No se soportan HTML crudo, enlaces, imágenes, tablas, bloques de código cercados, escape con `\` ni énfasis con `_`/`__` (colisionan con identificadores); la sintaxis no reconocida o sin cerrar permanece literal.
+- El renderizado no usa `MarkupString` ni interpreta el texto del modelo como HTML: todo el contenido se emite como texto codificado por Blazor.
+- Los mensajes del usuario, los avisos de error y la línea de fuentes siguen en texto plano. El contrato de `POST /chat` no cambia: el formato es una decisión de presentación de la Web.
+- El system prompt pide párrafos cortos, listas con `-` o numeradas para varios registros y negrita solo para etiquetas o valores clave, y prohíbe tablas, enlaces, imágenes, HTML y bloques de código cercados.

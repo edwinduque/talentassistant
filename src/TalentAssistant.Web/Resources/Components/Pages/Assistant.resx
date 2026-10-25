@@ -36,6 +36,9 @@
   <data name="Send" xml:space="preserve">
     <value>Enviar</value>
   </data>
+  <data name="NewChat" xml:space="preserve">
+    <value>Nuevo chat</value>
+  </data>
   <data name="Sending" xml:space="preserve">
     <value>Pensando…</value>
   </data>
