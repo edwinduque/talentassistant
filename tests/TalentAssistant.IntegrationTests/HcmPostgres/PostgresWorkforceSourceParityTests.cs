@@ -128,16 +128,16 @@ public sealed class PostgresWorkforceSourceParityTests : PostgresSourceTestBase
         var synthetic = await Synthetic.SearchEmployeesAsync(query);
         var postgres = await Workforce.SearchEmployeesAsync(query);
 
-        var expected = Assert.Single(synthetic);
         // The widened catalog also matches generated surnames containing "z"
-        // (for example "Vázquez"), so parity runs over the fixture match. The
-        // record itself is compared field by field: OfficeIds is a list, and
-        // record equality would compare it by reference.
-        var employee = postgres.Single(candidate => candidate.Id == expected.Id);
-        Assert.Equal(expected.DisplayName, employee.DisplayName);
-        Assert.Equal("employee-demo-juan", employee.Id);
-        Assert.Equal("Pérez", employee.LastName);
-        Assert.Equal(expected.HireDate, employee.HireDate);
+        // (for example "Vázquez"); fixture parity is checked by stable id.
+        // Compare fields rather than records because OfficeIds is a list.
+        foreach (var expected in synthetic)
+        {
+            var employee = postgres.Single(candidate => candidate.Id == expected.Id);
+            Assert.Equal(expected.DisplayName, employee.DisplayName);
+            Assert.Equal(expected.LastName, employee.LastName);
+            Assert.Equal(expected.HireDate, employee.HireDate);
+        }
     }
 
     [Theory]
@@ -165,10 +165,10 @@ public sealed class PostgresWorkforceSourceParityTests : PostgresSourceTestBase
         // while the synthetic source translates its own catalog - documented
         // difference of the two sources, not a parity failure.
         Assert.Equal(
-            "Empleado sintético 001",
+            "Aitana Vidal",
             postgres.Single(employee => employee.Id == "employee-demo-madrid").DisplayName);
         Assert.Equal(
-            language == "en" ? "Synthetic employee 001" : "Empleado sintético 001",
+            "Aitana Vidal",
             synthetic.Single(employee => employee.Id == "employee-demo-madrid").DisplayName);
     }
 
@@ -327,10 +327,16 @@ public sealed class PostgresWorkforceSourceParityTests : PostgresSourceTestBase
         var query = new EmployeeDataQuery(Language: language);
         var synthetic = await Synthetic.GetTasksAsync(query);
         var postgres = await Workforce.GetTasksAsync(query);
+        var fixtureReferences = synthetic
+            .Select(task => task.Reference)
+            .ToHashSet(StringComparer.Ordinal);
+        var postgresFixtures = postgres
+            .Where(task => fixtureReferences.Contains(task.Reference))
+            .ToArray();
 
         Assert.Equal(4, synthetic.Count);
-        Assert.Equal(4, postgres.Count);
-        Assert.Equal(ByReference(synthetic), ByReference(postgres));
+        Assert.True(postgres.Count >= 2_000, $"Expected at least 2,000 tasks, got {postgres.Count}.");
+        Assert.Equal(ByReference(synthetic), ByReference(postgresFixtures));
     }
 
     private static IReadOnlyList<HcmTimeOffRequest> ByReference(

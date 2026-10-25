@@ -76,10 +76,10 @@ $birthdayFixtures = @(
     @{ NamePattern = 'Pedro Rojas'; Month = 7; Day = 23; Year = 1990 },
     @{ NamePattern = 'Mauricio C.rd.nas'; Month = 11; Day = 30; Year = 1988 },
     @{ NamePattern = 'Juan Herrera'; Month = 2; Day = 18; Year = 1992 },
-    @{ NamePattern = '(Empleado sint\u00E9tico 005|Synthetic employee 005)'; Month = 5; Day = 9; Year = 1995 },
-    @{ NamePattern = '(Empleado sint\u00E9tico 004|Synthetic employee 004)'; Month = 9; Day = 27; Year = 1996 },
-    @{ NamePattern = '(Empleado sint\u00E9tico 002|Synthetic employee 002)'; Month = 12; Day = 2; Year = 1997 },
-    @{ NamePattern = '(Empleado sint\u00E9tico 003|Synthetic employee 003)'; Month = 3; Day = 14; Year = 1998 }
+    @{ NamePattern = 'Gael Dom\u00EDnguez'; Month = 5; Day = 9; Year = 1995 },
+    @{ NamePattern = 'Nadia Soler'; Month = 9; Day = 27; Year = 1996 },
+    @{ NamePattern = 'Mireia Pardo'; Month = 12; Day = 2; Year = 1997 },
+    @{ NamePattern = 'Bruno Casta\u00F1o'; Month = 3; Day = 14; Year = 1998 }
 )
 $nextBirthday = $birthdayFixtures | ForEach-Object {
     $candidate = Get-Date -Year $today.Year -Month $_.Month -Day $_.Day -Hour 0 -Minute 0 -Second 0
@@ -111,7 +111,7 @@ $birthdayAgeOnlyPattern = '(?is)(?=.*\b' + $birthdayAge + '\b)'
 $questions = @(
     @{ Text = "Dime cuales empleados ya estan trabajando."; Tools = @("presence"); Answer = 'Juan' },
     @{ Text = "Dime que empleados no han llegado aun."; Tools = @("presence"); Answer = 'Mauricio' },
-    @{ Text = "Dime que empleados estan de vacaciones."; Tools = @("presence", "timeoff"); Answer = '(?is)(sint.tico 00[23]|synthetic employee 00[23])' },
+    @{ Text = "Dime que empleados estan de vacaciones."; Tools = @("presence", "timeoff"); Answer = '(?is)(Mireia Pardo|Bruno Casta\u00F1o)' },
     @{ Text = "Dime cuantos dias de vacaciones tiene Juan Perez."; Tools = @("timeoff"); Answer = '\b3\b' },
     @{ Text = "Dime cuando regresa Pedro Rojas."; Tools = @("timeoff"); Answer = '(20.*octubre|2026-10-20)' },
     @{ Text = "Dime que tareas tiene pendiente Mauricio Cardenas."; Tools = @("tasks"); Answer = '(n\wmina|payroll)' },

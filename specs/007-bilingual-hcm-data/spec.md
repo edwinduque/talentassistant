@@ -59,9 +59,14 @@ Que el contenido del asistente coincida con el idioma elegido de punta a punta: 
 
 ## 6. Matriz de traducción
 
-Se traducen (ejemplos es/en): `Synthetic employee 001` → `Empleado sintético 001`; `Spain` → `España`, `Japan` → `Japón`; `Synthetic HCM punch event` → `Evento de fichaje sintético del HCM`; `The synthetic HCM reports an attendance finding for review.` → `El HCM sintético informa un hallazgo de asistencia para revisión.`; evidencias y revisiones; `Vacation/Approved/workday` → `Vacación/Aprobado/día laborable`; `Birthday/Pending`, `Calamity/Rejected`, `Maternity leave/Cancelled` y sus resúmenes de relación.
+Se traducen (ejemplos es/en): `Spain` → `España`, `Japan` → `Japón`; `Synthetic HCM punch event` → `Evento de fichaje sintético del HCM`; `The synthetic HCM reports an attendance finding for review.` → `El HCM sintético informa un hallazgo de asistencia para revisión.`; evidencias y revisiones; `Vacation/Approved/workday` → `Vacación/Aprobado/día laborable`; `Birthday/Pending`, `Calamity/Rejected`, `Maternity leave/Cancelled` y sus resúmenes de relación.
 
 Se comparten (idénticos en ambos idiomas): `incident-demo-*`, `employee-demo-*`, `office-demo-*`, `timeoff-demo-*`, `HCM-SYN-RULE-00N`, ciudades (`Madrid`, `Tokyo`), zonas IANA, fechas, horas y duración numérica.
+
+Enmienda 2026-10-25: las etiquetas visibles `Empleado sintético 001..005` se reemplazan por
+nombres ficticios plausibles (`Aitana Vidal`, `Mireia Pardo`, `Bruno Castaño`, `Nadia Soler`,
+`Gael Domínguez`). Como nombres propios, permanecen idénticos en español e inglés; los alias
+estables `employee-demo-*` no cambian.
 
 ## 7. Criterios de aceptación propuestos
 

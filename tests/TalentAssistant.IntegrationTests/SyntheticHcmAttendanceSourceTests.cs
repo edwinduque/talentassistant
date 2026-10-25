@@ -89,7 +89,7 @@ public sealed class SyntheticHcmAttendanceSourceTests
         Assert.Equal("Vacación", first.RelatedTimeOff?.Type);
         Assert.Equal("Aprobado", first.RelatedTimeOff?.Status);
         Assert.Equal("España", first.Office.Country);
-        Assert.Equal("Empleado sintético 001", first.Employee.DisplayName);
+        Assert.Equal("Aitana Vidal", first.Employee.DisplayName);
 
         // Identifiers stay identical to the English variant (SPEC-007 §6).
         var english = await source.GetAttendanceInsightsAsync(query with { Language = "en" });

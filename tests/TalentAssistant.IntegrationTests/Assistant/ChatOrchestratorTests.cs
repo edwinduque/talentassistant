@@ -109,7 +109,7 @@ public sealed class ChatOrchestratorTests
             [
                 new AssistantToolCall("call-1", "search_employees", """{"surname_contains":"z"}""")
             ]));
-        model.Enqueue(new AssistantCompletion("Juan Pérez tiene una z en el apellido.", []));
+        model.Enqueue(new AssistantCompletion("Juan Pérez y Gael Domínguez tienen una z en el apellido.", []));
         var orchestrator = CreateOrchestrator(model);
 
         var result = await orchestrator.ExecuteAsync(
@@ -125,9 +125,10 @@ public sealed class ChatOrchestratorTests
             model.Requests[1].Messages,
             message => message.Role == "tool");
         using var payload = JsonDocument.Parse(toolMessage.Content);
-        var employee = Assert.Single(payload.RootElement.EnumerateArray().ToArray());
-        Assert.Equal("Juan Pérez", employee.GetProperty("DisplayName").GetString());
-        Assert.Equal("Pérez", employee.GetProperty("LastName").GetString());
+        var employees = payload.RootElement.EnumerateArray().ToArray();
+        Assert.Equal(2, employees.Length);
+        Assert.Contains(employees, employee => employee.GetProperty("DisplayName").GetString() == "Juan Pérez");
+        Assert.Contains(employees, employee => employee.GetProperty("DisplayName").GetString() == "Gael Domínguez");
     }
 
     [Fact]
@@ -169,11 +170,11 @@ public sealed class ChatOrchestratorTests
                 (DisplayName: "Pedro Rojas", Month: 7, Day: 23, Year: 1990),
                 (DisplayName: "Mauricio Cardenas", Month: 11, Day: 30, Year: 1988),
                 (DisplayName: "Juan Herrera", Month: 2, Day: 18, Year: 1992),
-                (DisplayName: "Empleado sintético 001", Month: 0, Day: 0, Year: 0),
-                (DisplayName: "Empleado sintético 005", Month: 5, Day: 9, Year: 1995),
-                (DisplayName: "Empleado sintético 004", Month: 9, Day: 27, Year: 1996),
-                (DisplayName: "Empleado sintético 002", Month: 12, Day: 2, Year: 1997),
-                (DisplayName: "Empleado sintético 003", Month: 3, Day: 14, Year: 1998)
+                (DisplayName: "Aitana Vidal", Month: 0, Day: 0, Year: 0),
+                (DisplayName: "Gael Domínguez", Month: 5, Day: 9, Year: 1995),
+                (DisplayName: "Nadia Soler", Month: 9, Day: 27, Year: 1996),
+                (DisplayName: "Mireia Pardo", Month: 12, Day: 2, Year: 1997),
+                (DisplayName: "Bruno Castaño", Month: 3, Day: 14, Year: 1998)
             }
             .Where(birthday => birthday.Month > 0)
             .Select(birthday =>
@@ -236,20 +237,20 @@ public sealed class ChatOrchestratorTests
     }
 
     [Fact]
-    public async Task ToolResultsUseTheRequestedLanguage()
+    public async Task ToolResultsUsePlausibleProperNamesInsteadOfPlaceholderTranslations()
     {
         var model = new ScriptedLanguageModel();
         model.Enqueue(new AssistantCompletion(
             Content: null,
             ToolCalls:
             [
-                new AssistantToolCall("call-1", "search_employees", """{"name":"Synthetic"}""")
+                new AssistantToolCall("call-1", "search_employees", """{"name":"Aitana"}""")
             ]));
-        model.Enqueue(new AssistantCompletion("Those are the synthetic employees.", []));
+        model.Enqueue(new AssistantCompletion("Aitana Vidal works in Madrid.", []));
         var orchestrator = CreateOrchestrator(model);
 
         var result = await orchestrator.ExecuteAsync(
-            new ChatQuery("Who are the synthetic employees?", History: [], Language: "en"));
+            new ChatQuery("Who is Aitana Vidal?", History: [], Language: "en"));
 
         Assert.True(result.Completed);
 
@@ -261,7 +262,8 @@ public sealed class ChatOrchestratorTests
         var toolMessage = Assert.Single(
             model.Requests[1].Messages,
             message => message.Role == "tool");
-        Assert.Contains("Synthetic employee", toolMessage.Content);
+        Assert.Contains("Aitana Vidal", toolMessage.Content);
+        Assert.DoesNotContain("Synthetic employee", toolMessage.Content, StringComparison.Ordinal);
     }
 
     [Fact]

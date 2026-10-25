@@ -88,7 +88,7 @@ public sealed class GetAttendanceInsightsTests
         "incident-demo-001",
         new HcmEmployeeReference(
             "employee-demo-001",
-            "Synthetic employee 001",
+            "Aitana Vidal",
             ["office-demo-001"]),
         new HcmOfficeReference(
             "office-demo-001",

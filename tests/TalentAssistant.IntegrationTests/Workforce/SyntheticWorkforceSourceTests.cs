@@ -34,10 +34,12 @@ public sealed class SyntheticWorkforceSourceTests
         var upper = await Source.SearchEmployeesAsync(
             new EmployeeSearchQuery(SurnameContains: "Z"));
 
-        var employee = Assert.Single(lower);
-        Assert.Equal("employee-demo-juan", employee.Id);
-        Assert.Equal("Pérez", employee.LastName);
-        Assert.Equal(lower.Select(entry => entry.Id), upper.Select(entry => entry.Id));
+        Assert.Equal(
+            new[] { "employee-demo-juan", "employee-demo-tokyo-002" },
+            lower.Select(entry => entry.Id).Order(StringComparer.Ordinal));
+        Assert.Equal(
+            lower.Select(entry => entry.Id).Order(StringComparer.Ordinal),
+            upper.Select(entry => entry.Id).Order(StringComparer.Ordinal));
     }
 
     [Fact]
@@ -93,8 +95,8 @@ public sealed class SyntheticWorkforceSourceTests
         // Shared ids, translated names for the synthetic employees.
         var syntheticSpanish = spanish.Single(employee => employee.Id == "employee-demo-madrid");
         var syntheticEnglish = english.Single(employee => employee.Id == "employee-demo-madrid");
-        Assert.Equal("Empleado sintético 001", syntheticSpanish.DisplayName);
-        Assert.Equal("Synthetic employee 001", syntheticEnglish.DisplayName);
+        Assert.Equal("Aitana Vidal", syntheticSpanish.DisplayName);
+        Assert.Equal("Aitana Vidal", syntheticEnglish.DisplayName);
 
         // Demo employees are proper nouns: identical in both languages.
         Assert.Contains(spanish, employee => employee.DisplayName == "Mauricio Cardenas");
@@ -164,7 +166,7 @@ public sealed class SyntheticWorkforceSourceTests
         // Employee 001 has no birthday in the source: the derived age is null,
         // never an inferred value.
         var withoutBirthday = Assert.Single(await Source.SearchEmployeesAsync(
-            new EmployeeSearchQuery(Name: "Empleado sintético 001")));
+            new EmployeeSearchQuery(Name: "Aitana Vidal")));
         Assert.Null(withoutBirthday.AgeOnNextBirthday);
     }
 
@@ -172,7 +174,7 @@ public sealed class SyntheticWorkforceSourceTests
     public async Task MultipleNameMatchesReturnTheListWithoutChoosing()
     {
         var matches = await Source.SearchEmployeesAsync(
-            new EmployeeSearchQuery(Name: "employee", Language: "en"));
+            new EmployeeSearchQuery(Name: "a", Language: "en"));
 
         Assert.True(matches.Count >= 5, $"Expected several matches, found {matches.Count}");
     }
@@ -236,9 +238,9 @@ public sealed class SyntheticWorkforceSourceTests
             spanish.Entries.Select(entry => entry.Employee.Id).Order(),
             english.Entries.Select(entry => entry.Employee.Id).Order());
         Assert.Contains(spanish.Entries,
-            entry => entry.Employee.DisplayName.StartsWith("Empleado sintético"));
+            entry => entry.Employee.DisplayName == "Aitana Vidal");
         Assert.Contains(english.Entries,
-            entry => entry.Employee.DisplayName.StartsWith("Synthetic employee"));
+            entry => entry.Employee.DisplayName == "Aitana Vidal");
     }
 
     [Fact]

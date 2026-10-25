@@ -66,29 +66,27 @@
 --   MILISEGUNDOS UTC (consistente con time_check_date_utc).
 --
 -- EMPLEADOS DE DEMOSTRACIÓN (paridad con local_seed.sql / SPEC-009-011):
---   ids 1..9 en el mismo orden; name + ' ' + last_name reproduce EXACTAMENTE
---   el display name sintético (p. ej. 'Empleado' + 'sintético 001'); la
---   columna department DOBLA como identificador de unidad orgánica/oficina
---   del contrato (decisión que documenta T3): solo los9 fixtures llevan
---   'office-demo-madrid'/'office-demo-tokyo', los200 generados llevan
---   nombres humanos de departamento (Ingeniería, Ventas…), de modo que la
---   vista del contrato puede acotar el directorio a los fixtures con
---   department LIKE 'office-demo-%' (la suite de paridad exige exactamente 9
---   empleados y 3 ausencias visibles). NO inventa columnas: el shape real no
+--   ids 1..9 en el mismo orden; los nueve aliases del contrato se anclan al id
+--   estable, mientras los nombres visibles son ficticios plausibles; la
+--   columna department funciona como identificador de unidad orgánica/oficina.
+--   Solo los nueve fixtures llevan 'office-demo-madrid'/'office-demo-tokyo';
+--   los 200 generados llevan departamentos humanos (Ingeniería, Ventas…). Las
+--   vistas sirven todos los empleados activos; la paridad se mide sobre los
+--   nueve fixtures por id. NO inventa columnas: el shape real no
 --   tiene duration/duration_unit en timeoff — T3 reconcilia esos textos.
 --
 -- PRESENCIA DE HOY (los hechos de paridad que T3 deriva con §5):
 --   * Working hoy (entrada check_type_id=1 SIN checkout_type_id=3 hoy):
---     Juan(1), Herrera(4), 001(5), 005(6) — solo marcación de entrada hoy.
---   * Not-arrived hoy (sin NINGÚN marcaje hoy): Mauricio(3), 004(7),
---     Pedro(2), 002(8), 003(9). Los fixtures no tienen histórico de
+--     Juan(1), Herrera(4), Aitana(5), Gael(6) — solo marcación de entrada hoy.
+--   * Not-arrived hoy (sin NINGÚN marcaje hoy): Mauricio(3), Nadia(7),
+--     Pedro(2), Mireia(8), Bruno(9). Los fixtures no tienen histórico de
 --     marcaciones: su presencia pasada no es un hecho que el banco verifique.
 --   * Vacation hoy: 002(8) y 003(9) reciben AUSENCIAS APROBADAS nuevas que
 --     cubren CURRENT_DATE con horizonte rodante de un año (date_start hasta
 --     CURRENT_DATE-2, date_end hasta CURRENT_DATE+365; fechas relativas para
 --     que "hoy" funcione cualquier día y la paridad no se degrade con el
 --     paso de los días sin reinicializar).
---     día). Además10 empleados generados tienen ausencias aprobadas que
+--     día). Además 10 empleados generados tienen ausencias aprobadas que
 --     cubren hoy (alimentan los casos vacation de §5).
 --   * DECISIÓN CONOCIDA DE T3 — Pedro: su ausencia fija de paridad termina
 --     el 2026-10-19 inclusivo (ends_before 2026-10-20). Cuando hoy es
@@ -132,11 +130,11 @@ VALUES
     (2, TIMESTAMP '2026-01-05 09:05:00', NULL, 'pedro.rojas@example.com', '+34600000002', TIMESTAMP '1990-07-23 00:00:00', TIMESTAMP '2020-06-01 00:00:00', 'Pedro', 'office-demo-tokyo', 'Rojas', TIMESTAMP '2026-10-16 09:20:00', 2, 1, 2, 'Especialista de soporte', TIMESTAMP '2026-08-21 12:30:00', 1, 1, '/photos/employee/pedro-rojas.png', ''),
     (3, TIMESTAMP '2026-01-05 09:10:00', NULL, 'mauricio.cardenas@example.com', '+34600000003', TIMESTAMP '1988-11-30 00:00:00', TIMESTAMP '2018-09-17 00:00:00', 'Mauricio', 'office-demo-madrid', 'Cardenas', TIMESTAMP '2026-10-15 18:05:00', 1, 0, 2, 'Técnico de nómina', TIMESTAMP '2026-07-03 09:45:00', 1, 1, NULL, ''),
     (4, TIMESTAMP '2026-01-05 09:15:00', NULL, 'juan.herrera@example.com', '+34600000004', TIMESTAMP '1992-02-18 00:00:00', TIMESTAMP '2021-03-22 00:00:00', 'Juan', 'office-demo-tokyo', 'Herrera', TIMESTAMP '2026-10-16 08:58:00', 2, 1, 2, 'Analista de jornada', TIMESTAMP '2026-09-01 16:20:00', 1, 1, '/photos/employee/juan-herrera.png', ''),
-    (5, TIMESTAMP '2026-01-05 09:20:00', NULL, 'empleado.001@example.com', '+34600000005', NULL, TIMESTAMP '2022-01-10 00:00:00', 'Empleado', 'office-demo-madrid', 'sintético 001', TIMESTAMP '2026-10-16 07:55:00', 1, 0, 2, 'Operario de planta', NULL, 3, 3, NULL, ''),
-    (6, TIMESTAMP '2026-01-05 09:25:00', NULL, 'empleado.005@example.com', '+34600000006', TIMESTAMP '1995-05-09 00:00:00', TIMESTAMP '2022-05-16 00:00:00', 'Empleado', 'office-demo-tokyo', 'sintético 005', TIMESTAMP '2026-10-16 08:12:00', 2, 0, 2, 'Operario de planta', TIMESTAMP '2026-06-14 11:00:00', 4, 4, '/photos/employee/empleado-005.png', ''),
-    (7, TIMESTAMP '2026-01-05 09:30:00', NULL, 'empleado.004@example.com', '+34600000007', TIMESTAMP '1996-09-27 00:00:00', TIMESTAMP '2023-04-03 00:00:00', 'Empleado', 'office-demo-madrid', 'sintético 004', NULL, 1, 0, 2, NULL, NULL, 3, 3, NULL, ''),
-    (8, TIMESTAMP '2026-01-05 09:35:00', NULL, 'empleado.002@example.com', '+34600000008', TIMESTAMP '1997-12-02 00:00:00', TIMESTAMP '2023-08-21 00:00:00', 'Empleado', 'office-demo-tokyo', 'sintético 002', TIMESTAMP '2026-10-16 09:05:00', 2, 0, 2, 'Mozo de almacén', TIMESTAMP '2026-05-20 13:10:00', 4, 4, NULL, ''),
-    (9, TIMESTAMP '2026-01-05 09:40:00', NULL, 'empleado.003@example.com', '', TIMESTAMP '1998-03-14 00:00:00', TIMESTAMP '2024-11-05 00:00:00', 'Empleado', 'office-demo-madrid', 'sintético 003', NULL, 1, 0, 2, NULL, NULL, 3, 3, NULL, '')
+     (5, TIMESTAMP '2026-01-05 09:20:00', NULL, 'empleado.001@example.com', '+34600000005', NULL, TIMESTAMP '2022-01-10 00:00:00', 'Aitana', 'office-demo-madrid', 'Vidal', TIMESTAMP '2026-10-16 07:55:00', 1, 0, 2, 'Operario de planta', NULL, 3, 3, NULL, ''),
+     (6, TIMESTAMP '2026-01-05 09:25:00', NULL, 'empleado.005@example.com', '+34600000006', TIMESTAMP '1995-05-09 00:00:00', TIMESTAMP '2022-05-16 00:00:00', 'Gael', 'office-demo-tokyo', 'Domínguez', TIMESTAMP '2026-10-16 08:12:00', 2, 0, 2, 'Operario de planta', TIMESTAMP '2026-06-14 11:00:00', 4, 4, '/photos/employee/empleado-005.png', ''),
+     (7, TIMESTAMP '2026-01-05 09:30:00', NULL, 'empleado.004@example.com', '+34600000007', TIMESTAMP '1996-09-27 00:00:00', TIMESTAMP '2023-04-03 00:00:00', 'Nadia', 'office-demo-madrid', 'Soler', NULL, 1, 0, 2, NULL, NULL, 3, 3, NULL, ''),
+     (8, TIMESTAMP '2026-01-05 09:35:00', NULL, 'empleado.002@example.com', '+34600000008', TIMESTAMP '1997-12-02 00:00:00', TIMESTAMP '2023-08-21 00:00:00', 'Mireia', 'office-demo-tokyo', 'Pardo', TIMESTAMP '2026-10-16 09:05:00', 2, 0, 2, 'Mozo de almacén', TIMESTAMP '2026-05-20 13:10:00', 4, 4, NULL, ''),
+     (9, TIMESTAMP '2026-01-05 09:40:00', NULL, 'empleado.003@example.com', '', TIMESTAMP '1998-03-14 00:00:00', TIMESTAMP '2024-11-05 00:00:00', 'Bruno', 'office-demo-madrid', 'Castaño', NULL, 1, 0, 2, NULL, NULL, 3, 3, NULL, '')
 ;
 
 -- Empleados generados: n = 1..200 → ids 101..300 (hueco permitido).
@@ -160,7 +158,7 @@ SELECT
     TIMESTAMP '2016-01-01 00:00:00' + ((n * 19) % 3650) * interval '1 day',
     (ARRAY['Ana','Luis','Marta','Jorge','Lucía','Diego','Elena','Pablo','Sara','Iván','Carmen','Hugo','Nora','Álvaro','Raquel','Sergio','Alicia','Marcos','Irene','Rubén'])[1 + (n % 20)],
     (ARRAY['Ingeniería','Ventas','Marketing','Finanzas','Soporte','Operaciones','Personas','Legal','Calidad','Compras'])[1 + (n % 10)],
-    (ARRAY['García','López','Martínez','Sánchez','Romero','Navarro','Iglesias','Ortega','Vázquez','Molina'])[1 + ((n * 7) % 20)],
+    (ARRAY['García','López','Martínez','Sánchez','Romero','Navarro','Iglesias','Ortega','Vázquez','Molina'])[1 + ((n * 7) % 10)],
     CASE WHEN n % 4 = 0 THEN NULL
          ELSE TIMESTAMP '2026-06-01 08:30:00' + ((n * 7) % 90) * interval '1 day' + ((n * 37) % 540) * interval '1 minute' END,
     CASE WHEN n % 11 = 0 THEN NULL ELSE 1 + (n % 2) END,
@@ -254,13 +252,15 @@ FROM (SELECT e.id, row_number() OVER (ORDER BY e.id) AS rn
 ;
 
 -- ----------------------------------------------------------------------------
--- 5. timeoff — date_end INCLUSIVO (ver cabecera). 620 filas:
+-- 5. timeoff — date_end INCLUSIVO (ver cabecera). 2.000 filas visibles:
 --    3 fixtures de paridad (textos sintéticos exactos en note), 2 ausencias
 --    de hoy para 002/003 (paridad vacation), 10 ausencias aprobadas que
---    cubren hoy para empleados generados (casos §5) y 605 generadas con
+--    cubren hoy para empleados generados (casos §5) y 1.985 generadas con
 --    ventanas pasadas/futuras/cruzando años fiscales 2025-2026, by_hour
 --    sí/no, notas largas hasta 1000 caracteres, supervisor y fecha de
 --    supervisión en la mayoría, ~5% pendientes (1), ~5% rechazadas (3).
+--    Las generadas se asignan solo a empleados activos para que todas las filas
+--    aparezcan en la vista del contrato sin dejar referencias huérfanas.
 -- ----------------------------------------------------------------------------
 INSERT INTO public.timeoff (
     id, date_start, date_end, note, status_id, timeoff_type_id, employee_id,
@@ -272,8 +272,8 @@ VALUES
     (2, TIMESTAMP '2026-10-15 00:00:00', TIMESTAMP '2026-10-19 00:00:00', 'El HCM sintético informa la ausencia de vacaciones en curso de Pedro Rojas.', 2, 1, 2, 1, TIMESTAMP '2026-10-08 10:15:00', 'Aprobado por el responsable.', 2026, false, TIMESTAMP '2026-10-07 08:45:00'),
     (3, TIMESTAMP '2026-10-16 00:00:00', TIMESTAMP '2026-10-16 00:00:00', 'El HCM sintético informa una solicitud de calamidad rechazada de Mauricio Cardenas.', 3, 2, 3, 1, TIMESTAMP '2026-10-12 11:00:00', 'Rechazado por el responsable.', 2026, false, TIMESTAMP '2026-10-11 17:20:00'),
     -- Vacaciones aprobadas que cubren hoy para 002 (id 8) y 003 (id 9).
-    (4, (CURRENT_DATE - 1)::timestamp, (CURRENT_DATE + 365)::timestamp, 'Vacaciones aprobadas que cubren la fecha de hoy (hecho de paridad de la semilla).', 2, 1, 8, 1, (CURRENT_DATE - 3)::timestamp + interval '10 hours', 'Aprobado por el responsable.', date_part('year', CURRENT_DATE)::integer, false, (CURRENT_DATE - 4)::timestamp + interval '9 hours'),
-    (5, (CURRENT_DATE - 2)::timestamp, (CURRENT_DATE + 365)::timestamp, 'Vacaciones aprobadas que cubren la fecha de hoy (hecho de paridad de la semilla).', 2, 1, 9, 3, (CURRENT_DATE - 5)::timestamp + interval '11 hours', 'Aprobado por el responsable.', date_part('year', CURRENT_DATE)::integer, false, (CURRENT_DATE - 6)::timestamp + interval '9 hours')
+     (4, (CURRENT_DATE - 1)::timestamp, (CURRENT_DATE + 365)::timestamp, 'Vacaciones aprobadas que cubren la fecha actual.', 2, 1, 8, 1, (CURRENT_DATE - 3)::timestamp + interval '10 hours', 'Aprobado por el responsable.', date_part('year', CURRENT_DATE)::integer, false, (CURRENT_DATE - 4)::timestamp + interval '9 hours'),
+     (5, (CURRENT_DATE - 2)::timestamp, (CURRENT_DATE + 365)::timestamp, 'Vacaciones aprobadas que cubren la fecha actual.', 2, 1, 9, 3, (CURRENT_DATE - 5)::timestamp + interval '11 hours', 'Aprobado por el responsable.', date_part('year', CURRENT_DATE)::integer, false, (CURRENT_DATE - 6)::timestamp + interval '9 hours')
 ;
 
 -- 10 ausencias aprobadas que cubren hoy para empleados generados activos sin
@@ -286,7 +286,7 @@ SELECT
     5 + row_number() OVER (ORDER BY e.id),
     (CURRENT_DATE - 2)::timestamp,
     (CURRENT_DATE + 365)::timestamp,
-    'Vacaciones aprobadas que cubren la fecha de hoy (caso vacación generado para SPEC-012 §5).',
+    'Vacaciones aprobadas que cubren la fecha actual.',
     2, 1, e.id, 1,
     (CURRENT_DATE - 5)::timestamp + interval '10 hours',
     'Aprobado por el responsable.',
@@ -298,9 +298,29 @@ FROM (SELECT id FROM public.employee
       ORDER BY id LIMIT 10) e
 ;
 
--- 605 ausencias generadas (ids 16..620). date_start repartido sobre
+-- 1.985 ausencias generadas (ids 16..2.000). date_start repartido sobre
 -- 2025-01-01..2026-12-31 (pasado, futuro y cruzando años fiscales);
 -- date_end = start + 0..9 días o NULL ("hasta nuevo aviso", §10.5).
+WITH active_employees AS (
+    SELECT
+        e.id,
+        row_number() OVER (ORDER BY e.id) AS employee_number,
+        count(*) OVER () AS employee_count
+    FROM public.employee AS e
+    WHERE e.id BETWEEN 101 AND 300
+      AND e.deleted_on IS NULL
+      AND e.status_id <> 3
+), generated AS (
+    SELECT
+        g.n,
+        employee.id AS employee_id,
+        supervisor.id AS employee_id_supervisor
+    FROM generate_series(16, 2000) AS g(n)
+    JOIN active_employees AS employee
+      ON employee.employee_number = ((g.n - 16) % employee.employee_count) + 1
+    JOIN active_employees AS supervisor
+      ON supervisor.employee_number = ((g.n * 29) % supervisor.employee_count) + 1
+)
 INSERT INTO public.timeoff (
     id, date_start, date_end, note, status_id, timeoff_type_id, employee_id,
     employee_id_supervisor, date_supervised, supervisor_note, fiscal_year,
@@ -310,20 +330,27 @@ SELECT
     TIMESTAMP '2025-01-01 00:00:00' + ((n * 17) % 730) * interval '1 day',
     CASE WHEN n % 13 = 0 THEN NULL
          ELSE TIMESTAMP '2025-01-01 00:00:00' + (((n * 17) % 730) + ((n * 3) % 10)) * interval '1 day' END,
-    CASE WHEN n % 11 = 0 THEN NULL
-         WHEN n % 7 = 0 THEN left(repeat('Solicitud de ausencia generada con nota larga para robustez del contrato. ', 30), 1000)
-         ELSE 'Solicitud de ausencia generada ' || n END,
+     CASE WHEN n % 11 = 0 THEN NULL
+         WHEN n % 7 = 0 THEN left(repeat('Solicitud de ausencia registrada con observaciones para revisión del calendario laboral. ', 24), 1000)
+         ELSE CASE n % 6
+             WHEN 0 THEN 'Solicitud de ausencia relacionada con asuntos personales.'
+             WHEN 1 THEN 'Vacaciones planificadas según el calendario del equipo.'
+             WHEN 2 THEN 'Permiso para asistencia a una cita médica.'
+             WHEN 3 THEN 'Ausencia para participar en formación profesional.'
+             WHEN 4 THEN 'Ajuste de jornada acordado con la persona responsable.'
+             ELSE 'Solicitud de ausencia para atender responsabilidades familiares.'
+         END END,
     CASE WHEN n % 20 = 0 THEN 3 WHEN n % 17 = 0 THEN 1 ELSE 2 END,
     1 + (n % 6),
-    101 + ((n * 13) % 200),
-    CASE WHEN n % 11 = 0 THEN NULL ELSE 101 + ((n * 29) % 200) END,
+    employee_id,
+    employee_id_supervisor,
     CASE WHEN n % 11 = 0 THEN NULL
          ELSE TIMESTAMP '2025-01-01 00:00:00' + (((n * 17) % 730) + ((n * 3) % 10) + 2) * interval '1 day' + interval '10 hours' END,
     CASE WHEN n % 5 = 0 THEN NULL ELSE 'Revisión de la ausencia por el responsable.' END,
     CASE WHEN ((n * 17) % 730) < 365 THEN 2025 ELSE 2026 END,
     (n % 2 = 0),
     TIMESTAMP '2025-01-01 00:00:00' + (((n * 17) % 730) - (((n * 5) % 30) + 5)) * interval '1 day' + interval '10 hours'
-FROM generate_series(16, 620) AS g(n)
+FROM generated
 ;
 
 -- ----------------------------------------------------------------------------
@@ -510,5 +537,9 @@ LEFT JOIN public.time_check_delay td
        ON td.employee_id = p.a AND p.k = p.k_link
 ORDER BY p.a, p.k, p.slot
 ;
+
+-- The one-shot baseline seed and its idempotent volume/name top-up share the
+-- same UTC transaction so a clean initialization meets the approved counts.
+\ir demo-scale.sql
 
 COMMIT;

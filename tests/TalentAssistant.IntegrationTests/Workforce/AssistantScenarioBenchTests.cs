@@ -178,8 +178,10 @@ public sealed class AssistantScenarioBenchTests
         var matches = await Source.SearchEmployeesAsync(
             new EmployeeSearchQuery(SurnameContains: "z"));
 
-        var employee = Assert.Single(matches);
-        Assert.Equal("Juan Pérez", employee.DisplayName);
-        Assert.Equal("Pérez", employee.LastName);
+        Assert.Equal(2, matches.Count);
+        Assert.Contains(matches, employee =>
+            employee.DisplayName == "Juan Pérez" && employee.LastName == "Pérez");
+        Assert.Contains(matches, employee =>
+            employee.DisplayName == "Gael Domínguez" && employee.LastName == "Domínguez");
     }
 }

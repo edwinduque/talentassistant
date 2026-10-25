@@ -62,16 +62,16 @@ SELECT
 FROM (
     SELECT
         COALESCE(
-            CASE
-                WHEN e.name = 'Juan' AND e.last_name = 'Pérez' THEN 'employee-demo-juan'
-                WHEN e.name = 'Pedro' AND e.last_name = 'Rojas' THEN 'employee-demo-pedro'
-                WHEN e.name = 'Mauricio' AND e.last_name = 'Cardenas' THEN 'employee-demo-mauricio'
-                WHEN e.name = 'Juan' AND e.last_name = 'Herrera' THEN 'employee-demo-herrera'
-                WHEN e.name || ' ' || e.last_name = 'Empleado sintético 001' THEN 'employee-demo-madrid'
-                WHEN e.name || ' ' || e.last_name = 'Empleado sintético 005' THEN 'employee-demo-tokyo-002'
-                WHEN e.name || ' ' || e.last_name = 'Empleado sintético 004' THEN 'employee-demo-madrid-004'
-                WHEN e.name || ' ' || e.last_name = 'Empleado sintético 002' THEN 'employee-demo-tokyo'
-                WHEN e.name || ' ' || e.last_name = 'Empleado sintético 003' THEN 'employee-demo-madrid-002'
+            CASE e.id
+                WHEN 1 THEN 'employee-demo-juan'
+                WHEN 2 THEN 'employee-demo-pedro'
+                WHEN 3 THEN 'employee-demo-mauricio'
+                WHEN 4 THEN 'employee-demo-herrera'
+                WHEN 5 THEN 'employee-demo-madrid'
+                WHEN 6 THEN 'employee-demo-tokyo-002'
+                WHEN 7 THEN 'employee-demo-madrid-004'
+                WHEN 8 THEN 'employee-demo-tokyo'
+                WHEN 9 THEN 'employee-demo-madrid-002'
             END,
             'employee-' || e.id::text
         ) AS employee_id,
@@ -129,16 +129,16 @@ WITH scoped AS (
     SELECT
         e.id AS int_id,
         COALESCE(
-            CASE
-                WHEN e.name = 'Juan' AND e.last_name = 'Pérez' THEN 'employee-demo-juan'
-                WHEN e.name = 'Pedro' AND e.last_name = 'Rojas' THEN 'employee-demo-pedro'
-                WHEN e.name = 'Mauricio' AND e.last_name = 'Cardenas' THEN 'employee-demo-mauricio'
-                WHEN e.name = 'Juan' AND e.last_name = 'Herrera' THEN 'employee-demo-herrera'
-                WHEN e.name || ' ' || e.last_name = 'Empleado sintético 001' THEN 'employee-demo-madrid'
-                WHEN e.name || ' ' || e.last_name = 'Empleado sintético 005' THEN 'employee-demo-tokyo-002'
-                WHEN e.name || ' ' || e.last_name = 'Empleado sintético 004' THEN 'employee-demo-madrid-004'
-                WHEN e.name || ' ' || e.last_name = 'Empleado sintético 002' THEN 'employee-demo-tokyo'
-                WHEN e.name || ' ' || e.last_name = 'Empleado sintético 003' THEN 'employee-demo-madrid-002'
+            CASE e.id
+                WHEN 1 THEN 'employee-demo-juan'
+                WHEN 2 THEN 'employee-demo-pedro'
+                WHEN 3 THEN 'employee-demo-mauricio'
+                WHEN 4 THEN 'employee-demo-herrera'
+                WHEN 5 THEN 'employee-demo-madrid'
+                WHEN 6 THEN 'employee-demo-tokyo-002'
+                WHEN 7 THEN 'employee-demo-madrid-004'
+                WHEN 8 THEN 'employee-demo-tokyo'
+                WHEN 9 THEN 'employee-demo-madrid-002'
             END,
             'employee-' || e.id::text
         ) AS employee_id,
@@ -206,16 +206,16 @@ SELECT
         'timeoff-' || t.id::text
     ) AS reference,
     COALESCE(
-        CASE
-            WHEN e.name = 'Juan' AND e.last_name = 'Pérez' THEN 'employee-demo-juan'
-            WHEN e.name = 'Pedro' AND e.last_name = 'Rojas' THEN 'employee-demo-pedro'
-            WHEN e.name = 'Mauricio' AND e.last_name = 'Cardenas' THEN 'employee-demo-mauricio'
-            WHEN e.name = 'Juan' AND e.last_name = 'Herrera' THEN 'employee-demo-herrera'
-            WHEN e.name || ' ' || e.last_name = 'Empleado sintético 001' THEN 'employee-demo-madrid'
-            WHEN e.name || ' ' || e.last_name = 'Empleado sintético 005' THEN 'employee-demo-tokyo-002'
-            WHEN e.name || ' ' || e.last_name = 'Empleado sintético 004' THEN 'employee-demo-madrid-004'
-            WHEN e.name || ' ' || e.last_name = 'Empleado sintético 002' THEN 'employee-demo-tokyo'
-            WHEN e.name || ' ' || e.last_name = 'Empleado sintético 003' THEN 'employee-demo-madrid-002'
+        CASE e.id
+            WHEN 1 THEN 'employee-demo-juan'
+            WHEN 2 THEN 'employee-demo-pedro'
+            WHEN 3 THEN 'employee-demo-mauricio'
+            WHEN 4 THEN 'employee-demo-herrera'
+            WHEN 5 THEN 'employee-demo-madrid'
+            WHEN 6 THEN 'employee-demo-tokyo-002'
+            WHEN 7 THEN 'employee-demo-madrid-004'
+            WHEN 8 THEN 'employee-demo-tokyo'
+            WHEN 9 THEN 'employee-demo-madrid-002'
         END,
         'employee-' || e.id::text
     ) AS employee_id,

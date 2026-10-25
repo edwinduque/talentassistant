@@ -15,11 +15,11 @@ public sealed class SyntheticHcmAttendanceSource : IHcmAttendanceSource
     private static readonly IReadOnlyDictionary<string, LocalizedText> Texts =
         new Dictionary<string, LocalizedText>(StringComparer.Ordinal)
         {
-            ["employee.001"] = new("Empleado sintético 001", "Synthetic employee 001"),
-            ["employee.002"] = new("Empleado sintético 002", "Synthetic employee 002"),
-            ["employee.003"] = new("Empleado sintético 003", "Synthetic employee 003"),
-            ["employee.004"] = new("Empleado sintético 004", "Synthetic employee 004"),
-            ["employee.005"] = new("Empleado sintético 005", "Synthetic employee 005"),
+            ["employee.001"] = new("Aitana Vidal", "Aitana Vidal"),
+            ["employee.002"] = new("Mireia Pardo", "Mireia Pardo"),
+            ["employee.003"] = new("Bruno Castaño", "Bruno Castaño"),
+            ["employee.004"] = new("Nadia Soler", "Nadia Soler"),
+            ["employee.005"] = new("Gael Domínguez", "Gael Domínguez"),
             ["office.spain"] = new("España", "Spain"),
             ["office.japan"] = new("Japón", "Japan"),
             ["punch.generic"] = new(

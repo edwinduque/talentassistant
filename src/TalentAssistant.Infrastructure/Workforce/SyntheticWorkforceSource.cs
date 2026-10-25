@@ -61,15 +61,15 @@ public sealed class SyntheticWorkforceSource : IHcmWorkforceSource
             ["employee-demo-herrera"] = new(
                 "Analista de jornada", "Herrera", new DateOnly(2021, 3, 22), 2, 18, 1992),
             ["employee-demo-madrid"] = new(
-                "Operario de planta", "sintético 001", new DateOnly(2022, 1, 10), null, null, null),
+                "Operario de planta", "Vidal", new DateOnly(2022, 1, 10), null, null, null),
             ["employee-demo-tokyo-002"] = new(
-                "Operario de planta", "sintético 005", new DateOnly(2022, 5, 16), 5, 9, 1995),
+                "Operario de planta", "Domínguez", new DateOnly(2022, 5, 16), 5, 9, 1995),
             ["employee-demo-madrid-004"] = new(
-                null, "sintético 004", new DateOnly(2023, 4, 3), 9, 27, 1996),
+                null, "Soler", new DateOnly(2023, 4, 3), 9, 27, 1996),
             ["employee-demo-tokyo"] = new(
-                "Mozo de almacén", "sintético 002", new DateOnly(2023, 8, 21), 12, 2, 1997),
+                "Mozo de almacén", "Pardo", new DateOnly(2023, 8, 21), 12, 2, 1997),
             ["employee-demo-madrid-002"] = new(
-                null, "sintético 003", new DateOnly(2024, 11, 5), 3, 14, 1998)
+                null, "Castaño", new DateOnly(2024, 11, 5), 3, 14, 1998)
         };
 
     // Presentation texts for the workforce capabilities (SPEC-008 §6).

@@ -36,6 +36,25 @@ public sealed class PostgresCatalogScopeTests : PostgresSourceTestBase
             directory.Count > 9,
             $"Expected a catalog wider than the nine fixtures, got {directory.Count}.");
         Assert.Contains(directory, employee => GeneratedEmployeeId.IsMatch(employee.Id));
+        Assert.DoesNotContain(
+            directory,
+            employee => employee.DisplayName.StartsWith(
+                "Empleado sintético ",
+                StringComparison.Ordinal));
+        foreach (var name in new[]
+        {
+            "Aitana Vidal",
+            "Mireia Pardo",
+            "Bruno Castaño",
+            "Nadia Soler",
+            "Gael Domínguez"
+        })
+        {
+            Assert.Contains(directory, employee => employee.DisplayName == name);
+        }
+        Assert.All(
+            directory,
+            employee => Assert.False(string.IsNullOrWhiteSpace(employee.LastName)));
         Assert.Contains(
             directory,
             employee => employee.OfficeIds.Any(
@@ -124,5 +143,30 @@ public sealed class PostgresCatalogScopeTests : PostgresSourceTestBase
         Assert.NotEqual(fixture.Summary, fixtureInEnglish.Summary);
         Assert.Contains("vacaciones", fixture.Summary, StringComparison.OrdinalIgnoreCase);
         Assert.Contains("vacation", fixtureInEnglish.Summary, StringComparison.OrdinalIgnoreCase);
+    }
+
+    [Fact]
+    public async Task DemoDatasetServesThousandsOfAbsencesAndTasksForActiveEmployees()
+    {
+        var directory = await Workforce.SearchEmployeesAsync(new EmployeeSearchQuery());
+        var activeEmployeeIds = directory
+            .Select(employee => employee.Id)
+            .ToHashSet(StringComparer.Ordinal);
+        var timeOff = await Workforce.GetTimeOffAsync(new EmployeeDataQuery());
+        var tasks = await Workforce.GetTasksAsync(new EmployeeDataQuery());
+
+        Assert.True(
+            timeOff.Count >= 2_000,
+            $"Expected at least 2,000 visible absences, got {timeOff.Count}.");
+        Assert.True(
+            tasks.Count >= 2_000,
+            $"Expected at least 2,000 visible tasks, got {tasks.Count}.");
+        Assert.Equal(
+            timeOff.Count,
+            timeOff.Select(item => item.Reference).Distinct(StringComparer.Ordinal).Count());
+        Assert.Equal(
+            tasks.Count,
+            tasks.Select(item => item.Reference).Distinct(StringComparer.Ordinal).Count());
+        Assert.All(tasks, item => Assert.Contains(item.EmployeeId, activeEmployeeIds));
     }
 }

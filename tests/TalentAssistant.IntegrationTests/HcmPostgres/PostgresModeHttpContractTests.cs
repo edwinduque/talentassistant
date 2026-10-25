@@ -104,7 +104,9 @@ public sealed class PostgresModeHttpContractTests
 
         using (var tasks = await GetAsync("/tasks"))
         {
-            Assert.Equal(4, tasks.RootElement.GetArrayLength());
+            Assert.True(
+                tasks.RootElement.GetArrayLength() >= 2_000,
+                $"Expected at least 2,000 tasks, got {tasks.RootElement.GetArrayLength()}.");
         }
 
         using (var insights = await GetAsync(
