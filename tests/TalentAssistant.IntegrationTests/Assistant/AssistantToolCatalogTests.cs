@@ -100,7 +100,21 @@ public sealed class AssistantToolCatalogTests
         Assert.False(root.GetProperty("additionalProperties").GetBoolean());
         Assert.True(properties.TryGetProperty("dataset", out _));
         Assert.True(properties.TryGetProperty("filters", out var filters));
-        Assert.False(filters.GetProperty("items").GetProperty("additionalProperties").GetBoolean());
+
+        // The provider must accept both documented filter shapes (object and
+        // the compact [field, operator, value] array): rejecting them with a
+        // 400 tool_use_failed kills the whole turn before the backend can
+        // return a correctable tool error. Item shape/operators/values are
+        // validated by HcmDataQueryValidator.
+        var filterTypes = filters.GetProperty("type")
+            .EnumerateArray()
+            .Select(entry => entry.GetString())
+            .ToArray();
+        Assert.Contains("array", filterTypes);
+        Assert.Contains("object", filterTypes);
+        Assert.Contains("null", filterTypes);
+        Assert.False(filters.TryGetProperty("items", out _));
+
         Assert.False(properties.TryGetProperty("sql", out _));
         Assert.False(properties.TryGetProperty("write", out _));
     }

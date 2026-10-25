@@ -82,7 +82,7 @@ public sealed class ChatOrchestrator(
             new(
                 "query_hr_data",
                 "Read-only structured HR/HCM query over approved fields; never send SQL or code. Datasets and field ids: employees (employee_id, display_name, email, office_ids, area, gender, manager_employee_id, manager_display_name, years_in_company, birthday_month, birthday_day, job_title, last_name, hire_date, age_on_next_birthday); presence (presence_date, employee_id, employee_display_name, employee_office_ids, state); timeoff (reference, employee_id, type, status, starts_on, ends_before, duration, duration_unit, summary); tasks (reference, employee_id, title, status, due_on, summary); attendance_insights (incident_id, employee_id, employee_display_name, employee_office_ids, office_id, office_country, office_city, office_iana_time_zone, incident_at_utc, work_date, schedule_starts_at, schedule_ends_at, punches, rule_reference, rule_requires_review, rule_summary, rule_evaluated_at_utc, rule_evidence, rule_review_items, related_timeoff_reference, related_starts_on, related_ends_before, related_summary, related_type, related_status, related_duration, related_duration_unit). Salary, account number and raw birth year are not queryable. Select only required fields; max 250 rows and 64 KiB per result.",
-                """{"type":"object","properties":{"dataset":{"type":["string","null"],"enum":["employees","presence","timeoff","tasks","attendance_insights",null]},"fields":{"type":["array","null"],"items":{"type":"string"}},"filters":{"type":["array","null"],"items":{"type":"object","properties":{"field":{"type":["string","null"]},"operator":{"type":["string","null"],"enum":["equals","contains","greater_than","greater_than_or_equal","less_than","less_than_or_equal",null]},"value":{"type":["string","null"]}},"required":["field","operator","value"],"additionalProperties":false}},"aggregate":{"type":["string","null"],"enum":["count","min","max",null]},"aggregate_field":{"type":["string","null"]},"group_by":{"type":["array","null"],"items":{"type":"string"}},"order_by":{"type":["string","null"]},"order_direction":{"type":["string","null"],"enum":["asc","desc",null]},"limit":{"type":["integer","null"]}},"required":["dataset"],"additionalProperties":false}""")
+                """{"type":"object","properties":{"dataset":{"type":["string","null"],"description":"One of employees, presence, timeoff, tasks, attendance_insights."},"fields":{"type":["array","null"],"items":{"type":"string"}},"filters":{"type":["array","object","null"],"description":"Array of filter objects, for example [{\"field\":\"birthday_month\",\"operator\":\"equals\",\"value\":\"11\"}]. Operators: equals, contains, greater_than, greater_than_or_equal, less_than, less_than_or_equal. Values may be strings or numbers."},"aggregate":{"type":["string","null"],"description":"count, min or max."},"aggregate_field":{"type":["string","null"]},"group_by":{"type":["array","null"],"items":{"type":"string"}},"order_by":{"type":["string","null"]},"order_direction":{"type":["string","null"],"description":"asc or desc."},"limit":{"type":["integer","null"]}},"required":["dataset"],"additionalProperties":false}""")
         ]);
 
     // Names for the requested language in system-prompt instructions (SPEC-009 S1).
@@ -225,6 +225,10 @@ public sealed class ChatOrchestrator(
             + " organizational area; office_ids is the array form kept for compatibility. For a manager"
             + " question, select manager_employee_id and manager_display_name and never infer the manager."
             + " Report years_in_company exactly as the source returns it.",
+            "For query_hr_data filters, send an array of objects such as"
+            + " [{\"field\":\"birthday_month\",\"operator\":\"equals\",\"value\":\"11\"}]. operator must be"
+            + " exactly one of equals, contains, greater_than, greater_than_or_equal, less_than or"
+            + " less_than_or_equal; numeric values may be sent as numbers.",
             "For factual questions about employees or the organization, call a data tool and wait for its result; job-offer drafts use the user's supplied requirements and do not require a data tool.",
             "Job-offer drafting is an allowed HR writing task: use only user-provided requirements. Include role, location, shift, salary, benefits, and work modality only when supplied; ask one concise follow-up if a missing detail is essential, otherwise omit it rather than inventing it. When requested, aim for about 500 characters and return the draft in chat only; never save or publish it.",
             "Employee salaries and bank account details remain restricted: never disclose or infer them, and say the information is unavailable if asked. A salary explicitly supplied by the user as an offer term may be repeated only in that job-offer draft.",
@@ -545,6 +549,11 @@ public sealed class ChatOrchestrator(
                 return null;
             }
 
+            if (value.ValueKind == JsonValueKind.Object)
+            {
+                return [ParseFilter(value)];
+            }
+
             if (value.ValueKind != JsonValueKind.Array)
             {
                 throw new HcmDataQueryValidationException("The query filters have an invalid type.");
@@ -553,20 +562,70 @@ public sealed class ChatOrchestrator(
             var filters = new List<HcmDataQueryFilter>();
             foreach (var filter in value.EnumerateArray())
             {
-                if (filter.ValueKind != JsonValueKind.Object)
-                {
-                    throw new HcmDataQueryValidationException("A query filter has an invalid shape.");
-                }
-
-                EnsureProperties(filter, "field", "operator", "value");
-                filters.Add(new HcmDataQueryFilter(
-                    RequiredString(filter, "field"),
-                    RequiredString(filter, "operator"),
-                    RequiredString(filter, "value")));
+                filters.Add(ParseFilter(filter));
             }
 
             return filters;
         }
+
+        private static HcmDataQueryFilter ParseFilter(JsonElement filter)
+        {
+            // The provider may emit the compact [field, operator, value] form
+            // instead of the documented object form. Both are accepted here;
+            // the backend validator remains the authority on field/operator.
+            if (filter.ValueKind == JsonValueKind.Array)
+            {
+                var parts = filter.EnumerateArray().ToArray();
+                if (parts.Length != 3)
+                {
+                    throw new HcmDataQueryValidationException("A query filter has an invalid shape.");
+                }
+
+                return new HcmDataQueryFilter(
+                    RequiredScalarString(parts[0]),
+                    RequiredScalarString(parts[1]),
+                    ScalarString(parts[2]));
+            }
+
+            if (filter.ValueKind != JsonValueKind.Object)
+            {
+                throw new HcmDataQueryValidationException("A query filter has an invalid shape.");
+            }
+
+            EnsureProperties(filter, "field", "operator", "value");
+            return new HcmDataQueryFilter(
+                RequiredString(filter, "field"),
+                RequiredString(filter, "operator"),
+                RequiredFilterValue(filter, "value"));
+        }
+
+        private static string RequiredFilterValue(JsonElement root, string property)
+        {
+            if (!root.TryGetProperty(property, out var value))
+            {
+                throw new HcmDataQueryValidationException("A query filter is missing a value.");
+            }
+
+            return ScalarString(value);
+        }
+
+        private static string RequiredScalarString(JsonElement value) =>
+            value.ValueKind == JsonValueKind.String
+            && !string.IsNullOrWhiteSpace(value.GetString())
+                ? value.GetString()!
+                : throw new HcmDataQueryValidationException(
+                    "A query filter is missing a field or operator.");
+
+        private static string ScalarString(JsonElement value) =>
+            value.ValueKind switch
+            {
+                JsonValueKind.String => value.GetString()!,
+                JsonValueKind.Number => value.GetRawText(),
+                JsonValueKind.True => "true",
+                JsonValueKind.False => "false",
+                _ => throw new HcmDataQueryValidationException(
+                    "A query filter value has an invalid type.")
+            };
 
         private static void EnsureProperties(JsonElement value, params string[] allowed)
         {
