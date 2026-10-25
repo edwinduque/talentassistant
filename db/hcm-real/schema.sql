@@ -27,6 +27,10 @@ CREATE TABLE public.employee (
     name varchar(75),
     department varchar(75),
     last_name varchar(75) DEFAULT '',
+    -- Añadido local del dataset ficticio (2026-10-25): el shape real pegado no
+    -- expone género y el usuario pidió contar hombres/mujeres. No se usa para
+    -- inferir nada; el contrato lo sirve como valor de la fuente.
+    gender varchar(1) NULL,
     last_login timestamp NULL,
     language_id integer NULL,
     role_id integer NOT NULL DEFAULT 0,

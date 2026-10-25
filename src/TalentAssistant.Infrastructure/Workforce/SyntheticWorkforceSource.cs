@@ -30,7 +30,10 @@ public sealed class SyntheticWorkforceSource : IHcmWorkforceSource
         DateOnly? HireDate,
         int? BirthdayMonth,
         int? BirthdayDay,
-        int? BirthYear);
+        int? BirthYear,
+        string? Gender,
+        string? ManagerEmployeeId,
+        string? ManagerDisplayName);
 
     // Proper nouns are data and stay identical across languages (SPEC-007 §6).
     // Juan Herrera exists only to share the first name "Juan" with Juan Pérez
@@ -38,10 +41,10 @@ public sealed class SyntheticWorkforceSource : IHcmWorkforceSource
     private static readonly IReadOnlyList<DemoEmployee> DemoEmployees =
         Array.AsReadOnly<DemoEmployee>(
         [
-            new("employee-demo-juan", "Juan Pérez", "office-demo-madrid"),
-            new("employee-demo-pedro", "Pedro Rojas", "office-demo-tokyo"),
-            new("employee-demo-mauricio", "Mauricio Cardenas", "office-demo-madrid"),
-            new("employee-demo-herrera", "Juan Herrera", "office-demo-tokyo")
+            new("employee-demo-juan", "Juan Pérez", "Dirección"),
+            new("employee-demo-pedro", "Pedro Rojas", "Soporte"),
+            new("employee-demo-mauricio", "Mauricio Cardenas", "Finanzas"),
+            new("employee-demo-herrera", "Juan Herrera", "Operaciones")
         ]);
 
     // Explicit synthetic HCM fields approved for assistant employee search and
@@ -53,23 +56,32 @@ public sealed class SyntheticWorkforceSource : IHcmWorkforceSource
         new Dictionary<string, EmployeeProfile>(StringComparer.Ordinal)
         {
             ["employee-demo-juan"] = new(
-                "Responsable de equipo", "Pérez", new DateOnly(2019, 2, 11), 4, 12, 1985),
+                "Responsable de equipo", "Pérez", new DateOnly(2019, 2, 11), 4, 12, 1985,
+                "M", null, null),
             ["employee-demo-pedro"] = new(
-                "Especialista de soporte", "Rojas", new DateOnly(2020, 6, 1), 7, 23, 1990),
+                "Especialista de soporte", "Rojas", new DateOnly(2020, 6, 1), 7, 23, 1990,
+                "M", "employee-demo-juan", "Juan Pérez"),
             ["employee-demo-mauricio"] = new(
-                "Técnico de nómina", "Cardenas", new DateOnly(2018, 9, 17), 11, 30, 1988),
+                "Técnico de nómina", "Cardenas", new DateOnly(2018, 9, 17), 11, 30, 1988,
+                "M", "employee-demo-juan", "Juan Pérez"),
             ["employee-demo-herrera"] = new(
-                "Analista de jornada", "Herrera", new DateOnly(2021, 3, 22), 2, 18, 1992),
+                "Analista de jornada", "Herrera", new DateOnly(2021, 3, 22), 2, 18, 1992,
+                "M", "employee-demo-juan", "Juan Pérez"),
             ["employee-demo-madrid"] = new(
-                "Operario de planta", "Vidal", new DateOnly(2022, 1, 10), null, null, null),
+                "Operario de planta", "Vidal", new DateOnly(2022, 1, 10), null, null, null,
+                "F", "employee-demo-herrera", "Juan Herrera"),
             ["employee-demo-tokyo-002"] = new(
-                "Operario de planta", "Domínguez", new DateOnly(2022, 5, 16), 5, 9, 1995),
+                "Operario de planta", "Domínguez", new DateOnly(2022, 5, 16), 5, 9, 1995,
+                "M", "employee-demo-herrera", "Juan Herrera"),
             ["employee-demo-madrid-004"] = new(
-                null, "Soler", new DateOnly(2023, 4, 3), 9, 27, 1996),
+                null, "Soler", new DateOnly(2023, 4, 3), 9, 27, 1996,
+                "F", "employee-demo-juan", "Juan Pérez"),
             ["employee-demo-tokyo"] = new(
-                "Mozo de almacén", "Pardo", new DateOnly(2023, 8, 21), 12, 2, 1997),
+                "Mozo de almacén", "Pardo", new DateOnly(2023, 8, 21), 12, 2, 1997,
+                "F", "employee-demo-herrera", "Juan Herrera"),
             ["employee-demo-madrid-002"] = new(
-                null, "Castaño", new DateOnly(2024, 11, 5), 3, 14, 1998)
+                null, "Castaño", new DateOnly(2024, 11, 5), 3, 14, 1998,
+                "M", "employee-demo-juan", "Juan Pérez")
         };
 
     // Presentation texts for the workforce capabilities (SPEC-008 §6).
@@ -317,6 +329,9 @@ public sealed class SyntheticWorkforceSource : IHcmWorkforceSource
                     profile?.JobTitle,
                     profile?.LastName,
                     profile?.HireDate,
+                    Gender: profile?.Gender,
+                    ManagerEmployeeId: profile?.ManagerEmployeeId,
+                    ManagerDisplayName: profile?.ManagerDisplayName,
                     BirthdayMonth: profile?.BirthdayMonth,
                     BirthdayDay: profile?.BirthdayDay);
             })
@@ -332,6 +347,9 @@ public sealed class SyntheticWorkforceSource : IHcmWorkforceSource
                 profile.JobTitle,
                 profile.LastName,
                 profile.HireDate,
+                Gender: profile.Gender,
+                ManagerEmployeeId: profile.ManagerEmployeeId,
+                ManagerDisplayName: profile.ManagerDisplayName,
                 BirthdayMonth: profile.BirthdayMonth,
                 BirthdayDay: profile.BirthdayDay);
         });

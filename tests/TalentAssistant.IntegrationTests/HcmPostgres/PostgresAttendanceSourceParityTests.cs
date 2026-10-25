@@ -30,7 +30,7 @@ public sealed class PostgresAttendanceSourceParityTests : PostgresSourceTestBase
         Assert.Equal("incident-2026-10-13-juan-late", incident.IncidentId);
         Assert.Equal("employee-demo-juan", incident.Employee.Id);
         Assert.Equal("Juan Pérez", incident.Employee.DisplayName);
-        Assert.Contains("office-demo-madrid", incident.Employee.OfficeIds);
+        Assert.Contains("Dirección", incident.Employee.OfficeIds);
         Assert.Equal("Europe/Madrid", incident.Office.IanaTimeZoneId);
 
         Assert.Equal(new DateOnly(2026, 10, 13), incident.Schedule.WorkDate);

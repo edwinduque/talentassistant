@@ -46,18 +46,27 @@ CREATE SCHEMA IF NOT EXISTS hcm_contract;
 --    surname, hire date, birthday month/day and the DERIVED age_on_next_birthday
 --    (age turned at the next birthday from CURRENT_DATE; approved 2026-10-24)
 --    are explicit approved projections; birth year and every other employee
---    column remain outside the contract. Sobre un volumen existente hay que
---    re-aplicar este fichero (ver docs/development/local-setup.md).
+--    column remain outside the contract. Desde 2026-10-25 el contrato añade
+--    area (=department escalar), gender, years_in_company y el jefe directo
+--    (manager_employee_id/manager_display_name desde vacancy_supervisor) para
+--    las preguntas de headcount, antigüedad y jefe. gender es un añadido local
+--    del dataset ficticio: el shape real pegado no lo expone. Sobre un volumen
+--    existente hay que re-aplicar este fichero (ver docs/development/local-setup.md).
 CREATE OR REPLACE VIEW hcm_contract.talentassistant_employees AS
 SELECT
     aliases.employee_id,
     aliases.display_name,
     aliases.office_ids,
+    aliases.area,
+    aliases.gender,
     aliases.job_title,
     aliases.birthday_month,
     aliases.birthday_day,
     aliases.last_name,
     aliases.hire_date,
+    aliases.years_in_company,
+    aliases.manager_employee_id,
+    aliases.manager_display_name,
     aliases.age_on_next_birthday
 FROM (
     SELECT
@@ -80,11 +89,42 @@ FROM (
             'employee-' || e.id::text
         ) AS display_name,
         ARRAY_REMOVE(ARRAY[e.department]::text[], NULL) AS office_ids,
+        e.department AS area,
+        e.gender AS gender,
         e."job:title" AS job_title,
         EXTRACT(MONTH FROM e.birthday_date)::integer AS birthday_month,
         EXTRACT(DAY FROM e.birthday_date)::integer AS birthday_day,
         e.last_name AS last_name,
         e.hire_date::date AS hire_date,
+        -- Tenure in completed years, derived in the HCM view from the approved
+        -- hire date (same pattern as age_on_next_birthday; no birth year or
+        -- other restricted column leaves this view).
+        CASE WHEN e.hire_date IS NULL THEN NULL
+             ELSE DATE_PART('year', AGE(CURRENT_DATE, e.hire_date))::integer
+        END AS years_in_company,
+        -- Jefe directo: el shape real expone vacancy_supervisor como id de
+        -- empleado (0 = sin jefe). Se resuelve el alias estable y el nombre
+        -- visible con el mismo criterio que el directorio.
+        CASE WHEN manager.id IS NULL THEN NULL
+             ELSE COALESCE(
+                 CASE manager.id
+                     WHEN 1 THEN 'employee-demo-juan'
+                     WHEN 2 THEN 'employee-demo-pedro'
+                     WHEN 3 THEN 'employee-demo-mauricio'
+                     WHEN 4 THEN 'employee-demo-herrera'
+                     WHEN 5 THEN 'employee-demo-madrid'
+                     WHEN 6 THEN 'employee-demo-tokyo-002'
+                     WHEN 7 THEN 'employee-demo-madrid-004'
+                     WHEN 8 THEN 'employee-demo-tokyo'
+                     WHEN 9 THEN 'employee-demo-madrid-002'
+                 END,
+                 'employee-' || manager.id::text)
+        END AS manager_employee_id,
+        CASE WHEN manager.id IS NULL THEN NULL
+             ELSE COALESCE(
+                 NULLIF(TRIM(CONCAT(manager.name, ' ', manager.last_name)), ''),
+                 'employee-' || manager.id::text)
+        END AS manager_display_name,
         -- Derived age (SPEC-008 §3, approved 2026-10-24): age turned at the
         -- next birthday occurrence from CURRENT_DATE, with the same Feb-29
         -- rule as the adapter laterals (Feb 29 only on Feb 29); NULL when the
@@ -92,6 +132,7 @@ FROM (
         (EXTRACT(YEAR FROM next_birthday.next_birthday_on)
             - EXTRACT(YEAR FROM e.birthday_date))::integer AS age_on_next_birthday
     FROM public.employee AS e
+    LEFT JOIN public.employee AS manager ON manager.id = e.vacancy_supervisor
     LEFT JOIN LATERAL (
         SELECT dates.next_birthday_on
         FROM (

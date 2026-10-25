@@ -33,7 +33,9 @@ public sealed class PostgresWorkforceSource(
     private const string ReadOnlyTransactionSql = "SET TRANSACTION READ ONLY";
 
     private const string SearchEmployeesSql = """
-        SELECT employee_id, display_name, office_ids, job_title, last_name, hire_date,
+        SELECT employee_id, display_name, office_ids, area, gender,
+               manager_employee_id, manager_display_name,
+               job_title, last_name, hire_date,
                birthday_month, birthday_day, age_on_next_birthday
         FROM hcm_contract.talentassistant_employees
         WHERE @office_id IS NULL OR office_ids && ARRAY[@office_id]
@@ -177,12 +179,15 @@ public sealed class PostgresWorkforceSource(
                         reader.GetString(0),
                         reader.GetString(1),
                         reader.GetFieldValue<string[]>(2),
-                        reader.IsDBNull(3) ? null : reader.GetString(3),
+                        reader.IsDBNull(7) ? null : reader.GetString(7),
+                        reader.IsDBNull(8) ? null : reader.GetString(8),
+                        reader.IsDBNull(9) ? null : reader.GetFieldValue<DateOnly>(9),
+                        reader.IsDBNull(12) ? null : reader.GetFieldValue<int>(12),
                         reader.IsDBNull(4) ? null : reader.GetString(4),
-                        reader.IsDBNull(5) ? null : reader.GetFieldValue<DateOnly>(5),
-                        reader.IsDBNull(8) ? null : reader.GetFieldValue<int>(8),
-                        reader.IsDBNull(6) ? null : reader.GetFieldValue<int>(6),
-                        reader.IsDBNull(7) ? null : reader.GetFieldValue<int>(7));
+                        reader.IsDBNull(5) ? null : reader.GetString(5),
+                        reader.IsDBNull(6) ? null : reader.GetString(6),
+                        BirthdayMonth: reader.IsDBNull(10) ? null : reader.GetFieldValue<int>(10),
+                        BirthdayDay: reader.IsDBNull(11) ? null : reader.GetFieldValue<int>(11));
 
                     // Name and surname-fragment filters run in C# with the shared
                     // matcher; the office filter above runs in SQL.

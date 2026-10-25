@@ -133,10 +133,11 @@ $questions = @(
         AllowNoTools = $true
     },
     # Aggregation over tool records without a per-question tool (S6): count the
-    # employees of one office (4 in office-demo-tokyo).
-    @{ Text = "Cuantos empleados tiene la sede de Tokyo?"; Tools = @("search_employees"); Answer = '(?i)(\b4\b|cuatro)' },
-    # Ranking over tool records (S6): earliest hire date wins (Mauricio, 2018).
-    @{ Text = "Quien es el empleado con mas antiguedad en la empresa?"; Tools = @("search_employees"); Answer = 'Mauricio' }
+    # employees of one area (31 in Operaciones in the realistic demo dataset).
+    @{ Text = "Cuantos empleados hay en Operaciones?"; Tools = @("search_employees", "query_hr_data"); Answer = '(?i)(\b31\b|treinta y uno)' },
+    # Ranking over source fields (S6): earliest hire date wins (Jorge García,
+    # 2016-01-18 in the realistic demo dataset).
+    @{ Text = "Quien es el empleado con mas antiguedad en la empresa?"; Tools = @("search_employees", "query_hr_data"); Answer = '(?i)Jorge García' }
 )
 
 if ($Only -gt 0) {

@@ -62,11 +62,31 @@ public sealed class PostgresCatalogScopeTests : PostgresSourceTestBase
         Assert.Equal(
             directory.Count,
             directory.Select(employee => employee.Id).Distinct(StringComparer.Ordinal).Count());
+        Assert.Equal(
+            directory.Count,
+            directory.Select(employee => employee.DisplayName).Distinct(StringComparer.Ordinal).Count());
+        Assert.All(
+            directory,
+            employee => Assert.Contains(
+                employee.Gender,
+                new[] { "F", "M" }));
         Assert.All(
             directory,
             employee => Assert.All(
                 employee.OfficeIds,
                 office => Assert.False(string.IsNullOrWhiteSpace(office))));
+
+        // Jerarquía realista (2026-10-25): un único máximo responsable sin jefe
+        // y todo manager resuelve a un empleado visible.
+        Assert.Single(directory, employee => employee.ManagerEmployeeId is null);
+        foreach (var employee in directory.Where(
+            candidate => candidate.ManagerEmployeeId is not null))
+        {
+            Assert.Contains(
+                directory,
+                manager => manager.Id == employee.ManagerEmployeeId
+                    && manager.DisplayName == employee.ManagerDisplayName);
+        }
     }
 
     [Fact]

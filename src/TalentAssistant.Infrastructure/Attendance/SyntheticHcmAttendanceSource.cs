@@ -108,7 +108,7 @@ public sealed class SyntheticHcmAttendanceSource : IHcmAttendanceSource
                 new HcmEmployeeReference(
                     "employee-demo-madrid",
                     T(language, "employee.001"),
-                    ReadOnlyList("office-demo-madrid")),
+                    ReadOnlyList("Operaciones")),
                 new HcmOfficeReference(
                     "office-demo-madrid",
                     T(language, "office.spain"),
@@ -149,7 +149,7 @@ public sealed class SyntheticHcmAttendanceSource : IHcmAttendanceSource
                 new HcmEmployeeReference(
                     "employee-demo-tokyo",
                     T(language, "employee.002"),
-                    ReadOnlyList("office-demo-tokyo")),
+                    ReadOnlyList("Operaciones")),
                 new HcmOfficeReference(
                     "office-demo-tokyo",
                     T(language, "office.japan"),
@@ -186,7 +186,7 @@ public sealed class SyntheticHcmAttendanceSource : IHcmAttendanceSource
                 new HcmEmployeeReference(
                     "employee-demo-madrid-002",
                     T(language, "employee.003"),
-                    ReadOnlyList("office-demo-madrid")),
+                    ReadOnlyList("Compras")),
                 new HcmOfficeReference(
                     "office-demo-madrid",
                     T(language, "office.spain"),
@@ -214,7 +214,7 @@ public sealed class SyntheticHcmAttendanceSource : IHcmAttendanceSource
                 new HcmEmployeeReference(
                     "employee-demo-madrid-004",
                     T(language, "employee.004"),
-                    ReadOnlyList("office-demo-madrid")),
+                    ReadOnlyList("Calidad")),
                 new HcmOfficeReference(
                     "office-demo-madrid",
                     T(language, "office.spain"),
@@ -250,7 +250,7 @@ public sealed class SyntheticHcmAttendanceSource : IHcmAttendanceSource
                 new HcmEmployeeReference(
                     "employee-demo-tokyo-002",
                     T(language, "employee.005"),
-                    ReadOnlyList("office-demo-tokyo")),
+                    ReadOnlyList("Operaciones")),
                 new HcmOfficeReference(
                     "office-demo-tokyo",
                     T(language, "office.japan"),

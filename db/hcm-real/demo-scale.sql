@@ -134,11 +134,13 @@ WHERE id = 9
   AND (name, last_name) IS DISTINCT FROM ('Bruno', 'Castaño');
 
 -- Repair the seeded surname-array index bug without touching non-demo rows.
+-- The 2026-10-25 generator mixes the row block into the surname index so the
+-- full name is unique; keep this repair aligned with db/hcm-real/seed.sql.
 UPDATE public.employee AS e
 SET last_name = (ARRAY[
     'García','López','Martínez','Sánchez','Romero',
     'Navarro','Iglesias','Ortega','Vázquez','Molina'
-])[1 + (((e.id - 100) * 7) % 10)]
+])[1 + (((e.id - 100) * 7 + ((e.id - 101) / 20)) % 10)]
 WHERE e.id BETWEEN 101 AND 300
   AND e.last_name IS NULL;
 

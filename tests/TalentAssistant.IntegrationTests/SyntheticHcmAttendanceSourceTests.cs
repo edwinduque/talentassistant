@@ -70,7 +70,7 @@ public sealed class SyntheticHcmAttendanceSourceTests
         Assert.Equal("Japan", insight.Office.Country);
         Assert.Equal("Tokyo", insight.Office.City);
         Assert.Equal("Asia/Tokyo", insight.Office.IanaTimeZoneId);
-        Assert.Contains("office-demo-tokyo", insight.Employee.OfficeIds);
+        Assert.Contains("Operaciones", insight.Employee.OfficeIds);
     }
 
     [Fact]

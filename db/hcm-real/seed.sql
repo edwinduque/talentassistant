@@ -68,9 +68,10 @@
 -- EMPLEADOS DE DEMOSTRACIÓN (paridad con local_seed.sql / SPEC-009-011):
 --   ids 1..9 en el mismo orden; los nueve aliases del contrato se anclan al id
 --   estable, mientras los nombres visibles son ficticios plausibles; la
---   columna department funciona como identificador de unidad orgánica/oficina.
---   Solo los nueve fixtures llevan 'office-demo-madrid'/'office-demo-tokyo';
---   los 200 generados llevan departamentos humanos (Ingeniería, Ventas…). Las
+--   columna department es el área orgánica real (Dirección, Soporte, Finanzas,
+--   Operaciones, Calidad, Compras) también en los fixtures. La ubicación de la
+--   oficina vive en hcm.attendance_incidents, no en employee.department.
+--   Los 200 generados cubren las once áreas con cargos plausibles. Las
 --   vistas sirven todos los empleados activos; la paridad se mide sobre los
 --   nueve fixtures por id. NO inventa columnas: el shape real no
 --   tiene duration/duration_unit en timeoff — T3 reconcilia esos textos.
@@ -122,32 +123,60 @@ BEGIN;
 -- ----------------------------------------------------------------------------
 INSERT INTO public.employee (
     id, created_on, deleted_on, first_email, phone, birthday_date, hire_date,
-    name, department, last_name, last_login, language_id, role_id, status_id,
+    name, department, last_name, gender, last_login, language_id, role_id, status_id,
     "job:title", updated_on, vacancy_supervisor, timecheck_supervisor,
     photo_url, second_email)
 VALUES
-    (1, TIMESTAMP '2026-01-05 09:00:00', NULL, 'juan.perez@example.com', '+34600000001', TIMESTAMP '1985-04-12 00:00:00', TIMESTAMP '2019-02-11 00:00:00', 'Juan', 'office-demo-madrid', 'Pérez', TIMESTAMP '2026-10-16 17:42:00', 1, 1, 2, 'Responsable de equipo', TIMESTAMP '2026-09-10 10:00:00', 3, 3, '/photos/employee/juan-perez.png', 'juan.perez.alt@example.com'),
-    (2, TIMESTAMP '2026-01-05 09:05:00', NULL, 'pedro.rojas@example.com', '+34600000002', TIMESTAMP '1990-07-23 00:00:00', TIMESTAMP '2020-06-01 00:00:00', 'Pedro', 'office-demo-tokyo', 'Rojas', TIMESTAMP '2026-10-16 09:20:00', 2, 1, 2, 'Especialista de soporte', TIMESTAMP '2026-08-21 12:30:00', 1, 1, '/photos/employee/pedro-rojas.png', ''),
-    (3, TIMESTAMP '2026-01-05 09:10:00', NULL, 'mauricio.cardenas@example.com', '+34600000003', TIMESTAMP '1988-11-30 00:00:00', TIMESTAMP '2018-09-17 00:00:00', 'Mauricio', 'office-demo-madrid', 'Cardenas', TIMESTAMP '2026-10-15 18:05:00', 1, 0, 2, 'Técnico de nómina', TIMESTAMP '2026-07-03 09:45:00', 1, 1, NULL, ''),
-    (4, TIMESTAMP '2026-01-05 09:15:00', NULL, 'juan.herrera@example.com', '+34600000004', TIMESTAMP '1992-02-18 00:00:00', TIMESTAMP '2021-03-22 00:00:00', 'Juan', 'office-demo-tokyo', 'Herrera', TIMESTAMP '2026-10-16 08:58:00', 2, 1, 2, 'Analista de jornada', TIMESTAMP '2026-09-01 16:20:00', 1, 1, '/photos/employee/juan-herrera.png', ''),
-     (5, TIMESTAMP '2026-01-05 09:20:00', NULL, 'empleado.001@example.com', '+34600000005', NULL, TIMESTAMP '2022-01-10 00:00:00', 'Aitana', 'office-demo-madrid', 'Vidal', TIMESTAMP '2026-10-16 07:55:00', 1, 0, 2, 'Operario de planta', NULL, 3, 3, NULL, ''),
-     (6, TIMESTAMP '2026-01-05 09:25:00', NULL, 'empleado.005@example.com', '+34600000006', TIMESTAMP '1995-05-09 00:00:00', TIMESTAMP '2022-05-16 00:00:00', 'Gael', 'office-demo-tokyo', 'Domínguez', TIMESTAMP '2026-10-16 08:12:00', 2, 0, 2, 'Operario de planta', TIMESTAMP '2026-06-14 11:00:00', 4, 4, '/photos/employee/empleado-005.png', ''),
-     (7, TIMESTAMP '2026-01-05 09:30:00', NULL, 'empleado.004@example.com', '+34600000007', TIMESTAMP '1996-09-27 00:00:00', TIMESTAMP '2023-04-03 00:00:00', 'Nadia', 'office-demo-madrid', 'Soler', NULL, 1, 0, 2, NULL, NULL, 3, 3, NULL, ''),
-     (8, TIMESTAMP '2026-01-05 09:35:00', NULL, 'empleado.002@example.com', '+34600000008', TIMESTAMP '1997-12-02 00:00:00', TIMESTAMP '2023-08-21 00:00:00', 'Mireia', 'office-demo-tokyo', 'Pardo', TIMESTAMP '2026-10-16 09:05:00', 2, 0, 2, 'Mozo de almacén', TIMESTAMP '2026-05-20 13:10:00', 4, 4, NULL, ''),
-     (9, TIMESTAMP '2026-01-05 09:40:00', NULL, 'empleado.003@example.com', '', TIMESTAMP '1998-03-14 00:00:00', TIMESTAMP '2024-11-05 00:00:00', 'Bruno', 'office-demo-madrid', 'Castaño', NULL, 1, 0, 2, NULL, NULL, 3, 3, NULL, '')
+    (1, TIMESTAMP '2026-01-05 09:00:00', NULL, 'juan.perez@example.com', '+34600000001', TIMESTAMP '1985-04-12 00:00:00', TIMESTAMP '2019-02-11 00:00:00', 'Juan', 'Dirección', 'Pérez', 'M', TIMESTAMP '2026-10-16 17:42:00', 1, 1, 2, 'Responsable de equipo', TIMESTAMP '2026-09-10 10:00:00', 0, 0, '/photos/employee/juan-perez.png', 'juan.perez.alt@example.com'),
+    (2, TIMESTAMP '2026-01-05 09:05:00', NULL, 'pedro.rojas@example.com', '+34600000002', TIMESTAMP '1990-07-23 00:00:00', TIMESTAMP '2020-06-01 00:00:00', 'Pedro', 'Soporte', 'Rojas', 'M', TIMESTAMP '2026-10-16 09:20:00', 2, 1, 2, 'Especialista de soporte', TIMESTAMP '2026-08-21 12:30:00', 1, 1, '/photos/employee/pedro-rojas.png', ''),
+    (3, TIMESTAMP '2026-01-05 09:10:00', NULL, 'mauricio.cardenas@example.com', '+34600000003', TIMESTAMP '1988-11-30 00:00:00', TIMESTAMP '2018-09-17 00:00:00', 'Mauricio', 'Finanzas', 'Cardenas', 'M', TIMESTAMP '2026-10-15 18:05:00', 1, 0, 2, 'Técnico de nómina', TIMESTAMP '2026-07-03 09:45:00', 1, 1, NULL, ''),
+    (4, TIMESTAMP '2026-01-05 09:15:00', NULL, 'juan.herrera@example.com', '+34600000004', TIMESTAMP '1992-02-18 00:00:00', TIMESTAMP '2021-03-22 00:00:00', 'Juan', 'Operaciones', 'Herrera', 'M', TIMESTAMP '2026-10-16 08:58:00', 2, 1, 2, 'Analista de jornada', TIMESTAMP '2026-09-01 16:20:00', 1, 1, '/photos/employee/juan-herrera.png', ''),
+     (5, TIMESTAMP '2026-01-05 09:20:00', NULL, 'empleado.001@example.com', '+34600000005', NULL, TIMESTAMP '2022-01-10 00:00:00', 'Aitana', 'Operaciones', 'Vidal', 'F', TIMESTAMP '2026-10-16 07:55:00', 1, 0, 2, 'Operario de planta', NULL, 4, 4, NULL, ''),
+     (6, TIMESTAMP '2026-01-05 09:25:00', NULL, 'empleado.005@example.com', '+34600000006', TIMESTAMP '1995-05-09 00:00:00', TIMESTAMP '2022-05-16 00:00:00', 'Gael', 'Operaciones', 'Domínguez', 'M', TIMESTAMP '2026-10-16 08:12:00', 2, 0, 2, 'Operario de planta', TIMESTAMP '2026-06-14 11:00:00', 4, 4, '/photos/employee/empleado-005.png', ''),
+     (7, TIMESTAMP '2026-01-05 09:30:00', NULL, 'empleado.004@example.com', '+34600000007', TIMESTAMP '1996-09-27 00:00:00', TIMESTAMP '2023-04-03 00:00:00', 'Nadia', 'Calidad', 'Soler', 'F', NULL, 1, 0, 2, NULL, NULL, 1, 1, NULL, ''),
+     (8, TIMESTAMP '2026-01-05 09:35:00', NULL, 'empleado.002@example.com', '+34600000008', TIMESTAMP '1997-12-02 00:00:00', TIMESTAMP '2023-08-21 00:00:00', 'Mireia', 'Operaciones', 'Pardo', 'F', TIMESTAMP '2026-10-16 09:05:00', 2, 0, 2, 'Mozo de almacén', TIMESTAMP '2026-05-20 13:10:00', 4, 4, NULL, ''),
+     (9, TIMESTAMP '2026-01-05 09:40:00', NULL, 'empleado.003@example.com', '', TIMESTAMP '1998-03-14 00:00:00', TIMESTAMP '2024-11-05 00:00:00', 'Bruno', 'Compras', 'Castaño', 'M', NULL, 1, 0, 2, NULL, NULL, 1, 1, NULL, '')
 ;
 
 -- Empleados generados: n = 1..200 → ids 101..300 (hueco permitido).
--- Departamentos humanos (10) + correos/teléfonos patrón con vacíos
--- ocasionales (los defaults del DDL), fotos/cumpleaños/último acceso a veces
--- NULL, supervisores apuntando a otros empleados existentes (0 en ~10%),
--- language_id mezclado 1/2 (NULL ocasional), role_id 0/1, "job:title" a
--- veces. hire_date repartido sobre 10 años (2016-2025).
+-- Nombres completos ÚNICOS (2026-10-25): el índice de nombre y el de apellido
+-- se mezclan con el bloque de 20 filas para que ningún nombre completo se
+-- repita; el área se asigna con una permutación independiente (61n % 200) para
+-- romper la correlación nombre→área que producía diez «Pablo Molina» en Legal.
+-- Los 20 nombres se reparten 10 femeninos y 10 masculinos; el apellido y el
+-- área no dependen del género. Los cargos son plausibles por área.
 INSERT INTO public.employee (
     id, created_on, deleted_on, first_email, phone, birthday_date, hire_date,
-    name, department, last_name, last_login, language_id, role_id, status_id,
+    name, department, last_name, gender, last_login, language_id, role_id, status_id,
     "job:title", updated_on, vacancy_supervisor, timecheck_supervisor,
     photo_url, second_email)
+WITH generated AS (
+    SELECT
+        n,
+        1 + ((n * 7) % 20) AS name_index,
+        1 + ((n * 7 + (n - 1) / 20) % 10) AS last_name_index,
+        (n * 61) % 200 AS area_rank
+    FROM generate_series(1, 200) AS g(n)
+), classified AS (
+    SELECT
+        n,
+        name_index,
+        last_name_index,
+        CASE
+            WHEN area_rank < 34 THEN 'Ingeniería'
+            WHEN area_rank < 66 THEN 'Ventas'
+            WHEN area_rank < 94 THEN 'Operaciones'
+            WHEN area_rank < 116 THEN 'Soporte'
+            WHEN area_rank < 134 THEN 'Finanzas'
+            WHEN area_rank < 150 THEN 'Marketing'
+            WHEN area_rank < 164 THEN 'Personas'
+            WHEN area_rank < 176 THEN 'Calidad'
+            WHEN area_rank < 186 THEN 'Compras'
+            WHEN area_rank < 194 THEN 'Legal'
+            ELSE 'Dirección'
+        END AS area
+    FROM generated
+)
 SELECT
     100 + n,
     TIMESTAMP '2026-01-04 09:00:00' + (n * interval '11 minutes'),
@@ -156,21 +185,71 @@ SELECT
     CASE WHEN n % 7 = 0 THEN '' ELSE '+346' || lpad(((n * 7919) % 1000000000)::text, 9, '0') END,
     CASE WHEN n % 5 = 0 THEN NULL ELSE TIMESTAMP '1970-01-01 00:00:00' + ((n * 37) % 12000) * interval '1 day' END,
     TIMESTAMP '2016-01-01 00:00:00' + ((n * 19) % 3650) * interval '1 day',
-    (ARRAY['Ana','Luis','Marta','Jorge','Lucía','Diego','Elena','Pablo','Sara','Iván','Carmen','Hugo','Nora','Álvaro','Raquel','Sergio','Alicia','Marcos','Irene','Rubén'])[1 + (n % 20)],
-    (ARRAY['Ingeniería','Ventas','Marketing','Finanzas','Soporte','Operaciones','Personas','Legal','Calidad','Compras'])[1 + (n % 10)],
-    (ARRAY['García','López','Martínez','Sánchez','Romero','Navarro','Iglesias','Ortega','Vázquez','Molina'])[1 + ((n * 7) % 10)],
+    (ARRAY['Ana','Lucía','Marta','Elena','Carmen','Nora','Raquel','Alicia','Irene','Sara','Luis','Jorge','Diego','Pablo','Hugo','Álvaro','Sergio','Marcos','Rubén','Iván'])[name_index],
+    area,
+    (ARRAY['García','López','Martínez','Sánchez','Romero','Navarro','Iglesias','Ortega','Vázquez','Molina'])[last_name_index],
+    CASE WHEN name_index <= 10 THEN 'F' ELSE 'M' END,
     CASE WHEN n % 4 = 0 THEN NULL
          ELSE TIMESTAMP '2026-06-01 08:30:00' + ((n * 7) % 90) * interval '1 day' + ((n * 37) % 540) * interval '1 minute' END,
     CASE WHEN n % 11 = 0 THEN NULL ELSE 1 + (n % 2) END,
     CASE WHEN n % 3 = 0 THEN 1 ELSE 0 END,
     CASE WHEN n % 16 = 0 THEN 3 WHEN n % 17 = 0 THEN 1 ELSE 2 END,
-    CASE WHEN n % 3 = 0 THEN 'Agente de nivel ' || (1 + (n % 4)) ELSE NULL END,
+    CASE WHEN n % 13 = 0 THEN NULL
+         WHEN area = 'Ingeniería' THEN (ARRAY['Desarrollador backend','Desarrollador frontend','QA Engineer','SRE','Arquitecto de software'])[1 + ((n * 11) % 5)]
+         WHEN area = 'Ventas' THEN (ARRAY['Ejecutivo de cuentas','Representante comercial','Key Account Manager','Sales Operations','Responsable de cuentas'])[1 + ((n * 11) % 5)]
+         WHEN area = 'Operaciones' THEN (ARRAY['Operario de planta','Técnico de logística','Coordinador de operaciones','Mozo de almacén','Planificador de producción'])[1 + ((n * 11) % 5)]
+         WHEN area = 'Soporte' THEN (ARRAY['Especialista de soporte','Técnico de soporte N2','Customer Success','Analista de incidencias','Técnico de helpdesk'])[1 + ((n * 11) % 5)]
+         WHEN area = 'Finanzas' THEN (ARRAY['Analista financiero','Contable','Técnico de nómina','Controller','Analista de tesorería'])[1 + ((n * 11) % 5)]
+         WHEN area = 'Marketing' THEN (ARRAY['Especialista de marketing','Content Manager','Growth Analyst','Diseñador gráfico','Community Manager'])[1 + ((n * 11) % 5)]
+         WHEN area = 'Personas' THEN (ARRAY['Técnico de RR. HH.','Reclutador','Business Partner de RR. HH.','Especialista de nóminas','Técnico de formación'])[1 + ((n * 11) % 5)]
+         WHEN area = 'Calidad' THEN (ARRAY['Técnico de calidad','Auditor interno','QA Analyst','Inspector de calidad','Coordinador de calidad'])[1 + ((n * 11) % 5)]
+         WHEN area = 'Compras' THEN (ARRAY['Comprador','Gestor de proveedores','Técnico de compras','Analista de compras','Coordinador de compras'])[1 + ((n * 11) % 5)]
+         WHEN area = 'Legal' THEN (ARRAY['Abogado','Asesor legal','Paralegal','Técnico jurídico','Responsable de cumplimiento'])[1 + ((n * 11) % 5)]
+         ELSE (ARRAY['Director general','Director financiero','Director de operaciones','Asistente de dirección','Director de personas'])[1 + ((n * 11) % 5)]
+    END,
     CASE WHEN n % 2 = 0 THEN TIMESTAMP '2026-06-10 12:00:00' + (n * interval '5 minutes') ELSE NULL END,
-    CASE WHEN n % 10 = 0 THEN 0 WHEN n % 2 = 0 THEN 1 + ((n * 3) % 9) ELSE 101 + ((n * 5) % 200) END,
-    CASE WHEN n % 10 = 0 THEN 0 WHEN n % 3 = 0 THEN 1 + ((n * 5) % 9) ELSE 101 + ((n * 7) % 200) END,
+    0,
+    0,
     CASE WHEN n % 3 = 0 THEN NULL ELSE '/photos/employee/emp-' || n || '.png' END,
     CASE WHEN n % 3 = 0 THEN 'alternativo' || n || '@example.com' ELSE '' END
-FROM generate_series(1, 200) AS g(n)
+FROM classified
+;
+
+-- Jerarquía realista: el empleado activo de menor id de cada área es su
+-- responsable. Los responsables reportan a Juan Pérez (id 1, Dirección) y el
+-- resto de cada área reporta a su responsable. Los fixtures 1..9 ya traen sus
+-- supervisores explícitos y no se tocan.
+WITH active_generated AS (
+    SELECT
+        id,
+        department,
+        row_number() OVER (PARTITION BY department ORDER BY id) AS area_rank
+    FROM public.employee
+    WHERE id BETWEEN 101 AND 300
+      AND deleted_on IS NULL
+      AND status_id <> 3
+), area_managers AS (
+    SELECT department, id AS manager_id
+    FROM active_generated
+    WHERE area_rank = 1
+)
+UPDATE public.employee AS employee
+SET vacancy_supervisor = CASE
+        WHEN employee.id = manager.manager_id THEN 1
+        ELSE manager.manager_id
+    END,
+    timecheck_supervisor = CASE
+        WHEN employee.id = manager.manager_id THEN 1
+        ELSE manager.manager_id
+    END,
+    "job:title" = CASE
+        WHEN employee.id <> manager.manager_id THEN employee."job:title"
+        WHEN manager.department = 'Dirección' THEN 'Director general'
+        ELSE 'Responsable de ' || manager.department
+    END
+FROM area_managers AS manager
+WHERE employee.id BETWEEN 101 AND 300
+  AND employee.department = manager.department
 ;
 
 -- ----------------------------------------------------------------------------
@@ -406,11 +485,11 @@ INSERT INTO public.time_check (
 WITH demo(id) AS (VALUES (1), (4), (5), (6)),
 punch AS (
     SELECT e.id,
-           (e.department = 'office-demo-tokyo') AS tokyo,
+           (e.id IN (4, 6)) AS tokyo,
            row_number() OVER (ORDER BY e.id) AS rn,
            (CURRENT_DATE
-             + (CASE WHEN e.department = 'office-demo-tokyo' THEN 540 ELSE 480 END + (e.id * 7) % 75) * interval '1 minute'
-             - (CASE WHEN e.department = 'office-demo-tokyo' THEN 540 ELSE 120 END) * interval '1 minute') AS utc_wall
+             + (CASE WHEN e.id IN (4, 6) THEN 540 ELSE 480 END + (e.id * 7) % 75) * interval '1 minute'
+             - (CASE WHEN e.id IN (4, 6) THEN 540 ELSE 120 END) * interval '1 minute') AS utc_wall
     FROM demo d JOIN public.employee e ON e.id = d.id
 )
 SELECT

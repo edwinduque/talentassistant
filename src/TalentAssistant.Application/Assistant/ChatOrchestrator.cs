@@ -55,7 +55,7 @@ public sealed class ChatOrchestrator(
         [
             new(
                 "search_employees",
-                "Search by display name, surname fragment, and/or office id (the office is an exact value such as office-demo-tokyo or a department name like Ingeniería; if the value is unknown, call without filters and match OfficeIds); results include approved surname, hire date, job title and derived AgeOnNextBirthday fields.",
+                "Search by display name, surname fragment, and/or office id (the office is an exact area value such as Ingeniería or Soporte; if the value is unknown, call without filters and match OfficeIds); results include approved surname, hire date, job title, area, gender, manager and derived AgeOnNextBirthday fields.",
                 """{"type":"object","properties":{"name":{"type":["string","null"]},"office":{"type":["string","null"]},"surname_contains":{"type":["string","null"],"description":"Substring in the employee's surname"}},"required":[]}"""),
             new(
                 "presence",
@@ -79,7 +79,7 @@ public sealed class ChatOrchestrator(
                 """{"type":"object","properties":{},"required":[]}"""),
             new(
                 "query_hr_data",
-                "Read-only structured HR/HCM query over approved fields; never send SQL or code. Datasets and field ids: employees (employee_id, display_name, office_ids, birthday_month, birthday_day, job_title, last_name, hire_date, age_on_next_birthday); presence (presence_date, employee_id, employee_display_name, employee_office_ids, state); timeoff (reference, employee_id, type, status, starts_on, ends_before, duration, duration_unit, summary); tasks (reference, employee_id, title, status, due_on, summary); attendance_insights (incident_id, employee_id, employee_display_name, employee_office_ids, office_id, office_country, office_city, office_iana_time_zone, incident_at_utc, work_date, schedule_starts_at, schedule_ends_at, punches, rule_reference, rule_requires_review, rule_summary, rule_evaluated_at_utc, rule_evidence, rule_review_items, related_timeoff_reference, related_starts_on, related_ends_before, related_summary, related_type, related_status, related_duration, related_duration_unit). Salary, account number and raw birth year are not queryable. Select only required fields; max 250 rows and 64 KiB per result.",
+                "Read-only structured HR/HCM query over approved fields; never send SQL or code. Datasets and field ids: employees (employee_id, display_name, office_ids, area, gender, manager_employee_id, manager_display_name, years_in_company, birthday_month, birthday_day, job_title, last_name, hire_date, age_on_next_birthday); presence (presence_date, employee_id, employee_display_name, employee_office_ids, state); timeoff (reference, employee_id, type, status, starts_on, ends_before, duration, duration_unit, summary); tasks (reference, employee_id, title, status, due_on, summary); attendance_insights (incident_id, employee_id, employee_display_name, employee_office_ids, office_id, office_country, office_city, office_iana_time_zone, incident_at_utc, work_date, schedule_starts_at, schedule_ends_at, punches, rule_reference, rule_requires_review, rule_summary, rule_evaluated_at_utc, rule_evidence, rule_review_items, related_timeoff_reference, related_starts_on, related_ends_before, related_summary, related_type, related_status, related_duration, related_duration_unit). Salary, account number and raw birth year are not queryable. Select only required fields; max 250 rows and 64 KiB per result.",
                 """{"type":"object","properties":{"dataset":{"type":["string","null"],"enum":["employees","presence","timeoff","tasks","attendance_insights",null]},"fields":{"type":["array","null"],"items":{"type":"string"}},"filters":{"type":["array","null"],"items":{"type":"object","properties":{"field":{"type":["string","null"]},"operator":{"type":["string","null"],"enum":["equals","contains","greater_than","greater_than_or_equal","less_than","less_than_or_equal",null]},"value":{"type":["string","null"]}},"required":["field","operator","value"],"additionalProperties":false}},"aggregate":{"type":["string","null"],"enum":["count","min","max",null]},"aggregate_field":{"type":["string","null"]},"group_by":{"type":["array","null"],"items":{"type":"string"}},"order_by":{"type":["string","null"]},"order_direction":{"type":["string","null"],"enum":["asc","desc",null]},"limit":{"type":["integer","null"]}},"required":["dataset"],"additionalProperties":false}""")
         ]);
 
@@ -187,12 +187,20 @@ public sealed class ChatOrchestrator(
             "When the tools return records that answer the question, present those record values as reported"
             + " (durations, dates, statuses); if the tools return no relevant data, say explicitly that the"
             + " information is not available.",
+            "When you list tool records, copy each row's identifier and values exactly as returned for that"
+            + " same row; never shift, merge, reorder or invent values between rows, and never invent an"
+            + " employee id.",
             "For questions outside HR/HCM (programming, general knowledge, translations, recipes, generic creative writing),"
             + " decline politely in the user's language: first remind them you are their HR/HCM assistant limited"
             + " to people and team data, then offer to help with an HR/HCM question instead; never provide the"
             + " unrelated content.",
             "For factual HR/HCM questions, use query_hr_data with the exact dataset and field ids from its tool description for flexible source-side selection, filters, counts, grouping, ranking and sorting; use domain tools when the source owns a specialized result such as upcoming birthdays. Never send SQL or code to a tool.",
             "The query_hr_data tool accepts a structured plan and is read-only; it accepts only approved data sets and non-sensitive fields. Request only fields needed to answer; for aggregates ask the source to compute the result instead of counting or ranking a large set of returned people in the model. If a result says Truncated is true, do not present its rows as a complete list; narrow the query or explain the limit.",
+            "For headcounts, use query_hr_data with aggregate count and group_by: group by area for counts"
+            + " per area and by gender for men/women counts (gender is F or M). area is the scalar"
+            + " organizational area; office_ids is the array form kept for compatibility. For a manager"
+            + " question, select manager_employee_id and manager_display_name and never infer the manager."
+            + " Report years_in_company exactly as the source returns it.",
             "For factual questions about employees or the organization, call a data tool and wait for its result; job-offer drafts use the user's supplied requirements and do not require a data tool.",
             "Job-offer drafting is an allowed HR writing task: use only user-provided requirements. Include role, location, shift, salary, benefits, and work modality only when supplied; ask one concise follow-up if a missing detail is essential, otherwise omit it rather than inventing it. When requested, aim for about 500 characters and return the draft in chat only; never save or publish it.",
             "Employee salaries and bank account details remain restricted: never disclose or infer them, and say the information is unavailable if asked. A salary explicitly supplied by the user as an offer term may be repeated only in that job-offer draft.",
