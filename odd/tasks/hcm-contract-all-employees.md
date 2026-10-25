@@ -212,3 +212,9 @@ entrega antes del primer commit (pendiente, ver L12).
   `docs(hcm): record the widened contract scope in specs and guides`, `af537c6`
   `docs(odd): add hcm-contract-all-employees feature log`; este documento cierra en el commit
   siguiente. Sin pushes todavía.
+- **L14** (2026-10-25) Publicación según la estrategia elegida: merge fast-forward de
+  `feat/hcm-contract-all-employees` en `main` y push `101c993..a4d6997` a `origin/main`
+  (`9a71b8f`, `5070c50`, `af537c6`, `a4d6997`), más `gh workflow run deploy.yml --ref main` →
+  run `40163343898` (el Environment `production` pide la aprobación del mantenedor; SPEC-015:
+  despliegue nunca automático). Sigue pendiente T5: aplicar `db/hcm-contract/views.sql` en la
+  VPS, que es lo que repara el chat de producción.
