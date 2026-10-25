@@ -106,11 +106,11 @@ vieja por cambio de columnas, se hace `DROP VIEW` en orden inverso de dependenci
 
 | ID | Specs | Ruta | Estado | Commit |
 |----|-------|------|--------|--------|
-| T1 | S1, S2, S3 | inline | Implementada; RED observado: 12 fallos por alcance | sin commit |
-| T2 | S1, S2, S3 | inline; trigger: unidad ya entendida | Implementada; `views.sql` aplicada en local, GREEN 68/68 y suite 185/185 | sin commit |
-| T3 | S4 | inline | Implementada; specs/docs en español actualizados | sin commit |
-| T4 | S1, S2, S3 | inline | Implementada; suite 185/185, vivo 14/14 y guardrails 7/7 (EXIT=0) | sin commit |
-| T5 | S5 | inline | pendiente (autorización de push y comandos de VPS) | — |
+| T1 | S1, S2, S3 | inline | Implementada; RED observado: 12 fallos por alcance | `9a71b8f` |
+| T2 | S1, S2, S3 | inline; trigger: unidad ya entendida | Implementada; `views.sql` aplicada en local, GREEN 68/68 y suite 185/185 | `9a71b8f` |
+| T3 | S4 | inline | Implementada; specs/docs en español actualizados | `5070c50` |
+| T4 | S1, S2, S3 | inline | Implementada; suite 185/185, vivo 14/14 y guardrails 7/7 (EXIT=0) | `9a71b8f` + `5070c50` |
+| T5 | S5 | inline | pendiente (comandos de VPS y dispatch de `deploy.yml`) | — |
 
 Forecast real de líneas autorizadas: **~700** (450 en ficheros modificados + los dos ficheros
 nuevos), por encima del heurístico de ~400 → se requiere la pregunta única de estrategia de
@@ -206,3 +206,9 @@ entrega antes del primer commit (pendiente, ver L12).
   `workflow_dispatch` de `.github/workflows/deploy.yml` con aprobación del Environment
   `production`; sin PR. El diff acumulado (~700 líneas autorizadas) supera el heurístico de ~400,
   de ahí la pregunta.
+- **L13** (2026-10-25) Commits work-unit en `feat/hcm-contract-all-employees` (desde `main` =
+  `101c993`): `9a71b8f` `feat(hcm): serve every active employee from the contract views`
+  (vistas + pruebas + texto del catálogo de herramientas), `5070c50`
+  `docs(hcm): record the widened contract scope in specs and guides`, `af537c6`
+  `docs(odd): add hcm-contract-all-employees feature log`; este documento cierra en el commit
+  siguiente. Sin pushes todavía.
