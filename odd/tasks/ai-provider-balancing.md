@@ -51,6 +51,8 @@ L5 (2026-10-25, implementación): el enrutador scoped selecciona por hash SHA-25
 
 L6 (2026-10-25, verificación): build 0 errores/0 avisos; 261/261 pruebas de integración en verde, incluidas configuración, selección, failover, cortacircuitos, payloads, normalizador y el identificador de extremo a extremo; UnitTests 23/24 por el bloqueo ambiental de App Control ya conocido (`0x800711C7` al cargar `TalentAssistant.Domain.dll`). El script `verify-ai-providers.ps1` se validó con `-DryRun`; no se ejecutaron llamadas reales a Groq ni Gemini.
 
-L7 (2026-10-25, entrega): la rama `feat/ai-provider-balancing` está apilada sobre `feat/assistant-chat-refresh` porque depende de SPEC-021 y del botón «Nuevo chat»; el PR del chat debe integrarse primero. El PR de esta feature incluye el commit de propuesta y tres commits de implementación/cierre (T1, T2 y documentación), sin push ni PR todavía.
+L7 (2026-10-25, entrega): la rama `feat/ai-provider-balancing` está apilada sobre `feat/assistant-chat-refresh` porque depende de SPEC-021 y del botón «Nuevo chat»; el PR del chat debe integrarse primero. El PR de esta feature incluye el commit de propuesta y cuatro commits de implementación/cierre (T1, T2, documentación y observabilidad), sin push ni PR todavía.
 
 L8 (2026-10-25, pendiente): la pasada en vivo con presupuesto de cuatro llamadas confirmará que Gemini acepta el transcript con `tool_calls` de Groq y el esquema normalizado; hasta entonces esa compatibilidad es un riesgo documentado y el fallo se degrada con el error controlado.
+
+L9 (2026-10-25, observabilidad): cada completion registra proveedor, modelo y latencia; los fallos añaden el motivo y el failover. Los logs no incluyen prompt, respuesta, claves ni datos de personas.

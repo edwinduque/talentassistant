@@ -80,4 +80,4 @@ El dominio no conoce proveedores. `ChatOrchestrator` sigue dependiendo del puert
 
 ## Estado
 
-Aceptado e implementado el 2026-10-25 en `feat/ai-provider-balancing` (commits `a4be5db`, `78c4de2` y cierre documental). No se realizaron llamadas reales a Groq o Gemini durante la implementación; la aceptación de Gemini del transcript y del esquema normalizado se confirma con la pasada en vivo opt-in.
+Aceptado e implementado el 2026-10-25 en `feat/ai-provider-balancing` (commits `a4be5db`, `78c4de2`, el commit de observabilidad y el cierre documental). No se realizaron llamadas reales a Groq o Gemini durante la implementación; la aceptación de Gemini del transcript y del esquema normalizado se confirma con la pasada en vivo opt-in.

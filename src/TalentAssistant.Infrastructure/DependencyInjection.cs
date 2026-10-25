@@ -117,7 +117,8 @@ public static class DependencyInjection
                     new OpenAiCompatibleLanguageModel(
                         factory.CreateClient($"assistant-{settings.Name}"),
                         settings.ToClientOptions(),
-                        logger)))
+                        logger),
+                    settings.Model))
                 .ToArray();
 
             return new RoutingLanguageModel(

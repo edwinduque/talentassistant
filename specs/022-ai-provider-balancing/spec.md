@@ -1,6 +1,6 @@
 # SPEC-022 — Balanceo y continuidad entre proveedores de IA
 
-- **Estado:** Aprobada e implementada (2026-10-25) en `feat/ai-provider-balancing`; commits de implementación `a4be5db` y `78c4de2`, cierre documental en este commit; sin push ni PR.
+- **Estado:** Aprobada e implementada (2026-10-25) en `feat/ai-provider-balancing`; commits `a4be5db` (núcleo), `78c4de2` (identificador de conversación), el commit de observabilidad y el cierre documental; sin push ni PR.
 - **Fecha:** 2026-10-25.
 - **Requisitos relacionados:** FR-029, FR-030, NFR-021, NFR-024.
 - **Criterios relacionados:** AC-062, AC-063, AC-064, AC-065.
@@ -175,7 +175,7 @@ Decisiones confirmadas:
 4. `reasoning_effort=low` en Gemini 2.5 Flash y temperatura 0.1 compartida.
 5. Scripts en vivo opt-in con `-MaxCalls 4` y `-PaceSeconds 15`.
 
-Implementación: commits `a4be5db` (configuración, enrutador, cortacircuitos, adaptador y pruebas) y `78c4de2` (identificador de conversación en API/Web y pruebas), más el cierre documental.
+Implementación: commits `a4be5db` (configuración, enrutador, cortacircuitos, adaptador y pruebas), `78c4de2` (identificador de conversación en API/Web y pruebas), el commit de observabilidad (proveedor, modelo y latencia en logs) y el cierre documental.
 
 Evidencia observada: build con 0 errores y 0 avisos; 261/261 pruebas de integración en verde, incluidas configuraciones válidas e inválidas, selección determinista, failover, ambos fallos, cortacircuitos, recuperación tras el enfriamiento, payloads por proveedor, esquema normalizado y el `conversationId` de extremo a extremo. Pruebas unitarias: 23/24; la única falla es el bloqueo ambiental de App Control (`0x800711C7`) al cargar `TalentAssistant.Domain.dll`, reproducido en sesiones anteriores y ajeno a este cambio. No se ejecutaron llamadas reales a Groq o Gemini; el script de humo se validó con `-DryRun` y queda pendiente la pasada en vivo autorizada.
 

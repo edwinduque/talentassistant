@@ -1,4 +1,5 @@
 using System.Buffers.Binary;
+using System.Diagnostics;
 using System.Security.Cryptography;
 using System.Text;
 using Microsoft.Extensions.Logging;
@@ -10,7 +11,8 @@ namespace TalentAssistant.Infrastructure.Assistant;
 public sealed record AssistantProviderSlot(
     string Name,
     int Weight,
-    IAssistantLanguageModel Model);
+    IAssistantLanguageModel Model,
+    string ModelId = "unknown");
 
 /// <summary>
 /// Weighted router over the configured providers (SPEC-022 §3). The provider is
@@ -56,38 +58,46 @@ public sealed class RoutingLanguageModel : IAssistantLanguageModel
         if (_providers.Count == 1)
         {
             var only = _providers[0];
+            var stopwatch = Stopwatch.StartNew();
             try
             {
                 var completion = await only.Model.CompleteAsync(request, cancellationToken);
                 _health.RecordSuccess(only.Name);
+                LogSuccess(only, stopwatch);
                 return completion;
             }
             catch (AssistantProviderUnavailableException exception)
             {
                 _health.RecordFailure(only.Name);
                 _logger.LogWarning(
-                    "Assistant provider {Provider} failed with {Reason}.",
+                    "Assistant provider {Provider} ({Model}) failed with {Reason} after {ElapsedMs} ms.",
                     only.Name,
-                    exception.Reason);
+                    only.ModelId,
+                    exception.Reason,
+                    stopwatch.ElapsedMilliseconds);
                 throw;
             }
         }
 
         var first = ResolveFirstProvider(request.ConversationId);
+        var firstStopwatch = Stopwatch.StartNew();
         try
         {
             var completion = await first.Model.CompleteAsync(request, cancellationToken);
             _health.RecordSuccess(first.Name);
             _active = first;
+            LogSuccess(first, firstStopwatch);
             return completion;
         }
         catch (AssistantProviderUnavailableException firstFailure)
         {
             _health.RecordFailure(first.Name);
             _logger.LogWarning(
-                "Assistant provider {Provider} failed with {Reason}; trying failover.",
+                "Assistant provider {Provider} ({Model}) failed with {Reason} after {ElapsedMs} ms; trying failover.",
                 first.Name,
-                firstFailure.Reason);
+                first.ModelId,
+                firstFailure.Reason,
+                firstStopwatch.ElapsedMilliseconds);
 
             var second = ResolveFailoverProvider(first);
             if (second is null)
@@ -95,11 +105,13 @@ public sealed class RoutingLanguageModel : IAssistantLanguageModel
                 throw;
             }
 
+            var secondStopwatch = Stopwatch.StartNew();
             try
             {
                 var completion = await second.Model.CompleteAsync(request, cancellationToken);
                 _health.RecordSuccess(second.Name);
                 _active = second;
+                LogSuccess(second, secondStopwatch);
                 _logger.LogInformation(
                     "Assistant failover from {FirstProvider} to {SecondProvider} succeeded.",
                     first.Name,
@@ -110,9 +122,11 @@ public sealed class RoutingLanguageModel : IAssistantLanguageModel
             {
                 _health.RecordFailure(second.Name);
                 _logger.LogWarning(
-                    "Assistant provider {Provider} failed with {Reason} after failover.",
+                    "Assistant provider {Provider} ({Model}) failed with {Reason} after {ElapsedMs} ms after failover.",
                     second.Name,
-                    secondFailure.Reason);
+                    second.ModelId,
+                    secondFailure.Reason,
+                    secondStopwatch.ElapsedMilliseconds);
 
                 // Both were rate limited -> the user-facing "service busy"
                 // message; otherwise report the last observed reason.
@@ -127,6 +141,13 @@ public sealed class RoutingLanguageModel : IAssistantLanguageModel
             }
         }
     }
+
+    private void LogSuccess(AssistantProviderSlot slot, Stopwatch stopwatch) =>
+        _logger.LogInformation(
+            "Assistant provider {Provider} ({Model}) completed in {ElapsedMs} ms.",
+            slot.Name,
+            slot.ModelId,
+            stopwatch.ElapsedMilliseconds);
 
     private AssistantProviderSlot ResolveFirstProvider(string? conversationId)
     {
