@@ -249,16 +249,18 @@ public sealed class SyntheticWorkforceSourceTests
         // SPEC-009 T4 scope: only the two name-matching predicates fold
         // accents; office ids keep exact matching (verified live: a folded
         // office id must match nothing).
-        var tokyo = await Source.SearchEmployeesAsync(
-            new EmployeeSearchQuery(OfficeId: "office-demo-tokyo"));
+        var operations = await Source.SearchEmployeesAsync(
+            new EmployeeSearchQuery(OfficeId: "Operaciones"));
 
-        var names = tokyo.Select(employee => employee.DisplayName).ToArray();
-        Assert.Contains("Pedro Rojas", names);
+        var names = operations.Select(employee => employee.DisplayName).ToArray();
         Assert.Contains("Juan Herrera", names);
+        Assert.Contains("Aitana Vidal", names);
+        Assert.Contains("Gael Domínguez", names);
+        Assert.Contains("Mireia Pardo", names);
         Assert.DoesNotContain("Juan Pérez", names);
 
         var folded = await Source.SearchEmployeesAsync(
-            new EmployeeSearchQuery(OfficeId: "office-demo-tókyo"));
+            new EmployeeSearchQuery(OfficeId: "Operaciónes"));
         Assert.Empty(folded);
     }
 

@@ -40,13 +40,33 @@ public sealed class SyntheticHcmDataQuerySource(
         return employees.Select(employee => Row(
             ("employee_id", employee.Id),
             ("display_name", employee.DisplayName),
+            ("email", employee.Email),
             ("office_ids", employee.OfficeIds),
+            ("area", employee.OfficeIds.FirstOrDefault()),
+            ("gender", employee.Gender),
+            ("manager_employee_id", employee.ManagerEmployeeId),
+            ("manager_display_name", employee.ManagerDisplayName),
+            ("years_in_company", YearsInCompany(employee.HireDate)),
             ("birthday_month", employee.BirthdayMonth),
             ("birthday_day", employee.BirthdayDay),
             ("job_title", employee.JobTitle),
             ("last_name", employee.LastName),
             ("hire_date", employee.HireDate),
             ("age_on_next_birthday", employee.AgeOnNextBirthday))).ToArray();
+    }
+
+    // Same completed-years rule as the contract view: the local anchor matches
+    // the synthetic age derivation (the contract anchors to CURRENT_DATE).
+    private static int? YearsInCompany(DateOnly? hireDate)
+    {
+        if (hireDate is null)
+        {
+            return null;
+        }
+
+        var today = DateOnly.FromDateTime(DateTime.Today);
+        var years = today.Year - hireDate.Value.Year;
+        return today < hireDate.Value.AddYears(years) ? years - 1 : years;
     }
 
     private async Task<IReadOnlyList<IReadOnlyDictionary<string, object?>>> GetPresenceAsync(

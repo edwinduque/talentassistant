@@ -6,6 +6,13 @@ DO $$
 DECLARE
     total_employee_count bigint;
     active_employee_count bigint;
+    distinct_visible_names bigint;
+    active_without_email bigint;
+    distinct_email_count bigint;
+    active_without_gender bigint;
+    active_without_manager bigint;
+    unresolved_manager_count bigint;
+    distinct_area_count bigint;
     incomplete_name_count bigint;
     placeholder_name_count bigint;
     visible_timeoff_count bigint;
@@ -21,6 +28,45 @@ BEGIN
     SELECT count(*)
     INTO active_employee_count
     FROM hcm_contract.talentassistant_employees;
+
+    -- El dataset realista exige nombres completos únicos en los 197 activos
+    -- (200 generados + 9 fixtures menos los 12 borrados), género y jefe en
+    -- todos los activos salvo el máximo responsable.
+    SELECT count(DISTINCT display_name)
+    INTO distinct_visible_names
+    FROM hcm_contract.talentassistant_employees;
+
+    SELECT count(*)
+    INTO active_without_email
+    FROM hcm_contract.talentassistant_employees
+    WHERE email IS NULL OR email NOT LIKE '%@example.com';
+
+    SELECT count(DISTINCT email)
+    INTO distinct_email_count
+    FROM hcm_contract.talentassistant_employees;
+
+    SELECT count(*)
+    INTO active_without_gender
+    FROM hcm_contract.talentassistant_employees
+    WHERE gender IS NULL OR gender NOT IN ('F', 'M');
+
+    SELECT count(*)
+    INTO active_without_manager
+    FROM hcm_contract.talentassistant_employees
+    WHERE manager_employee_id IS NULL;
+
+    SELECT count(*)
+    INTO unresolved_manager_count
+    FROM hcm_contract.talentassistant_employees AS employee
+    LEFT JOIN hcm_contract.talentassistant_employees AS manager
+        ON manager.employee_id = employee.manager_employee_id
+    WHERE employee.manager_employee_id IS NOT NULL
+      AND manager.employee_id IS NULL;
+
+    SELECT count(DISTINCT area)
+    INTO distinct_area_count
+    FROM hcm_contract.talentassistant_employees
+    WHERE area IS NOT NULL;
 
     SELECT count(*)
     INTO incomplete_name_count
@@ -61,6 +107,27 @@ BEGIN
     IF active_employee_count <> 197 THEN
         failures := array_append(failures, format('active_employees=%s (expected 197)', active_employee_count));
     END IF;
+    IF distinct_visible_names <> 197 THEN
+        failures := array_append(failures, format('distinct_display_names=%s (expected 197 unique)', distinct_visible_names));
+    END IF;
+    IF active_without_email <> 0 THEN
+        failures := array_append(failures, format('active_employees_without_valid_email=%s', active_without_email));
+    END IF;
+    IF distinct_email_count <> 197 THEN
+        failures := array_append(failures, format('distinct_emails=%s (expected 197 unique)', distinct_email_count));
+    END IF;
+    IF active_without_gender <> 0 THEN
+        failures := array_append(failures, format('active_employees_without_gender=%s', active_without_gender));
+    END IF;
+    IF active_without_manager <> 1 THEN
+        failures := array_append(failures, format('active_employees_without_manager=%s (expected 1)', active_without_manager));
+    END IF;
+    IF unresolved_manager_count <> 0 THEN
+        failures := array_append(failures, format('unresolved_manager_references=%s', unresolved_manager_count));
+    END IF;
+    IF distinct_area_count < 10 THEN
+        failures := array_append(failures, format('distinct_areas=%s (minimum 10)', distinct_area_count));
+    END IF;
     IF incomplete_name_count <> 0 THEN
         failures := array_append(failures, format('active_employees_without_full_name=%s', incomplete_name_count));
     END IF;
@@ -85,9 +152,12 @@ BEGIN
             array_to_string(failures, '; ');
     END IF;
 
-    RAISE NOTICE 'Validated fictional HCM demo dataset: employees=%, active=%, timeoff=%, time_checks_45d=%, tasks=%',
+    RAISE NOTICE 'Validated fictional HCM demo dataset: employees=%, active=%, distinct_names=%, distinct_emails=%, areas=%, timeoff=%, time_checks_45d=%, tasks=%',
         total_employee_count,
         active_employee_count,
+        distinct_visible_names,
+        distinct_email_count,
+        distinct_area_count,
         visible_timeoff_count,
         recent_time_check_count,
         visible_task_count;

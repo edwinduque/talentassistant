@@ -71,7 +71,23 @@ public sealed class HcmDataQueryValidatorTests
         Assert.Throws<HcmDataQueryValidationException>(() => _validator.Validate(
             new HcmDataQueryRequest("employees", Fields: ["private_email"])));
         Assert.Throws<HcmDataQueryValidationException>(() => _validator.Validate(
-            new HcmDataQueryRequest("employees", Fields: ["gender"])));
+            new HcmDataQueryRequest("employees", Fields: ["photo_url"])));
+    }
+
+    [Fact]
+    public void AcceptsAreaGenderManagerAndTenureFields()
+    {
+        var projection = _validator.Validate(new HcmDataQueryRequest(
+            "employees",
+            Fields: ["email", "area", "gender", "manager_employee_id", "manager_display_name", "years_in_company"]));
+        Assert.Contains(projection.Fields, field => field.Name == "years_in_company");
+        Assert.Contains(projection.Fields, field => field.Name == "email");
+
+        var grouped = _validator.Validate(new HcmDataQueryRequest(
+            "employees",
+            Aggregate: "count",
+            GroupBy: ["area", "gender"]));
+        Assert.Equal(2, grouped.GroupBy.Count);
     }
 
     [Fact]
@@ -130,7 +146,7 @@ public sealed class HcmDataQueryValidatorTests
         Assert.Throws<HcmDataQueryValidationException>(() => _validator.Validate(
             new HcmDataQueryRequest(
                 "employees",
-                Filters: [new HcmDataQueryFilter("office_ids", "equals", "office-demo-madrid")],
+                Filters: [new HcmDataQueryFilter("office_ids", "equals", "Ingeniería")],
                 Aggregate: "count")));
     }
 

@@ -75,11 +75,18 @@ public sealed class ChatOrchestratorTests
             .ToArray();
 
         Assert.Equal(
-            ["AgeOnNextBirthday", "DisplayName", "HireDate", "Id", "JobTitle", "LastName", "OfficeIds"],
+            [
+                "AgeOnNextBirthday", "DisplayName", "Email", "Gender", "HireDate", "Id",
+                "JobTitle", "LastName", "ManagerDisplayName", "ManagerEmployeeId", "OfficeIds"
+            ],
             fields);
         Assert.Equal("Técnico de nómina", employee.GetProperty("JobTitle").GetString());
         Assert.Equal("Cardenas", employee.GetProperty("LastName").GetString());
         Assert.Equal("2018-09-17", employee.GetProperty("HireDate").GetString());
+        Assert.Equal("M", employee.GetProperty("Gender").GetString());
+        Assert.Equal("mauricio.cardenas34@example.com", employee.GetProperty("Email").GetString());
+        Assert.Equal("employee-demo-juan", employee.GetProperty("ManagerEmployeeId").GetString());
+        Assert.Equal("Juan Pérez", employee.GetProperty("ManagerDisplayName").GetString());
 
         // Derived age approved 2026-10-24: the age Mauricio turns at his next
         // birthday (Nov 30; born 1988). The raw birth year must never appear.
@@ -373,10 +380,14 @@ public sealed class ChatOrchestratorTests
         Assert.Contains("outside HR/HCM", system.Content);
         Assert.Contains("decline politely", system.Content);
         Assert.Contains("never invent employees, dates or facts", system.Content);
+        Assert.Contains("never shift, merge, reorder or invent values between rows", system.Content);
+        Assert.Contains("never construct or", system.Content);
         Assert.Contains("information is not available", system.Content);
         Assert.Contains("salary", system.Content, StringComparison.OrdinalIgnoreCase);
         Assert.Contains("bank account", system.Content, StringComparison.OrdinalIgnoreCase);
         Assert.Contains("query_hr_data", system.Content);
+        Assert.Contains("group_by", system.Content);
+        Assert.Contains("manager_display_name", system.Content);
         Assert.Contains("structured plan", system.Content);
         Assert.Contains("read-only", system.Content);
         Assert.Contains("Never send SQL or code", system.Content);

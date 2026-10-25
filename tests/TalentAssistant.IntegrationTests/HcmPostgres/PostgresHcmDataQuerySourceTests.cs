@@ -38,6 +38,79 @@ public sealed class PostgresHcmDataQuerySourceTests : PostgresSourceTestBase
     }
 
     [Fact]
+    public async Task GroupedCountByAreaMatchesTheDirectory()
+    {
+        var employees = await Workforce.SearchEmployeesAsync(new EmployeeSearchQuery());
+        var expected = employees
+            .GroupBy(employee => employee.OfficeIds[0], StringComparer.Ordinal)
+            .ToDictionary(group => group.Key, group => (long)group.Count(), StringComparer.Ordinal);
+
+        var query = Validator.Validate(new HcmDataQueryRequest(
+            "employees",
+            Aggregate: "count",
+            GroupBy: ["area"]));
+
+        var result = await DataQuery.ExecuteAsync(query);
+
+        Assert.False(result.Truncated);
+        Assert.Equal(expected.Count, result.Rows.Count);
+        foreach (var row in result.Rows)
+        {
+            var area = Assert.IsType<string>(row["area"]);
+            Assert.Equal(expected[area], Assert.IsType<long>(row["count"]));
+        }
+    }
+
+    [Fact]
+    public async Task GroupedCountByGenderMatchesTheDirectory()
+    {
+        var employees = await Workforce.SearchEmployeesAsync(new EmployeeSearchQuery());
+        var expected = employees
+            .GroupBy(employee => employee.Gender!, StringComparer.Ordinal)
+            .ToDictionary(group => group.Key, group => (long)group.Count(), StringComparer.Ordinal);
+
+        var query = Validator.Validate(new HcmDataQueryRequest(
+            "employees",
+            Aggregate: "count",
+            GroupBy: ["gender"]));
+
+        var result = await DataQuery.ExecuteAsync(query);
+
+        Assert.False(result.Truncated);
+        Assert.Equal(expected.Count, result.Rows.Count);
+        foreach (var row in result.Rows)
+        {
+            var gender = Assert.IsType<string>(row["gender"]);
+            Assert.Equal(expected[gender], Assert.IsType<long>(row["count"]));
+        }
+    }
+
+    [Fact]
+    public async Task ManagerAndTenureFieldsMatchTheDirectory()
+    {
+        var pablo = Assert.Single(await Workforce.SearchEmployeesAsync(
+            new EmployeeSearchQuery(Name: "Pablo Molina")));
+        var query = Validator.Validate(new HcmDataQueryRequest(
+            "employees",
+            Fields: ["display_name", "email", "area", "gender", "manager_display_name", "years_in_company"],
+            Filters: [new HcmDataQueryFilter("display_name", "contains", "Pablo Molina")]));
+
+        var row = Assert.Single((await DataQuery.ExecuteAsync(query)).Rows);
+
+        Assert.Equal("Pablo Molina", row["display_name"]);
+        Assert.Equal(pablo.Email, row["email"]);
+        Assert.Equal(pablo.OfficeIds[0], row["area"]);
+        Assert.Equal(pablo.Gender, row["gender"]);
+        Assert.Equal(pablo.ManagerDisplayName, row["manager_display_name"]);
+
+        var databaseToday = await ReadDatabaseCurrentDateAsync();
+        var hireDate = pablo.HireDate!.Value;
+        var expectedYears = databaseToday.Year - hireDate.Year
+            - (databaseToday < hireDate.AddYears(databaseToday.Year - hireDate.Year) ? 1 : 0);
+        Assert.Equal(expectedYears, Assert.IsType<int>(row["years_in_company"]));
+    }
+
+    [Fact]
     public async Task NameFilterFoldsAccentsLikeTheExistingSourceSearch()
     {
         var expected = (await Workforce.SearchEmployeesAsync(
@@ -55,7 +128,7 @@ public sealed class PostgresHcmDataQuerySourceTests : PostgresSourceTestBase
     [Fact]
     public async Task OfficeArrayFilterMatchesTheExistingDirectorySearch()
     {
-        const string officeId = "office-demo-tokyo";
+        const string officeId = "Operaciones";
         var expected = (await Workforce.SearchEmployeesAsync(
             new EmployeeSearchQuery(OfficeId: officeId))).Count;
         var query = Validator.Validate(new HcmDataQueryRequest(

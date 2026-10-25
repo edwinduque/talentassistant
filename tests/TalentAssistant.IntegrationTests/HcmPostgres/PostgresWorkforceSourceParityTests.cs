@@ -15,8 +15,8 @@ namespace TalentAssistant.IntegrationTests.HcmPostgres;
 /// * "age": the derived AgeOnNextBirthday follows the same per-source anchor
 ///   (synthetic: the host's local date; the contract view: CURRENT_DATE), while
 ///   upcoming-birthday ages must match exactly for an explicit query date.
-/// Office ids match exactly: the seed was corrected to the fixtures'
-/// 'office-demo-*' convention during the T2 reconciliation.
+/// Office ids match exactly: both sources now expose the employee's real
+/// organizational area (the seed keeps the same value for each fixture).
 /// Scope (SPEC-012 amendment 2026-10-25): the contract view serves every
 /// active employee while <see cref="SyntheticWorkforceSource"/> serves only
 /// the nine fixtures, so parity runs over the fixture subset and the widened
@@ -61,6 +61,10 @@ public sealed class PostgresWorkforceSourceParityTests : PostgresSourceTestBase
             Assert.Equal(expected.JobTitle, entry.JobTitle);
             Assert.Equal(expected.LastName, entry.LastName);
             Assert.Equal(expected.HireDate, entry.HireDate);
+            Assert.Equal(expected.Gender, entry.Gender);
+            Assert.Equal(expected.ManagerEmployeeId, entry.ManagerEmployeeId);
+            Assert.Equal(expected.ManagerDisplayName, entry.ManagerDisplayName);
+            Assert.Equal(expected.Email, entry.Email);
         }
 
         // Derived age (approved 2026-10-24) per source anchor, like presence
@@ -204,16 +208,19 @@ public sealed class PostgresWorkforceSourceParityTests : PostgresSourceTestBase
     public async Task OfficeFilterSelectsTheSameEmployeesInBothSources()
     {
         var synthetic = await Synthetic.SearchEmployeesAsync(
-            new EmployeeSearchQuery(OfficeId: "office-demo-tokyo"));
+            new EmployeeSearchQuery(OfficeId: "Operaciones"));
         var postgres = await Workforce.SearchEmployeesAsync(
-            new EmployeeSearchQuery(OfficeId: "office-demo-tokyo"));
+            new EmployeeSearchQuery(OfficeId: "Operaciones"));
 
-        Assert.Equal(
-            synthetic.Select(employee => employee.Id).Order(StringComparer.Ordinal),
-            postgres.Select(employee => employee.Id).Order(StringComparer.Ordinal));
-        Assert.Equal(4, postgres.Count);
-        Assert.Contains("employee-demo-pedro", postgres.Select(employee => employee.Id));
-        Assert.DoesNotContain("employee-demo-juan", postgres.Select(employee => employee.Id));
+        // The widened catalog also contains generated Operaciones employees,
+        // so parity compares the fixture subset (class header) and pins that
+        // the office filter excludes the Dirección fixture.
+        Assert.Equal(4, synthetic.Count);
+        var postgresIds = postgres.Select(employee => employee.Id).ToHashSet(StringComparer.Ordinal);
+        Assert.All(synthetic, employee => Assert.Contains(employee.Id, postgresIds));
+        Assert.True(postgres.Count > synthetic.Count);
+        Assert.Contains("employee-demo-herrera", postgresIds);
+        Assert.DoesNotContain("employee-demo-juan", postgresIds);
     }
 
     [Fact]

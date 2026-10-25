@@ -88,6 +88,39 @@ public sealed class SyntheticHcmDataQuerySourceTests
         }
     }
 
+    [Fact]
+    public async Task ExposesAreaGenderManagerAndTenureFields()
+    {
+        var result = await ExecuteAsync(new HcmDataQueryRequest(
+            "employees",
+            Fields: ["display_name", "email", "area", "gender", "manager_display_name", "years_in_company"],
+            Filters: [new HcmDataQueryFilter("display_name", "contains", "Mauricio")]));
+
+        var row = Assert.Single(result.Rows);
+        Assert.Equal("mauricio.cardenas34@example.com", row["email"]);
+        Assert.Equal("Finanzas", row["area"]);
+        Assert.Equal("M", row["gender"]);
+        Assert.Equal("Juan Pérez", row["manager_display_name"]);
+
+        var today = DateOnly.FromDateTime(DateTime.Today);
+        var expectedYears = today.Year - 2018
+            - (today < new DateOnly(today.Year, 9, 17) ? 1 : 0);
+        Assert.Equal(expectedYears, row["years_in_company"]);
+    }
+
+    [Fact]
+    public async Task GroupsHeadcountByArea()
+    {
+        var result = await ExecuteAsync(new HcmDataQueryRequest(
+            "employees",
+            Aggregate: "count",
+            GroupBy: ["area"]));
+
+        var operations = Assert.Single(result.Rows, row => (string?)row["area"] == "Operaciones");
+        Assert.Equal(4L, Assert.IsType<long>(operations["count"]));
+        Assert.Equal(6, result.Rows.Count);
+    }
+
     private static async Task<HcmDataQueryResult> ExecuteAsync(HcmDataQueryRequest request)
     {
         var workforce = new SyntheticWorkforceSource();
