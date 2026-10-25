@@ -1,7 +1,9 @@
-# Live check for SPEC-009 AC-029/AC-032: the ten reference questions from
-# SPEC-008 section 4 plus the eleventh disambiguation probe must reach
-# POST /chat and come back with a non-empty answer that cites the expected
-# tool; the eleventh must list both candidate Juans and ask which one.
+# Live check for SPEC-009 AC-029/AC-032 (as amended 2026-10-24): the ten
+# reference questions from SPEC-008 section 4, the disambiguation probe, the
+# two-turn follow-up probe (history), the office-count probe and the tenure
+# ranking probe must reach POST /chat and come back with a non-empty answer
+# that cites the expected tool; the disambiguation probe must list both
+# candidate Juans and ask which one.
 # Requires the local API plus a real AI_API_KEY in .env (parent task runs
 # the live pass; without the key the script exits with a clear
 # "AI key/quota missing" message).
@@ -16,7 +18,8 @@ param(
     # a paced full pass stays inside the window).
     [int]$PaceSeconds = 0,
 
-    # 1-based index to run a single reference question (0 = run all eleven).
+    # 1-based index to run a single probe (0 = run all fourteen; the follow-up
+    # probe at index 12 needs index 7 first, so it only runs in a full pass).
     [int]$Only = 0
 )
 
@@ -69,21 +72,21 @@ function Split-Response {
 
 $today = [DateTime]::Today
 $birthdayFixtures = @(
-    @{ NamePattern = 'Juan P\u00E9rez'; Month = 4; Day = 12 },
-    @{ NamePattern = 'Pedro Rojas'; Month = 7; Day = 23 },
-    @{ NamePattern = 'Mauricio Cardenas'; Month = 11; Day = 30 },
-    @{ NamePattern = 'Juan Herrera'; Month = 2; Day = 18 },
-    @{ NamePattern = '(Empleado sint\u00E9tico 005|Synthetic employee 005)'; Month = 5; Day = 9 },
-    @{ NamePattern = '(Empleado sint\u00E9tico 004|Synthetic employee 004)'; Month = 9; Day = 27 },
-    @{ NamePattern = '(Empleado sint\u00E9tico 002|Synthetic employee 002)'; Month = 12; Day = 2 },
-    @{ NamePattern = '(Empleado sint\u00E9tico 003|Synthetic employee 003)'; Month = 3; Day = 14 }
+    @{ NamePattern = 'Juan P\u00E9rez'; Month = 4; Day = 12; Year = 1985 },
+    @{ NamePattern = 'Pedro Rojas'; Month = 7; Day = 23; Year = 1990 },
+    @{ NamePattern = 'Mauricio C.rd.nas'; Month = 11; Day = 30; Year = 1988 },
+    @{ NamePattern = 'Juan Herrera'; Month = 2; Day = 18; Year = 1992 },
+    @{ NamePattern = '(Empleado sint\u00E9tico 005|Synthetic employee 005)'; Month = 5; Day = 9; Year = 1995 },
+    @{ NamePattern = '(Empleado sint\u00E9tico 004|Synthetic employee 004)'; Month = 9; Day = 27; Year = 1996 },
+    @{ NamePattern = '(Empleado sint\u00E9tico 002|Synthetic employee 002)'; Month = 12; Day = 2; Year = 1997 },
+    @{ NamePattern = '(Empleado sint\u00E9tico 003|Synthetic employee 003)'; Month = 3; Day = 14; Year = 1998 }
 )
 $nextBirthday = $birthdayFixtures | ForEach-Object {
     $candidate = Get-Date -Year $today.Year -Month $_.Month -Day $_.Day -Hour 0 -Minute 0 -Second 0
     if ($candidate.Date -lt $today.Date) {
         $candidate = $candidate.AddYears(1)
     }
-    [PSCustomObject]@{ NamePattern = $_.NamePattern; Date = $candidate }
+    [PSCustomObject]@{ NamePattern = $_.NamePattern; Date = $candidate; Year = $_.Year }
 } | Sort-Object Date | Select-Object -First 1
 $monthPatterns = @(
     '', '(enero|january)', '(febrero|february)', '(marzo|march)',
@@ -96,11 +99,19 @@ $birthdayIsoDate = $nextBirthday.Date.ToString('yyyy-MM-dd')
 $birthdayDayPattern = '\b0?' + $nextBirthday.Date.Day + '\b'
 $birthdayDatePattern = '(?i)(' + $birthdayIsoDate + '|' + $birthdayDayPattern + '.*' + $birthdayMonthPattern + '|' + $birthdayMonthPattern + '.*' + $birthdayDayPattern + ')'
 $birthdayAnswerPattern = '(?is)(?=.*' + $nextBirthday.NamePattern + ')(?=.*' + $birthdayDatePattern + ')'
+# Derived age approved 2026-10-24: age turned AT the next birthday
+# (year(next) - birth year of the winning fixture).
+$birthdayAge = $nextBirthday.Date.Year - $nextBirthday.Year
+$birthdayAgePattern = '(?is)(?=.*' + $nextBirthday.NamePattern + ')(?=.*\b' + $birthdayAge + '\b)'
+# The follow-up may answer with a natural reference ("Esa persona cumplira N
+# anos") instead of repeating the name: the quality bar is the correct derived
+# age, which only resolves if the reference resolved (S1 AC adjusted 2026-10-24).
+$birthdayAgeOnlyPattern = '(?is)(?=.*\b' + $birthdayAge + '\b)'
 
 $questions = @(
     @{ Text = "Dime cuales empleados ya estan trabajando."; Tools = @("presence"); Answer = 'Juan' },
     @{ Text = "Dime que empleados no han llegado aun."; Tools = @("presence"); Answer = 'Mauricio' },
-    @{ Text = "Dime que empleados estan de vacaciones."; Tools = @("presence", "timeoff"); Answer = 'Pedro' },
+    @{ Text = "Dime que empleados estan de vacaciones."; Tools = @("presence", "timeoff"); Answer = '(?is)(sint.tico 00[23]|synthetic employee 00[23])' },
     @{ Text = "Dime cuantos dias de vacaciones tiene Juan Perez."; Tools = @("timeoff"); Answer = '\b3\b' },
     @{ Text = "Dime cuando regresa Pedro Rojas."; Tools = @("timeoff"); Answer = '(20.*octubre|2026-10-20)' },
     @{ Text = "Dime que tareas tiene pendiente Mauricio Cardenas."; Tools = @("tasks"); Answer = '(n\wmina|payroll)' },
@@ -108,7 +119,24 @@ $questions = @(
     @{ Text = "Que cargo tiene Mauricio Cardenas?"; Tools = @("search_employees"); Answer = '(T\w+ de n\wmina|payroll technician)' },
     @{ Text = "Dime la fecha de contratacion de Mauricio Cardenas."; Tools = @("search_employees"); Answer = '2018' },
     @{ Text = "hay alguien con apellido que tenga z"; Tools = @("search_employees"); Answer = 'Juan P\w+rez' },
-    @{ Text = "Dime cuantos dias de vacaciones tiene Juan."; Tools = @("search_employees", "timeoff"); Answer = '(?i)(?s)(?=.*(cu\wl|which))(?=.*(Juan P\w+rez.*Juan Herrera|Juan Herrera.*Juan P\w+rez))' }
+    @{ Text = "Dime cuantos dias de vacaciones tiene Juan."; Tools = @("search_employees", "timeoff"); Answer = '(?i)(?s)(?=.*(cu\wl|which))(?=.*(Juan P\w+rez.*Juan Herrera|Juan Herrera.*Juan P\w+rez))' },
+    # Two-turn follow-up (S1, clarification 2026-10-24): the answer must
+    # report the correct derived age of the referenced employee; a natural
+    # reference without repeating the name is accepted (S1 AC, L9), and empty
+    # tools are allowed here only because the age may already live in the
+    # rebuilt history.
+    @{
+        Text = "Cuantos anos cumple esa persona?"
+        Tools = @("upcoming_birthday", "search_employees")
+        Answer = $birthdayAgeOnlyPattern
+        HistoryQuestion = "Quien es la proxima persona que cumple anos"
+        AllowNoTools = $true
+    },
+    # Aggregation over tool records without a per-question tool (S6): count the
+    # employees of one office (4 in office-demo-tokyo).
+    @{ Text = "Cuantos empleados tiene la sede de Tokyo?"; Tools = @("search_employees"); Answer = '(?i)(\b4\b|cuatro)' },
+    # Ranking over tool records (S6): earliest hire date wins (Mauricio, 2018).
+    @{ Text = "Quien es el empleado con mas antiguedad en la empresa?"; Tools = @("search_employees"); Answer = 'Mauricio' }
 )
 
 if ($Only -gt 0) {
@@ -137,8 +165,21 @@ try {
         throw "Login succeeded but no access token was returned; response body withheld."
     }
 
+    $answers = @{}
     foreach ($item in $questions) {
-        $chatBody = @{ message = $item.Text; history = @() } | ConvertTo-Json -Compress
+        # Two-turn probe: rebuild the exact prior turn from the saved answer.
+        $history = @()
+        if ($item.ContainsKey('HistoryQuestion')) {
+            $priorText = [string]$item.HistoryQuestion
+            if (-not $answers.ContainsKey($priorText)) {
+                throw "The two-turn follow-up probe needs '$priorText' answered first; run this script without -Only."
+            }
+            $history = @(
+                @{ role = "user"; content = $priorText },
+                @{ role = "assistant"; content = [string]$answers[$priorText] }
+            )
+        }
+        $chatBody = @{ message = $item.Text; history = $history } | ConvertTo-Json -Compress -Depth 5
         [System.IO.File]::WriteAllText($bodyPath, $chatBody, $utf8NoBom)
         $chatRaw = [string]::Join([Environment]::NewLine, [string[]]@(
             & curl.exe --noproxy "*" --silent --show-error --max-time 120 `
@@ -187,6 +228,7 @@ try {
 
         $tools = @($payload.toolsUsed)
         $answer = [string]$payload.answer
+        $answers[$item.Text] = [string]$answer
         Write-Output ("Tools: " + $(if ($tools.Count -gt 0) { [string]::Join(", ", $tools) } else { "(none)" }))
         Write-Output "Answer: $answer"
 
@@ -195,8 +237,12 @@ try {
             $failures++
         }
         if ($tools.Count -eq 0) {
-            Write-Output "FAIL: toolsUsed is empty."
-            $failures++
+            # The two-turn follow-up may answer from its own history; its
+            # quality bar is the expected name + derived age below.
+            if (-not $item.ContainsKey('AllowNoTools')) {
+                Write-Output "FAIL: toolsUsed is empty."
+                $failures++
+            }
         }
         elseif (-not ($item.Tools | Where-Object { $tools -contains $_ })) {
             Write-Output "FAIL: toolsUsed does not contain one of the expected tools ($($item.Tools -join ', '))."
@@ -226,5 +272,5 @@ if ($failures -gt 0) {
 }
 
 Write-Output ""
-Write-Output "PASS: all eleven reference questions returned a non-empty answer citing the expected tool."
+Write-Output "PASS: all fourteen probes returned a non-empty answer citing the expected tool."
 exit 0

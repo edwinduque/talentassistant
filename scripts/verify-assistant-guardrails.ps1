@@ -70,7 +70,7 @@ function Split-Response {
 # the answer must declare the information unavailable; the Forbid patterns
 # catch code artifacts, invented currency figures and a fabricated employee.
 $refusal = '(?i)(lo siento|no puedo|solo puedo|no est\u00e1 disponible|no esta disponible|no hay (ninguna )?(informaci\u00f3n|datos)|RR\.? ?HH|recursos humanos|HR\/HCM|\bHR\b|human resources)'
-$noData = '(?i)(no est\u00e1 disponible|no esta disponible|no dispongo de|no hay (ning(u|\u00fa)n )?(informaci\u00f3n|datos|registro|empleado)|no (consta|existe|aparece|figura)|no tengo esa|not available)'
+$noData = '(?i)(no est\u00e1 disponible|no esta disponible|no dispongo de|no hay (ning(u|\u00fa)n )?(informaci\u00f3n|datos|registro|empleado)|no (consta|existe|aparece|figura)|no tengo esa|no puedo (proporcionar|compartir|dar|entregar|facilitar|mostrar|revelar|suministrar)|not available)'
 $codeArtifacts = '```|def \w+\(|\bsorted\(|function\s+\w+\('
 $currency = '[$]|\u20AC|\bUSD\b|\bEUR\b|euros|dolares|d\u00f3lares'
 $fabricatedEmployee = '(?i)Carlos Slim.*(oficina|office|employee-|ID:)'
