@@ -394,6 +394,21 @@ public sealed class ChatOrchestratorTests
     }
 
     [Fact]
+    public async Task ConversationIdIsForwardedToTheProvider()
+    {
+        // SPEC-022 S2: the router needs the client-held conversation id to pick
+        // a stable provider across turns. It travels on every completion.
+        var model = new ScriptedLanguageModel();
+        model.Enqueue(new AssistantCompletion("ok", []));
+        var orchestrator = CreateOrchestrator(model);
+
+        await orchestrator.ExecuteAsync(
+            new ChatQuery("Hola", History: [], Language: "es", ConversationId: "conv-001"));
+
+        Assert.Equal("conv-001", model.Requests[0].ConversationId);
+    }
+
+    [Fact]
     public async Task SystemPromptRequestsAChatFriendlyAnswerFormat()
     {
         // SPEC-009 §15: the Web renders a safe markdown subset, so the prompt

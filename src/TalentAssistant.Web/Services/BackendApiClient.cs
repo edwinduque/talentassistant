@@ -204,13 +204,14 @@ public sealed class BackendApiClient(
     public async Task<AssistantChatResult> AskAssistantAsync(
         string message,
         IReadOnlyList<AssistantChatTurn> history,
+        string? conversationId = null,
         CancellationToken cancellationToken = default)
     {
         try
         {
             using var request = new HttpRequestMessage(HttpMethod.Post, "chat")
             {
-                Content = JsonContent.Create(new ChatRequest(message, history))
+                Content = JsonContent.Create(new ChatRequest(message, history, conversationId))
             };
             using var response = await SendAuthenticatedAsync(request, cancellationToken);
 
@@ -356,7 +357,8 @@ public sealed class BackendApiClient(
 
     private sealed record ChatRequest(
         string Message,
-        IReadOnlyList<AssistantChatTurn> History);
+        IReadOnlyList<AssistantChatTurn> History,
+        string? ConversationId);
 
     private sealed record ChatResponse(
         string Answer,

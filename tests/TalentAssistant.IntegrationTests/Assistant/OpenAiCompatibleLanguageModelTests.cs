@@ -256,6 +256,66 @@ public sealed class OpenAiCompatibleLanguageModelTests
         Assert.Equal(AssistantProviderFailureReason.InvalidResponse, exception.Reason);
     }
 
+    [Fact]
+    public async Task SingleAttemptOptionDoesNotRetryServerErrors()
+    {
+        var handler = new StubHttpMessageHandler(_ => new HttpResponseMessage(
+            HttpStatusCode.InternalServerError));
+        var client = CreateClient(handler, maxAttempts: 1);
+
+        var exception = await Assert.ThrowsAsync<AssistantProviderUnavailableException>(
+            () => client.CompleteAsync(SimpleRequest()));
+
+        Assert.Equal(AssistantProviderFailureReason.InvalidResponse, exception.Reason);
+        Assert.Equal(1, handler.CallCount);
+    }
+
+    [Fact]
+    public async Task ReasoningEffortIsSentOnlyWhenConfigured()
+    {
+        var handler = new StubHttpMessageHandler(_ => Json(CannedContentResponse));
+        await CreateClient(handler, reasoningEffort: "low")
+            .CompleteAsync(SimpleRequest());
+
+        using var body = JsonDocument.Parse(handler.Requests[0].Body);
+        Assert.Equal("low", body.RootElement.GetProperty("reasoning_effort").GetString());
+
+        var plainHandler = new StubHttpMessageHandler(_ => Json(CannedContentResponse));
+        await CreateClient(plainHandler).CompleteAsync(SimpleRequest());
+
+        using var plainBody = JsonDocument.Parse(plainHandler.Requests[0].Body);
+        Assert.False(plainBody.RootElement.TryGetProperty("reasoning_effort", out _));
+    }
+
+    [Fact]
+    public async Task NormalizedToolSchemasHaveNoNullableUnions()
+    {
+        var handler = new StubHttpMessageHandler(_ => Json(CannedContentResponse));
+        await CreateClient(handler, normalizeToolSchemas: true)
+            .CompleteAsync(SimpleRequest());
+
+        using var body = JsonDocument.Parse(handler.Requests[0].Body);
+        foreach (var tool in body.RootElement.GetProperty("tools").EnumerateArray())
+        {
+            AssertNoNullableTypeArray(
+                tool.GetProperty("function").GetProperty("parameters"));
+        }
+    }
+
+    [Fact]
+    public async Task CanonicalSchemasRemainUntouchedWithoutNormalization()
+    {
+        var handler = new StubHttpMessageHandler(_ => Json(CannedContentResponse));
+        await CreateClient(handler).CompleteAsync(SimpleRequest());
+
+        using var body = JsonDocument.Parse(handler.Requests[0].Body);
+        var hasTypeUnion = body.RootElement.GetProperty("tools")
+            .EnumerateArray()
+            .Select(tool => tool.GetProperty("function").GetProperty("parameters"))
+            .Any(ContainsTypeUnion);
+        Assert.True(hasTypeUnion, "The canonical schema should keep its nullable type unions.");
+    }
+
     private const string CannedContentResponse =
         """{"choices":[{"message":{"content":"Synthetic answer.","tool_calls":null}}]}""";
 
@@ -267,7 +327,10 @@ public sealed class OpenAiCompatibleLanguageModelTests
     private static OpenAiCompatibleLanguageModel CreateClient(
         StubHttpMessageHandler handler,
         string apiKey = SyntheticApiKey,
-        TimeSpan? timeout = null)
+        TimeSpan? timeout = null,
+        int maxAttempts = 2,
+        string? reasoningEffort = null,
+        bool normalizeToolSchemas = false)
     {
         var httpClient = new HttpClient(handler)
         {
@@ -278,8 +341,55 @@ public sealed class OpenAiCompatibleLanguageModelTests
         };
         return new OpenAiCompatibleLanguageModel(
             httpClient,
-            new AssistantProviderOptions(apiKey, "test-model"),
+            new AssistantProviderOptions(
+                apiKey,
+                "test-model",
+                "test-provider",
+                reasoningEffort,
+                maxAttempts,
+                normalizeToolSchemas),
             Microsoft.Extensions.Logging.Abstractions.NullLogger<OpenAiCompatibleLanguageModel>.Instance);
+    }
+
+    private static bool ContainsTypeUnion(JsonElement node) =>
+        node.ValueKind switch
+        {
+            JsonValueKind.Object => node.EnumerateObject().Any(property =>
+                (property.NameEquals("type") && property.Value.ValueKind == JsonValueKind.Array)
+                || ContainsTypeUnion(property.Value)),
+            JsonValueKind.Array => node.EnumerateArray().Any(ContainsTypeUnion),
+            _ => false
+        };
+
+    private static void AssertNoNullableTypeArray(JsonElement node)
+    {
+        switch (node.ValueKind)
+        {
+            case JsonValueKind.Object:
+                foreach (var property in node.EnumerateObject())
+                {
+                    if (property.NameEquals("type"))
+                    {
+                        // The adapter must leave a single string type, never a
+                        // nullable or multi-type union.
+                        Assert.Equal(JsonValueKind.String, property.Value.ValueKind);
+                    }
+                    else
+                    {
+                        AssertNoNullableTypeArray(property.Value);
+                    }
+                }
+
+                break;
+
+            case JsonValueKind.Array:
+                foreach (var item in node.EnumerateArray())
+                {
+                    AssertNoNullableTypeArray(item);
+                }
+
+                break;
+        }
     }
 
     private static HttpResponseMessage Json(string json) => new(HttpStatusCode.OK)

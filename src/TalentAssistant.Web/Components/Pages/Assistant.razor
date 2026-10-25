@@ -313,12 +313,16 @@
     private string _draft = string.Empty;
     private bool _isSending;
 
+    // Stable per conversation so the server routes every turn to the same
+    // provider (SPEC-022 S2/S3). A page load or "Nuevo chat" starts a new one.
+    private string _conversationId = Guid.NewGuid().ToString("N");
+
     private bool HasConversation => _messages.Count > 0 || _draft.Length > 0;
 
-    // SPEC-009 §15: the thread is client-held, so this button only clears it in
+    // SPEC-021: the thread is client-held, so this button only clears it in
     // memory; nothing is stored or sent. While a request is in flight the
     // button is disabled and this guard keeps a late answer out of the fresh
-    // conversation.
+    // conversation. A new conversation also starts a new provider assignment.
     private void StartNewChat()
     {
         if (_isSending)
@@ -328,6 +332,7 @@
 
         _messages.Clear();
         _draft = string.Empty;
+        _conversationId = Guid.NewGuid().ToString("N");
     }
 
     private async Task SendAsync()
@@ -354,7 +359,7 @@
 
         try
         {
-            var result = await BackendApi.AskAssistantAsync(question, history);
+            var result = await BackendApi.AskAssistantAsync(question, history, _conversationId);
 
             if (!result.IsSuccess)
             {

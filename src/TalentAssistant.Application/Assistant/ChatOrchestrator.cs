@@ -13,7 +13,8 @@ namespace TalentAssistant.Application.Assistant;
 public sealed record ChatQuery(
     string Message,
     IReadOnlyList<ChatMessage> History,
-    string Language);
+    string Language,
+    string? ConversationId = null);
 
 /// <summary>
 /// Chat answer with the ordered tool trace. In v1 Sources is the same list as
@@ -115,7 +116,11 @@ public sealed class ChatOrchestrator(
             cancellationToken.ThrowIfCancellationRequested();
 
             var completion = await languageModel.CompleteAsync(
-                new AssistantRequest(messages, ToolCatalog, options.MaxTokens),
+                new AssistantRequest(
+                    messages,
+                    ToolCatalog,
+                    options.MaxTokens,
+                    query.ConversationId),
                 cancellationToken);
 
             if (completion.ToolCalls is not { Count: > 0 })

@@ -36,7 +36,8 @@ public sealed record AssistantCompletion(
 public sealed record AssistantRequest(
     IReadOnlyList<ChatMessage> Messages,
     IReadOnlyList<AssistantToolDefinition> Tools,
-    int MaxTokens);
+    int MaxTokens,
+    string? ConversationId = null);
 
 /// <summary>
 /// Language-model port (SPEC-009 S2). Infrastructure implements it over an

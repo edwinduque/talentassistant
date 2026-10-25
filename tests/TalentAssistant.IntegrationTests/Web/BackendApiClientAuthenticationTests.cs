@@ -58,6 +58,26 @@ public sealed class BackendApiClientAuthenticationTests
     }
 
     [Fact]
+    public async Task ChatRequestCarriesTheConversationId()
+    {
+        using var handler = new RecordingHandler();
+        using var httpClient = new HttpClient(handler)
+        {
+            BaseAddress = new Uri("http://api.test/")
+        };
+        var client = new BackendApiClient(
+            httpClient,
+            NullLogger<BackendApiClient>.Instance,
+            new SequenceAuthenticationStateProvider(AuthenticatedPrincipal(AccessToken)));
+
+        await client.AskAssistantAsync("hello", [], "conversation-123");
+
+        Assert.Contains(
+            "\"conversationId\":\"conversation-123\"",
+            Assert.Single(handler.RequestBodies));
+    }
+
+    [Fact]
     public async Task PublicHealthRequestDoesNotSendCircuitBearerToken()
     {
         using var handler = new RecordingHandler();
@@ -167,11 +187,16 @@ public sealed class BackendApiClientAuthenticationTests
     {
         public List<string?> AuthorizationHeaders { get; } = [];
 
-        protected override Task<HttpResponseMessage> SendAsync(
+        public List<string> RequestBodies { get; } = [];
+
+        protected override async Task<HttpResponseMessage> SendAsync(
             HttpRequestMessage request,
             CancellationToken cancellationToken)
         {
             AuthorizationHeaders.Add(request.Headers.Authorization?.ToString());
+            RequestBodies.Add(request.Content is null
+                ? string.Empty
+                : await request.Content.ReadAsStringAsync(cancellationToken));
             var responseBody = request.RequestUri?.AbsolutePath switch
             {
                 "/health" => """{"status":"healthy"}""",
@@ -181,13 +206,13 @@ public sealed class BackendApiClientAuthenticationTests
                 _ => throw new InvalidOperationException("Unexpected API request path.")
             };
 
-            return Task.FromResult(new HttpResponseMessage(statusCode)
+            return new HttpResponseMessage(statusCode)
             {
                 Content = new StringContent(
                     statusCode == HttpStatusCode.OK ? responseBody : string.Empty,
                     Encoding.UTF8,
                     "application/json")
-            });
+            };
         }
     }
 }
