@@ -1,10 +1,12 @@
 @using Microsoft.AspNetCore.Components
 @using Microsoft.AspNetCore.Components.Authorization
+@using Microsoft.AspNetCore.Hosting
 @inherits LayoutComponentBase
 @inject SessionService Session
 @inject NavigationManager Navigation
 @inject IStringLocalizer<MainLayout> Local
 @inject IStringLocalizer<Common> CommonLocal
+@inject IWebHostEnvironment HostEnvironment
 
 <div class="app-shell">
     <a class="skip-link" href="#main-content">@Local["SkipLink"]</a>
@@ -36,7 +38,7 @@
             </Authorized>
         </AuthorizeView>
 
-        <p class="environment-label">@Local["EnvironmentLabel"]</p>
+        <p class="environment-label">@EnvironmentLabel</p>
     </header>
 
     <main class="page-content" id="main-content" tabindex="-1">
@@ -47,7 +49,7 @@
 
     <footer class="site-footer">
         <span>@Local["FooterFoundation"]</span>
-        <span>@Local["FooterEnvironment"]</span>
+        <span>@FooterEnvironmentLabel</span>
     </footer>
 </div>
 
@@ -66,6 +68,16 @@
 </style>
 
 @code {
+    private string EnvironmentLabel =>
+        HostEnvironment.IsProduction()
+            ? Local["ProductionEnvironment"]
+            : HostEnvironment.IsDevelopment()
+                ? Local["EnvironmentLabel"]
+                : HostEnvironment.EnvironmentName;
+
+    private string FooterEnvironmentLabel =>
+        $"{EnvironmentLabel} · {Local["SyntheticData"]}";
+
     private static string GetDisplayName(ClaimsPrincipal user)
     {
         // The saved display name wins over the technical user name (SPEC-006 S6).

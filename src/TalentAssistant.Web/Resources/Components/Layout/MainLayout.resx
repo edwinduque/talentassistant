@@ -36,11 +36,14 @@
   <data name="EnvironmentLabel" xml:space="preserve">
     <value>Desarrollo local</value>
   </data>
+  <data name="ProductionEnvironment" xml:space="preserve">
+    <value>Producción</value>
+  </data>
+  <data name="SyntheticData" xml:space="preserve">
+    <value>datos sintéticos</value>
+  </data>
   <data name="FooterFoundation" xml:space="preserve">
     <value>Fundación técnica</value>
-  </data>
-  <data name="FooterEnvironment" xml:space="preserve">
-    <value>Entorno local · datos sintéticos</value>
   </data>
   <data name="ErrorUnexpected" xml:space="preserve">
     <value>Se produjo un error inesperado.</value>
