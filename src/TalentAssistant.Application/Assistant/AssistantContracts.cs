@@ -21,11 +21,17 @@ public sealed record AssistantToolDefinition(
     string Description,
     string ParametersJson);
 
-/// <summary>A tool call requested by the model; ArgumentsJson is the raw JSON argument string.</summary>
+/// <summary>
+/// A tool call requested by the model; ArgumentsJson is the raw JSON argument
+/// string. ExtraContentJson preserves provider-specific metadata that must be
+/// replayed with the tool call (Gemini 3's thought_signature), otherwise the
+/// next request fails with a 400 (SPEC-022 §12).
+/// </summary>
 public sealed record AssistantToolCall(
     string Id,
     string Name,
-    string ArgumentsJson);
+    string ArgumentsJson,
+    string? ExtraContentJson = null);
 
 /// <summary>One model completion: either final content, or one or more tool calls.</summary>
 public sealed record AssistantCompletion(

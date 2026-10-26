@@ -121,6 +121,11 @@ public sealed class OpenAiCompatibleLanguageModelTests
                       {
                         "id": "call-1",
                         "type": "function",
+                        "extra_content": {
+                          "google": {
+                            "thought_signature": "synthetic-signature"
+                          }
+                        },
                         "function": {
                           "name": "search_employees",
                           "arguments": "{\"name\":\"Juan\"}"
@@ -142,6 +147,44 @@ public sealed class OpenAiCompatibleLanguageModelTests
         Assert.Equal("call-1", toolCall.Id);
         Assert.Equal("search_employees", toolCall.Name);
         Assert.Equal("""{"name":"Juan"}""", toolCall.ArgumentsJson);
+        Assert.NotNull(toolCall.ExtraContentJson);
+        Assert.Contains("synthetic-signature", toolCall.ExtraContentJson);
+    }
+
+    [Fact]
+    public async Task ReplaysToolCallExtraContent()
+    {
+        var handler = new StubHttpMessageHandler(_ => Json(CannedContentResponse));
+        var client = CreateClient(handler);
+        var request = new AssistantRequest(
+            [
+                new ChatMessage("system", "system"),
+                new ChatMessage("user", "question"),
+                new ChatMessage("assistant", string.Empty, ToolCalls:
+                [
+                    new AssistantToolCall(
+                        "call-1",
+                        "search_employees",
+                        """{"name":"Juan"}""",
+                        """{"google":{"thought_signature":"synthetic-signature"}}""")
+                ]),
+                new ChatMessage("tool", "[]", ToolCallId: "call-1")
+            ],
+            ChatOrchestrator.ToolCatalog,
+            MaxTokens: 512);
+
+        await client.CompleteAsync(request);
+
+        using var body = JsonDocument.Parse(handler.Requests[0].Body);
+        var toolCall = body.RootElement
+            .GetProperty("messages")[2]
+            .GetProperty("tool_calls")[0];
+        Assert.Equal(
+            "synthetic-signature",
+            toolCall.GetProperty("extra_content")
+                .GetProperty("google")
+                .GetProperty("thought_signature")
+                .GetString());
     }
 
     [Fact]
