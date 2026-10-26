@@ -409,6 +409,37 @@ public sealed class ChatOrchestratorTests
     }
 
     [Fact]
+    public async Task ToolCallExtraContentIsReplayedOnTheNextRound()
+    {
+        // SPEC-022 §12: Gemini 3 requires the thought_signature from its tool
+        // call to be present in the next request.
+        var model = new ScriptedLanguageModel();
+        model.Enqueue(new AssistantCompletion(
+            Content: null,
+            ToolCalls:
+            [
+                new AssistantToolCall(
+                    "call-1",
+                    "search_employees",
+                    """{"name":"Juan"}""",
+                    """{"google":{"thought_signature":"sig-1"}}""")
+            ]));
+        model.Enqueue(new AssistantCompletion("ok", []));
+        var orchestrator = CreateOrchestrator(model);
+
+        var result = await orchestrator.ExecuteAsync(
+            new ChatQuery("¿Dónde trabaja Juan?", History: [], Language: "es"));
+
+        Assert.True(result.Completed);
+        var assistant = Assert.Single(
+            model.Requests[1].Messages,
+            message => message.Role == "assistant");
+        var replay = Assert.Single(assistant.ToolCalls!);
+        Assert.NotNull(replay.ExtraContentJson);
+        Assert.Contains("sig-1", replay.ExtraContentJson);
+    }
+
+    [Fact]
     public async Task SystemPromptRequestsAChatFriendlyAnswerFormat()
     {
         // SPEC-009 §15: the Web renders a safe markdown subset, so the prompt

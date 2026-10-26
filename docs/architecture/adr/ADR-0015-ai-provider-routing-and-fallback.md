@@ -28,7 +28,7 @@ Adoptar un enrutador en Infrastructure que implemente `IAssistantLanguageModel` 
 
 Producción confirmó un `404 NOT_FOUND` de Gemini: `gemini-2.5-flash` ya no está disponible para usuarios nuevos y el proveedor recomienda `gemini-3.8-flash`. Se cambia el modelo por defecto a 3.8 Flash y se omite `temperature` en Gemini 3.x (deprecado y potencialmente rechazado); Groq conserva 0.1. La decisión de enrutamiento, failover y cortacircuitos no cambia.
 
-Una segunda observación de producción mostró que Gemini rechazaba con 400 el transcript que contenía una llamada de herramienta de Groq. El enrutador reintenta una vez con un transcript limpio (sistema, historial de texto y último usuario; sin mensajes de herramienta) y el modelo alternativo vuelve a pedir las herramientas de solo lectura. El cliente registra además el cuerpo de error truncado cuando no puede extraer código y mensaje.
+Una segunda observación de producción reveló que Gemini 3 exige devolver `tool_calls[].extra_content.google.thought_signature` en cada llamada de herramienta; sin ella devuelve 400, incluso para sus propias llamadas. El cliente conserva y reenvía ese campo. Si el transcript contiene `tool_calls` de otro proveedor (sin firma de Gemini), el enrutador reintenta una vez con un transcript limpio y el modelo vuelve a pedir las herramientas de solo lectura. El cliente registra además el cuerpo de error truncado cuando no puede extraer código y mensaje.
 
 El dominio no conoce proveedores. `ChatOrchestrator` sigue dependiendo del puerto; el enrutador y los clientes viven en Infrastructure.
 

@@ -91,7 +91,7 @@ public sealed record AssistantProviderConfiguration(
                 ? GeminiDefaultModel
                 : ai["Gemini:Model"]!.Trim(),
             ReasoningEffort: ParseReasoningEffort(ai["Gemini:ReasoningEffort"]),
-            TimeoutSeconds: ReadTimeout(ai, "Gemini:TimeoutSeconds"),
+            TimeoutSeconds: ReadTimeout(ai, "Gemini:TimeoutSeconds", defaultSeconds: 60),
             MaxAttempts: 2,
             NormalizeToolSchemas: true,
             Temperature: null);
@@ -182,9 +182,12 @@ public sealed record AssistantProviderConfiguration(
         return baseUrl;
     }
 
-    private static int ReadTimeout(IConfiguration ai, string key)
+    private static int ReadTimeout(
+        IConfiguration ai,
+        string key,
+        int defaultSeconds = 30)
     {
-        var timeout = ai.GetValue<int?>(key) ?? 30;
+        var timeout = ai.GetValue<int?>(key) ?? defaultSeconds;
         if (timeout <= 0)
         {
             throw new InvalidOperationException($"AI:{key} must be greater than zero.");

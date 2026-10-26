@@ -249,7 +249,7 @@ public sealed class OpenAiCompatibleLanguageModel : IAssistantLanguageModel
                 var toolCalls = new JsonArray();
                 foreach (var toolCall in message.ToolCalls)
                 {
-                    toolCalls.Add(new JsonObject
+                    var toolCallNode = new JsonObject
                     {
                         ["id"] = toolCall.Id,
                         ["type"] = "function",
@@ -258,7 +258,16 @@ public sealed class OpenAiCompatibleLanguageModel : IAssistantLanguageModel
                             ["name"] = toolCall.Name,
                             ["arguments"] = toolCall.ArgumentsJson
                         }
-                    });
+                    };
+
+                    if (!string.IsNullOrWhiteSpace(toolCall.ExtraContentJson))
+                    {
+                        // Gemini 3 requires its thought_signature to be replayed
+                        // with the function call on the next turn (SPEC-022 §12).
+                        toolCallNode["extra_content"] = JsonNode.Parse(toolCall.ExtraContentJson);
+                    }
+
+                    toolCalls.Add(toolCallNode);
                 }
 
                 node["tool_calls"] = toolCalls;
@@ -391,7 +400,14 @@ public sealed class OpenAiCompatibleLanguageModel : IAssistantLanguageModel
                             ? idElement.GetString() ?? string.Empty
                             : string.Empty;
 
-                    toolCalls.Add(new AssistantToolCall(id, name, arguments));
+                    string? extraContent = null;
+                    if (toolCallElement.TryGetProperty("extra_content", out var extraContentElement)
+                        && extraContentElement.ValueKind == JsonValueKind.Object)
+                    {
+                        extraContent = extraContentElement.GetRawText();
+                    }
+
+                    toolCalls.Add(new AssistantToolCall(id, name, arguments, extraContent));
                 }
             }
 
