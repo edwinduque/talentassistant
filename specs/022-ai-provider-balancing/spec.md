@@ -51,11 +51,11 @@ Si el proveedor preferido falla en cualquier punto del bucle, el enrutador reint
 
 Se considera fallo con failover cualquier `AssistantProviderUnavailableException` del proveedor (429, 5xx, timeout, red, respuesta inválida, error transitorio de herramienta); `NotConfigured` solo aplica cuando no hay ningún proveedor configurado y mantiene la degradación actual.
 
-Riesgo controlado: el proveedor alternativo debe aceptar un transcript con `tool_calls` emitidos por el otro proveedor. El protocolo OpenAI lo permite, pero la compatibilidad de Gemini se verifica con un transporte falso y una llamada en vivo opt-in; si el transcript no es aceptado, el turno devuelve el error controlado en lugar de reintentar sin límite.
+Si el proveedor alternativo rechaza el transcript porque contiene `tool_calls` generados por el primero, el enrutador reintenta **una vez** con un transcript limpio (sistema, historial de texto y último usuario; sin mensajes `tool` ni `tool_calls`) y deja que el modelo vuelva a pedir las herramientas, que son de solo lectura. El reintento solo se aplica a `InvalidResponse` con transcript de herramientas y está acotado a una llamada adicional.
 
 ### 3.4 Presupuesto de intentos y cortacircuitos
 
-- En modo enrutador: **un intento HTTP por proveedor y completion** (máximo dos llamadas). Se evita el reintento interno actual de 5xx/`tool_use_failed` para no gastar cuota dos veces en el mismo proveedor.
+- En modo enrutador: **un intento HTTP por proveedor y completion** (máximo dos llamadas). Se evita el reintento interno actual de 5xx/`tool_use_failed` para no gastar cuota dos veces en el mismo proveedor. Excepción acotada: si el alternativo rechaza un transcript con herramientas ajenas, se permite **un reintento con transcript limpio**.
 - En modo proveedor único: se conserva el comportamiento actual (dos intentos ante 5xx o `tool_use_failed`).
 - Cortacircuitos en memoria por proveedor: tras N fallos consecutivos (2 por defecto) el proveedor queda no disponible durante un enfriamiento (120 s por defecto) y el tráfico va al otro; al expirar, una sonda decide si vuelve. El estado es por proceso y no se persiste.
 - Si ambos fallan: se devuelve el error localizado existente. Precedencia: `RateLimited` si ambos fueron limitados; en otro caso, el motivo del último fallo observado.
@@ -201,3 +201,11 @@ Cambios aprobados por necesidad técnica:
 - La petición literal del usuario se conserva como historial; el cambio de modelo es una sustitución forzada por la retirada del proveedor, no una ampliación de alcance.
 
 Evidencia: una consulta de modelos y una generación de diagnóstico en la VPS (sin imprimir claves) confirmaron el 404 y la recomendación de 3.8 Flash. La primera prueba con 3.8 reveló además que el cliente Web cortaba a los 5 s y abortaba el turno antes de que la API respondiera; se elevó a 120 s para el chat y se añadió una prueba que fija ese margen. El resto de la verificación sigue siendo determinista; la pasada en vivo con presupuesto queda pendiente de autorización.
+
+## 12. Enmienda: reintento con transcript limpio (2026-10-26)
+
+La prueba en producción mostró un turno con Gemini 503 (capacidad), failover a Groq correcto, y después Groq 429 seguido de un Gemini HTTP 400 al reintentar con el transcript que contenía la llamada de herramienta de Groq. El cuerpo del 400 no se pudo leer con el parser anterior (`(null) (null)`).
+
+Para que un turno no quede sin respuesta cuando el alternativo no acepta `tool_calls` ajenos, el enrutador reintenta **una vez** con un transcript limpio: conserva sistema, historial de texto y último usuario, y elimina los mensajes `tool` y `tool_calls`. El modelo alternativo puede volver a pedir las herramientas; son de solo lectura, así que reejecutarlas es seguro. El reintento solo se aplica a `InvalidResponse` con transcript de herramientas y añade como máximo una llamada.
+
+Además, el cliente del proveedor ahora registra el cuerpo de error truncado cuando no puede extraer código y mensaje, y entiende los cuerpos con forma de arreglo (como el 404 de Gemini). Así, si un 400 posterior no es de transcript, el log dirá el campo o esquema exacto.

@@ -162,28 +162,63 @@ public sealed class OpenAiCompatibleLanguageModel : IAssistantLanguageModel
         try
         {
             using var document = JsonDocument.Parse(body);
-            if (document.RootElement.ValueKind == JsonValueKind.Object
-                && document.RootElement.TryGetProperty("error", out var error)
-                && error.ValueKind == JsonValueKind.Object)
+            var root = document.RootElement;
+            var providerError = ReadError(root);
+            if (providerError is null && root.ValueKind == JsonValueKind.Array)
             {
-                var code = error.TryGetProperty("code", out var codeValue)
-                    && codeValue.ValueKind == JsonValueKind.String
-                        ? codeValue.GetString()
-                        : null;
-                var message = error.TryGetProperty("message", out var messageValue)
-                    && messageValue.ValueKind == JsonValueKind.String
-                        ? messageValue.GetString()
-                        : null;
-                return new ProviderError(code, Truncate(message));
+                foreach (var item in root.EnumerateArray())
+                {
+                    providerError = ReadError(item);
+                    if (providerError is not null)
+                    {
+                        break;
+                    }
+                }
+            }
+
+            if (providerError is not null)
+            {
+                return providerError;
             }
         }
         catch (JsonException)
         {
-            // Non-JSON provider errors are not logged verbatim: they can echo
-            // the request. The status code is enough for the caller.
+            // Non-JSON provider errors are handled below: the raw body is
+            // truncated and logged because it carries the diagnostic and never
+            // the prompt or the API key.
         }
 
-        return new ProviderError(null, null);
+        return new ProviderError(null, Truncate(body));
+    }
+
+    private static ProviderError? ReadError(JsonElement element)
+    {
+        if (element.ValueKind != JsonValueKind.Object
+            || !element.TryGetProperty("error", out var error)
+            || error.ValueKind != JsonValueKind.Object)
+        {
+            return null;
+        }
+
+        string? code = null;
+        if (error.TryGetProperty("code", out var codeValue))
+        {
+            code = codeValue.ValueKind switch
+            {
+                JsonValueKind.String => codeValue.GetString(),
+                JsonValueKind.Number => codeValue.GetRawText(),
+                _ => null
+            };
+        }
+
+        var message = error.TryGetProperty("message", out var messageValue)
+            && messageValue.ValueKind == JsonValueKind.String
+                ? Truncate(messageValue.GetString())
+                : null;
+
+        return code is null && message is null
+            ? null
+            : new ProviderError(code, message);
     }
 
     private static string? Truncate(string? value) =>

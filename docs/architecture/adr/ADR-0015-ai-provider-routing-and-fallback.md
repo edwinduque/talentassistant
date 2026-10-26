@@ -28,6 +28,8 @@ Adoptar un enrutador en Infrastructure que implemente `IAssistantLanguageModel` 
 
 Producción confirmó un `404 NOT_FOUND` de Gemini: `gemini-2.5-flash` ya no está disponible para usuarios nuevos y el proveedor recomienda `gemini-3.8-flash`. Se cambia el modelo por defecto a 3.8 Flash y se omite `temperature` en Gemini 3.x (deprecado y potencialmente rechazado); Groq conserva 0.1. La decisión de enrutamiento, failover y cortacircuitos no cambia.
 
+Una segunda observación de producción mostró que Gemini rechazaba con 400 el transcript que contenía una llamada de herramienta de Groq. El enrutador reintenta una vez con un transcript limpio (sistema, historial de texto y último usuario; sin mensajes de herramienta) y el modelo alternativo vuelve a pedir las herramientas de solo lectura. El cliente registra además el cuerpo de error truncado cuando no puede extraer código y mensaje.
+
 El dominio no conoce proveedores. `ChatOrchestrator` sigue dependiendo del puerto; el enrutador y los clientes viven en Infrastructure.
 
 ## Invariantes
@@ -62,7 +64,7 @@ El dominio no conoce proveedores. `ChatOrchestrator` sigue dependiendo del puert
 - El failover añade una llamada adicional en el peor caso; el presupuesto de intentos lo acota.
 - La asignación por hash cambia si cambian los pesos; es aceptable porque no hay persistencia.
 - Gemini retiró 2.5 Flash para usuarios nuevos; el modelo por defecto es 3.8 Flash y requiere omitir `temperature` en la generación 3.x.
-- El proveedor alternativo podría rechazar un transcript con `tool_calls` generados por el otro; se verifica con transporte falso y una llamada en vivo opt-in, y un rechazo termina en el error controlado sin reintentos ilimitados.
+- El proveedor alternativo podría rechazar un transcript con `tool_calls` generados por el otro; se reintenta una vez con un transcript limpio (solo texto, sin mensajes de herramienta) y las herramientas de solo lectura se vuelven a pedir. Si persiste, se devuelve el error controlado sin reintentos ilimitados.
 
 ## Alternativas consideradas
 
