@@ -128,16 +128,59 @@ public sealed class RoutingLanguageModel : IAssistantLanguageModel
                     secondFailure.Reason,
                     secondStopwatch.ElapsedMilliseconds);
 
+                var finalFailure = secondFailure;
+                if (secondFailure.Reason == AssistantProviderFailureReason.InvalidResponse
+                    && HasToolTranscript(request.Messages))
+                {
+                    // The fallback rejected the first provider's tool_calls
+                    // transcript. Retry once with a text-only transcript; the
+                    // tools are read-only, so re-asking is safe.
+                    var sanitizedRequest = request with
+                    {
+                        Messages = SanitizeTranscript(request.Messages)
+                    };
+                    _logger.LogWarning(
+                        "Retrying {Provider} with a sanitized transcript after a rejected foreign tool transcript.",
+                        second.Name);
+
+                    var sanitizedStopwatch = Stopwatch.StartNew();
+                    try
+                    {
+                        var completion = await second.Model.CompleteAsync(
+                            sanitizedRequest,
+                            cancellationToken);
+                        _health.RecordSuccess(second.Name);
+                        _active = second;
+                        LogSuccess(second, sanitizedStopwatch);
+                        _logger.LogInformation(
+                            "Assistant failover from {FirstProvider} to {SecondProvider} succeeded with a sanitized transcript.",
+                            first.Name,
+                            second.Name);
+                        return completion;
+                    }
+                    catch (AssistantProviderUnavailableException sanitizedFailure)
+                    {
+                        _health.RecordFailure(second.Name);
+                        finalFailure = sanitizedFailure;
+                        _logger.LogWarning(
+                            "Assistant provider {Provider} ({Model}) failed with {Reason} after {ElapsedMs} ms with a sanitized transcript.",
+                            second.Name,
+                            second.ModelId,
+                            sanitizedFailure.Reason,
+                            sanitizedStopwatch.ElapsedMilliseconds);
+                    }
+                }
+
                 // Both were rate limited -> the user-facing "service busy"
                 // message; otherwise report the last observed reason.
                 var reason = firstFailure.Reason == AssistantProviderFailureReason.RateLimited
-                    && secondFailure.Reason == AssistantProviderFailureReason.RateLimited
+                    && finalFailure.Reason == AssistantProviderFailureReason.RateLimited
                         ? AssistantProviderFailureReason.RateLimited
-                        : secondFailure.Reason;
+                        : finalFailure.Reason;
                 throw new AssistantProviderUnavailableException(
                     reason,
                     "Both assistant providers failed.",
-                    secondFailure);
+                    finalFailure);
             }
         }
     }
@@ -148,6 +191,19 @@ public sealed class RoutingLanguageModel : IAssistantLanguageModel
             slot.Name,
             slot.ModelId,
             stopwatch.ElapsedMilliseconds);
+
+    private static bool HasToolTranscript(IReadOnlyList<ChatMessage> messages) =>
+        messages.Any(message =>
+            message.ToolCalls is { Count: > 0 } || message.ToolCallId is not null);
+
+    private static IReadOnlyList<ChatMessage> SanitizeTranscript(
+        IReadOnlyList<ChatMessage> messages) =>
+        messages
+            .Where(message =>
+                message.ToolCalls is not { Count: > 0 }
+                && message.ToolCallId is null
+                && !(message.Role == "assistant" && string.IsNullOrWhiteSpace(message.Content)))
+            .ToArray();
 
     private AssistantProviderSlot ResolveFirstProvider(string? conversationId)
     {

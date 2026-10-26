@@ -215,6 +215,79 @@ public sealed class RoutingLanguageModelTests
         Assert.Equal(1, groq.CallCount);
     }
 
+    [Fact]
+    public async Task FallbackRejectsForeignToolTranscriptAndRetriesWithCleanMessages()
+    {
+        var groq = new FakeProvider("groq")
+        {
+            Failure = new AssistantProviderUnavailableException(
+                AssistantProviderFailureReason.RateLimited,
+                "limited")
+        };
+        var gemini = new FakeProvider("gemini");
+        var requests = new List<AssistantRequest>();
+        gemini.Handler = (request, call) =>
+        {
+            requests.Add(request);
+            return call == 1
+                ? Task.FromException<AssistantCompletion>(
+                    new AssistantProviderUnavailableException(
+                        AssistantProviderFailureReason.InvalidResponse,
+                        "rejected foreign tool transcript"))
+                : Task.FromResult(new AssistantCompletion("clean answer", []));
+        };
+        var router = CreateRouter([new("groq", 100, groq), new("gemini", 0, gemini)]);
+        var request = new AssistantRequest(
+            [
+                new ChatMessage("system", "system"),
+                new ChatMessage("user", "pregunta"),
+                new ChatMessage(
+                    "assistant",
+                    string.Empty,
+                    ToolCalls: [new AssistantToolCall("call-1", "search_employees", "{}")]),
+                new ChatMessage("tool", "[]", ToolCallId: "call-1")
+            ],
+            [],
+            MaxTokens: 700,
+            ConversationId: "conv-1");
+
+        var completion = await router.CompleteAsync(request);
+
+        Assert.Equal("clean answer", completion.Content);
+        Assert.Equal(2, gemini.CallCount);
+        Assert.Equal(2, requests.Count);
+        Assert.Contains(requests[0].Messages, message => message.ToolCalls is not null);
+        Assert.DoesNotContain(
+            requests[1].Messages,
+            message => message.ToolCalls is not null || message.ToolCallId is not null);
+        Assert.Contains(requests[1].Messages, message => message.Role == "system");
+        Assert.Contains(requests[1].Messages, message => message.Role == "user");
+    }
+
+    [Fact]
+    public async Task FallbackInvalidResponseWithoutToolMessagesIsNotRetried()
+    {
+        var groq = new FakeProvider("groq")
+        {
+            Failure = new AssistantProviderUnavailableException(
+                AssistantProviderFailureReason.RateLimited,
+                "limited")
+        };
+        var gemini = new FakeProvider("gemini")
+        {
+            Failure = new AssistantProviderUnavailableException(
+                AssistantProviderFailureReason.InvalidResponse,
+                "invalid request")
+        };
+        var router = CreateRouter([new("groq", 100, groq), new("gemini", 0, gemini)]);
+
+        var exception = await Assert.ThrowsAsync<AssistantProviderUnavailableException>(
+            () => router.CompleteAsync(Request("conv-1")));
+
+        Assert.Equal(AssistantProviderFailureReason.InvalidResponse, exception.Reason);
+        Assert.Equal(1, gemini.CallCount);
+    }
+
     private static AssistantProviderSlot[] Slots(FakeProvider groq, FakeProvider gemini) =>
         [new("groq", 50, groq), new("gemini", 50, gemini)];
 
@@ -242,11 +315,18 @@ public sealed class RoutingLanguageModelTests
 
         public Exception? Failure { get; init; }
 
+        public Func<AssistantRequest, int, Task<AssistantCompletion>>? Handler { get; set; }
+
         public Task<AssistantCompletion> CompleteAsync(
             AssistantRequest request,
             CancellationToken cancellationToken = default)
         {
             CallCount++;
+            if (Handler is not null)
+            {
+                return Handler(request, CallCount);
+            }
+
             return Failure is null
                 ? Task.FromResult(new AssistantCompletion($"{name} answer", []))
                 : Task.FromException<AssistantCompletion>(Failure);
