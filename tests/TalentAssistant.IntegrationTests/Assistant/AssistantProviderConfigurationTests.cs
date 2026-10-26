@@ -22,6 +22,8 @@ public sealed class AssistantProviderConfigurationTests
         Assert.Equal(AssistantProviderConfiguration.GeminiDefaultModel, configuration.Gemini.Model);
         Assert.Equal("low", configuration.Gemini.ReasoningEffort);
         Assert.True(configuration.Gemini.NormalizeToolSchemas);
+        Assert.Null(configuration.Gemini.Temperature);
+        Assert.Equal(0.1, configuration.Groq.Temperature);
         Assert.Equal(50, configuration.Routing.GroqWeight);
         Assert.Equal(50, configuration.Routing.GeminiWeight);
         Assert.Equal(2, configuration.Routing.FailureThreshold);

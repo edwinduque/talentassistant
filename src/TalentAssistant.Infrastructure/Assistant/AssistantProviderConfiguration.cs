@@ -26,12 +26,13 @@ public sealed record AssistantProviderSettings(
     string? ReasoningEffort,
     int TimeoutSeconds,
     int MaxAttempts,
-    bool NormalizeToolSchemas)
+    bool NormalizeToolSchemas,
+    double? Temperature = 0.1)
 {
     public bool IsConfigured => !string.IsNullOrWhiteSpace(ApiKey);
 
     public AssistantProviderOptions ToClientOptions() =>
-        new(ApiKey, Model, Name, ReasoningEffort, MaxAttempts, NormalizeToolSchemas);
+        new(ApiKey, Model, Name, ReasoningEffort, MaxAttempts, NormalizeToolSchemas, Temperature);
 }
 
 /// <summary>
@@ -62,7 +63,7 @@ public sealed record AssistantProviderConfiguration(
 {
     public const string GroqDefaultBaseUrl = "https://api.groq.com/openai/v1";
     public const string GeminiDefaultBaseUrl = "https://generativelanguage.googleapis.com/v1beta/openai/";
-    public const string GeminiDefaultModel = "gemini-2.5-flash";
+    public const string GeminiDefaultModel = "gemini-3.8-flash";
 
     private static readonly string[] AllowedReasoningEfforts =
         ["none", "minimal", "low", "medium", "high"];
@@ -80,7 +81,8 @@ public sealed record AssistantProviderConfiguration(
             ReasoningEffort: null,
             TimeoutSeconds: ReadTimeout(ai, "TimeoutSeconds"),
             MaxAttempts: 2,
-            NormalizeToolSchemas: false);
+            NormalizeToolSchemas: false,
+            Temperature: 0.1);
         var gemini = new AssistantProviderSettings(
             Name: "gemini",
             BaseUrl: NormalizeBaseUrl(ai["Gemini:BaseUrl"], GeminiDefaultBaseUrl, "AI:Gemini:BaseUrl"),
@@ -91,7 +93,8 @@ public sealed record AssistantProviderConfiguration(
             ReasoningEffort: ParseReasoningEffort(ai["Gemini:ReasoningEffort"]),
             TimeoutSeconds: ReadTimeout(ai, "Gemini:TimeoutSeconds"),
             MaxAttempts: 2,
-            NormalizeToolSchemas: true);
+            NormalizeToolSchemas: true,
+            Temperature: null);
 
         var routing = new AssistantRoutingOptions(
             GroqWeight: ReadWeight(ai, "Routing:GroqWeight"),

@@ -5,12 +5,12 @@
 - **Requisitos relacionados:** FR-029, FR-030, NFR-021, NFR-024.
 - **Criterios relacionados:** AC-062, AC-063, AC-064, AC-065.
 - **Decisión arquitectónica:** ADR-0015 aceptado.
-- **Decisión de producto registrada:** el usuario pidió añadir Gemini 2.5 Flash y distribuir las peticiones entre proveedores con reintento en el otro, evitando consumir la cuota diaria en pruebas.
+- **Decisión de producto registrada:** el usuario pidió añadir Gemini 2.5 Flash y distribuir las peticiones entre proveedores con reintento en el otro, evitando consumir la cuota diaria en pruebas. Google retiró 2.5 Flash para usuarios nuevos; el proveedor usa Gemini 3.8 Flash desde la enmienda de §11.
 - **Versión:** 0.1.
 
 ## 1. Objetivo
 
-Añadir un segundo proveedor de IA (Google Gemini, modelo `gemini-2.5-flash`) y un enrutador que reparta las conversaciones entre Groq y Gemini, continúe con el otro proveedor cuando el preferido falle y mantenga una experiencia de respuesta consistente entre ambos.
+Añadir un segundo proveedor de IA (Google Gemini, modelo `gemini-3.8-flash`; sustituto obligado de 2.5 Flash, ver §11) y un enrutador que reparta las conversaciones entre Groq y Gemini, continúe con el otro proveedor cuando el preferido falle y mantenga una experiencia de respuesta consistente entre ambos.
 
 La cuota gratuita de Groq es limitada y ya se agotó en una jornada. El sistema debe seguir respondiendo cuando un proveedor esté limitado, agotado o no disponible, sin duplicar escrituras (no existen) y sin cambiar el contrato funcional del chat.
 
@@ -18,7 +18,7 @@ La cuota gratuita de Groq es limitada y ya se agotó en una jornada. El sistema 
 
 `IAssistantLanguageModel` tiene una única implementación, `OpenAiCompatibleLanguageModel`, registrada con un `HttpClient` y una configuración únicos (`AI:BaseUrl`, `AI:ApiKey`, `AI:Model`). El orquestador no conoce proveedores: recibe el puerto y ejecuta el bucle de herramientas. Cuando Groq devuelve 429, `POST /chat` responde 429 y la interfaz muestra «El servicio está ocupado»; no hay alternativa.
 
-Gemini 2.5 Flash ofrece un endpoint compatible con OpenAI (`https://generativelanguage.googleapis.com/v1beta/openai/`), autenticación Bearer y soporte de `tools`, por lo que el mismo cliente HTTP puede usarse con otra base, clave y modelo. La cuota gratuita de Gemini también es limitada y se consulta en AI Studio; no se hardcodean cifras.
+Gemini Flash ofrece un endpoint compatible con OpenAI (`https://generativelanguage.googleapis.com/v1beta/openai/`), autenticación Bearer y soporte de `tools`, por lo que el mismo cliente HTTP puede usarse con otra base, clave y modelo. La cuota gratuita de Gemini también es limitada y se consulta en AI Studio; no se hardcodean cifras.
 
 El riesgo principal no es técnico sino de experiencia: si cada turno elige un modelo distinto, la conversación cambia de estilo, de estructura y de criterio a mitad de hilo. El diseño debe repartir carga sin que el usuario lo note.
 
@@ -63,7 +63,7 @@ Riesgo controlado: el proveedor alternativo debe aceptar un transcript con `tool
 ### 3.5 Consistencia entre modelos
 
 - Un único system prompt, un único catálogo de herramientas, el mismo idioma del perfil y las mismas reglas de formato de SPEC-021. Sin instrucciones específicas por proveedor que cambien el estilo.
-- Misma temperatura (0.1) y mismo `max_tokens` en ambos. En Gemini se fija `reasoning_effort=low` (presupuesto de pensamiento 1.024) para acercar latencia y verbosidad a Groq; es configurable y puede desactivarse con `none`.
+- Groq usa temperatura 0.1 y ambos comparten `max_tokens`. Gemini 3.x omite `temperature` porque está deprecado y puede devolver 400; la consistencia se apoya en el prompt y el formato común. En Gemini se fija `reasoning_effort=low` (presupuesto de pensamiento 1.024) para acercar latencia y verbosidad a Groq; es configurable y puede desactivarse con `none`.
 - Adaptador de esquema por proveedor: para Gemini se reducen las uniones anulables y multi-tipo al primer tipo no nulo, se añade un `items` genérico a los arrays sin elementos y se elimina `additionalProperties`; el esquema canónico de Groq no cambia y el backend sigue validando los argumentos. Se prueba con un proveedor falso estricto.
 - Verificación de paridad con tres preguntas de referencia (un conteo, una persona y una lista): se comparan hechos y estructura, no texto literal. Una respuesta no debe mencionar el modelo ni el proveedor.
 - La asignación pegajosa por conversación es la principal defensa contra la diferencia de estilo; la paridad se mide, no se asume.
@@ -71,7 +71,7 @@ Riesgo controlado: el proveedor alternativo debe aceptar un transcript con `tool
 ### 3.6 Configuración compatible con el despliegue actual
 
 - Groq conserva `AI:BaseUrl`, `AI:ApiKey` y `AI:Model`, de modo que el despliegue actual sigue funcionando sin cambios.
-- Gemini añade `AI:Gemini:BaseUrl` (por defecto el endpoint compatible), `AI:Gemini:ApiKey`, `AI:Gemini:Model` (`gemini-2.5-flash`) y `AI:Gemini:ReasoningEffort` (`low`).
+- Gemini añade `AI:Gemini:BaseUrl` (por defecto el endpoint compatible), `AI:Gemini:ApiKey`, `AI:Gemini:Model` (`gemini-3.8-flash`) y `AI:Gemini:ReasoningEffort` (`low`).
 - Enrutamiento: `AI:Routing:GroqWeight` (50), `AI:Routing:GeminiWeight` (50), `AI:Routing:FailureThreshold` (2) y `AI:Routing:CooldownSeconds` (120).
 - `AI:Provider` pasa a aceptar `router` (por defecto), `groq` o `gemini`; los dos últimos fuerzan un proveedor único para diagnóstico.
 - Si solo hay una clave configurada, el sistema opera en modo proveedor único sin error. Si no hay ninguna, se mantiene `NotConfigured`.
@@ -89,7 +89,7 @@ Riesgo controlado: el proveedor alternativo debe aceptar un transcript con `tool
 
 ### Incluido
 
-- Segundo proveedor Gemini 2.5 Flash mediante el endpoint compatible con OpenAI.
+- Segundo proveedor Gemini 3.8 Flash mediante el endpoint compatible con OpenAI.
 - Enrutador ponderado y pegajoso por conversación, con failover por completion y cortacircuitos.
 - Identificador opcional `conversationId` en `POST /chat` y su generación en la Web (incluido «Nuevo chat»).
 - Configuración compatible, validación al arranque, observabilidad sin secretos.
@@ -172,11 +172,31 @@ Decisiones confirmadas:
 1. Adoptar ADR-0015 y el reparto pegajoso por conversación con `conversationId` opcional.
 2. Pesos iniciales 50/50, configurables.
 3. Failover ante cualquier fallo de proveedor y un intento HTTP por proveedor en modo enrutador.
-4. `reasoning_effort=low` en Gemini 2.5 Flash y temperatura 0.1 compartida.
+4. `reasoning_effort=low` en Gemini 3.8 Flash; Groq con temperatura 0.1 y Gemini sin `temperature` (deprecado en 3.x).
 5. Scripts en vivo opt-in con `-MaxCalls 4` y `-PaceSeconds 15`.
 
-Implementación: commits `a4be5db` (configuración, enrutador, cortacircuitos, adaptador y pruebas), `78c4de2` (identificador de conversación en API/Web y pruebas), el commit de observabilidad (proveedor, modelo y latencia en logs) y el cierre documental.
+Implementación: commits `a4be5db` (configuración, enrutador, cortacircuitos, adaptador y pruebas), `78c4de2` (identificador de conversación en API/Web y pruebas), el commit de observabilidad (proveedor, modelo y latencia en logs) y el cierre documental. La corrección del 2026-10-26 (Gemini 3.8 Flash y omisión de `temperature`, ver §11) se registra en el commit de enmienda.
 
 Evidencia observada: build con 0 errores y 0 avisos; 261/261 pruebas de integración en verde, incluidas configuraciones válidas e inválidas, selección determinista, failover, ambos fallos, cortacircuitos, recuperación tras el enfriamiento, payloads por proveedor, esquema normalizado y el `conversationId` de extremo a extremo. Pruebas unitarias: 23/24; la única falla es el bloqueo ambiental de App Control (`0x800711C7`) al cargar `TalentAssistant.Domain.dll`, reproducido en sesiones anteriores y ajeno a este cambio. No se ejecutaron llamadas reales a Groq o Gemini; el script de humo se validó con `-DryRun` y queda pendiente la pasada en vivo autorizada.
 
 Limitación: la aceptación de Gemini del transcript con `tool_calls` generados por Groq y del esquema normalizado solo puede confirmarse con la pasada en vivo opt-in; el diseño devuelve el error controlado si el proveedor alternativo no acepta el transcript.
+
+## 11. Enmienda: Gemini 3.8 Flash y `temperature` (2026-10-26)
+
+La primera pasada en producción mostró que Gemini devolvía HTTP 404 `NOT_FOUND` en todas las llamadas, con este mensaje del proveedor:
+
+```text
+This model models/gemini-2.5-flash is no longer available to new users.
+Please update your code to use models/gemini-3.8-flash for the latest features and improvements.
+```
+
+El failover a Groq funcionó, pero Gemini nunca estuvo operativo; cuando Groq además estaba limitado, la API devolvía 429. Google retiró 2.5 Flash para proyectos nuevos, así que el modelo configurado se sustituye por `gemini-3.8-flash`, que el propio proveedor recomienda y que figura en la lista de modelos de la clave.
+
+Cambios aprobados por necesidad técnica:
+
+- Modelo por defecto de Gemini: `gemini-3.8-flash`; `AI:Gemini:Model` sigue siendo configurable.
+- Gemini 3.x omite `temperature` (deprecado y potencialmente rechazado con 400); Groq conserva 0.1. La consistencia se mantiene por el prompt, el catálogo y el formato común.
+- `reasoning_effort=low` se conserva; en 3.x se mapea al nivel de pensamiento equivalente.
+- La petición literal del usuario se conserva como historial; el cambio de modelo es una sustitución forzada por la retirada del proveedor, no una ampliación de alcance.
+
+Evidencia: una consulta de modelos y una generación de diagnóstico en la VPS (sin imprimir claves) confirmaron el 404 y la recomendación de 3.8 Flash. El resto de la verificación sigue siendo determinista; la pasada en vivo con presupuesto queda pendiente de autorización.

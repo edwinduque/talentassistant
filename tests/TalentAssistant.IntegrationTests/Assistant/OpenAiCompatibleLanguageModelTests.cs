@@ -50,6 +50,7 @@ public sealed class OpenAiCompatibleLanguageModelTests
         var root = body.RootElement;
         Assert.Equal("test-model", root.GetProperty("model").GetString());
         Assert.Equal(512, root.GetProperty("max_tokens").GetInt32());
+        Assert.Equal(0.1, root.GetProperty("temperature").GetDouble());
 
         var messages = root.GetProperty("messages").EnumerateArray()
             .ToArray();
@@ -316,6 +317,16 @@ public sealed class OpenAiCompatibleLanguageModelTests
         Assert.True(hasTypeUnion, "The canonical schema should keep its nullable type unions.");
     }
 
+    [Fact]
+    public async Task GeminiStyleOptionsOmitDeprecatedTemperature()
+    {
+        var handler = new StubHttpMessageHandler(_ => Json(CannedContentResponse));
+        await CreateClient(handler, temperature: null).CompleteAsync(SimpleRequest());
+
+        using var body = JsonDocument.Parse(handler.Requests[0].Body);
+        Assert.False(body.RootElement.TryGetProperty("temperature", out _));
+    }
+
     private const string CannedContentResponse =
         """{"choices":[{"message":{"content":"Synthetic answer.","tool_calls":null}}]}""";
 
@@ -330,7 +341,8 @@ public sealed class OpenAiCompatibleLanguageModelTests
         TimeSpan? timeout = null,
         int maxAttempts = 2,
         string? reasoningEffort = null,
-        bool normalizeToolSchemas = false)
+        bool normalizeToolSchemas = false,
+        double? temperature = 0.1)
     {
         var httpClient = new HttpClient(handler)
         {
@@ -347,7 +359,8 @@ public sealed class OpenAiCompatibleLanguageModelTests
                 "test-provider",
                 reasoningEffort,
                 maxAttempts,
-                normalizeToolSchemas),
+                normalizeToolSchemas,
+                temperature),
             Microsoft.Extensions.Logging.Abstractions.NullLogger<OpenAiCompatibleLanguageModel>.Instance);
     }
 

@@ -1,13 +1,13 @@
 # Feature: balanceo y continuidad entre proveedores de IA
 
-Objetivo: añadir Gemini 2.5 Flash como segundo proveedor y enrutar las conversaciones entre Groq y Gemini con asignación pegajosa, failover y cortacircuitos, sin cambiar la experiencia ni agotar cuotas en pruebas.
+Objetivo: añadir Gemini 3.8 Flash como segundo proveedor (sustituto obligado de 2.5 Flash, retirado para usuarios nuevos) y enrutar las conversaciones entre Groq y Gemini con asignación pegajosa, failover y cortacircuitos, sin cambiar la experiencia ni agotar cuotas en pruebas.
 Rama: `feat/ai-provider-balancing`.
 Entrega: un solo PR con commits por work unit (preferencia del usuario, 2026-10-25); push y PR los decide el usuario.
 Runner: `dotnet test` (UnitTests e IntegrationTests); la integración usa PostgreSQL local (`docker compose`). Sin llamadas reales a Groq o Gemini.
 
 ## Specs
 
-S1. Dos proveedores configurables (Groq existente y Gemini 2.5 Flash) detrás de `IAssistantLanguageModel`; el dominio y `ChatOrchestrator` no conocen proveedores.
+S1. Dos proveedores configurables (Groq existente y Gemini 3.8 Flash) detrás de `IAssistantLanguageModel`; el dominio y `ChatOrchestrator` no conocen proveedores.
 
 S2. La unidad de reparto es la conversación: un `conversationId` opcional en `POST /chat` elige proveedor de forma determinista y ponderada; la misma conversación conserva proveedor mientras esté disponible y no cambia entre turnos.
 
@@ -21,7 +21,7 @@ S6. Cortacircuitos en memoria por proveedor: tras dos fallos consecutivos queda 
 
 S7. Si ambos proveedores fallan, se conservan los mensajes localizados y los códigos HTTP actuales; `RateLimited` si ambos fueron limitados.
 
-S8. Consistencia: mismo system prompt, catálogo, idioma, formato de SPEC-021, temperatura 0.1 y `max_tokens`; Gemini con `reasoning_effort=low` configurable. La respuesta no menciona el proveedor.
+S8. Consistencia: mismo system prompt, catálogo, idioma, formato de SPEC-021 y `max_tokens`; Groq con temperatura 0.1, Gemini 3.x sin `temperature` (deprecado) y `reasoning_effort=low` configurable. La respuesta no menciona el proveedor.
 
 S9. Configuración compatible: Groq conserva `AI:BaseUrl/ApiKey/Model`; se añaden `AI:Gemini:*` y `AI:Routing:*`; `AI:Provider` acepta `router` (por defecto), `groq` o `gemini`. Sin clave de Gemini el sistema opera con Groq; sin ninguna clave mantiene `NotConfigured`.
 
@@ -56,3 +56,7 @@ L7 (2026-10-25, entrega): la rama `feat/ai-provider-balancing` está apilada sob
 L8 (2026-10-25, pendiente): la pasada en vivo con presupuesto de cuatro llamadas confirmará que Gemini acepta el transcript con `tool_calls` de Groq y el esquema normalizado; hasta entonces esa compatibilidad es un riesgo documentado y el fallo se degrada con el error controlado.
 
 L9 (2026-10-25, observabilidad): cada completion registra proveedor, modelo y latencia; los fallos añaden el motivo y el failover. Los logs no incluyen prompt, respuesta, claves ni datos de personas.
+
+L10 (2026-10-26, producción): Gemini devolvía 404 `NOT_FOUND` en todas las llamadas: `gemini-2.5-flash` ya no está disponible para usuarios nuevos y el proveedor recomienda `gemini-3.8-flash`. El failover a Groq funcionó, pero al estar Groq limitado la API devolvía 429. Se actualiza el modelo por defecto a 3.8 Flash y se omite `temperature` en Gemini 3.x; Groq conserva 0.1. SPEC-022 §11 y ADR-0015 recogen la enmienda.
+
+L11 (2026-10-26, verificación del arreglo): build 0/0 y pruebas focalizadas 34/34; se añadió la prueba de que Gemini no envía `temperature` y Groq sí. La suite completa y el despliegue quedan como cierre de esta corrección.
