@@ -8,9 +8,9 @@
 
 ## Contexto
 
-El asistente usa un único proveedor, Groq, a través de `OpenAiCompatibleLanguageModel`. Su capa gratuita es limitada y ya se agotó en una jornada: cuando el proveedor devuelve 429, `POST /chat` responde 429 y el chat queda sin alternativa hasta que la cuota se recupere. El usuario pidió añadir Gemini 2.5 Flash y repartir las peticiones entre ambos proveedores, con reintento en el otro cuando uno falla.
+El asistente usa un único proveedor, Groq, a través de `OpenAiCompatibleLanguageModel`. Su capa gratuita es limitada y ya se agotó en una jornada: cuando el proveedor devuelve 429, `POST /chat` responde 429 y el chat queda sin alternativa hasta que la cuota se recupere. El usuario pidió añadir Gemini Flash y repartir las peticiones entre ambos proveedores, con reintento en el otro cuando uno falla. Google retiró 2.5 Flash para usuarios nuevos; la enmienda del 2026-10-26 usa 3.8 Flash.
 
-Gemini 2.5 Flash expone un endpoint compatible con OpenAI (`https://generativelanguage.googleapis.com/v1beta/openai/`) con autenticación Bearer y soporte de `tools`, por lo que no requiere SDK ni un segundo formato de request. Su capa gratuita también es finita y su cuota solo se consulta en AI Studio. La diferencia de comportamiento entre modelos es un riesgo de experiencia: si se alternan por turno, una misma conversación cambia de estilo y de criterio.
+Gemini Flash expone un endpoint compatible con OpenAI (`https://generativelanguage.googleapis.com/v1beta/openai/`) con autenticación Bearer y soporte de `tools`, por lo que no requiere SDK ni un segundo formato de request. Su capa gratuita también es finita y su cuota solo se consulta en AI Studio. La diferencia de comportamiento entre modelos es un riesgo de experiencia: si se alternan por turno, una misma conversación cambia de estilo y de criterio.
 
 ## Decisión aceptada
 
@@ -20,9 +20,13 @@ Adoptar un enrutador en Infrastructure que implemente `IAssistantLanguageModel` 
 2. Hace **failover por completion** ante cualquier fallo del proveedor preferido, reutilizando el transcript ya construido (incluidos los resultados de herramientas). No repite herramientas ni la pregunta y mantiene el proveedor alternativo durante el resto del turno.
 3. Limita los intentos a **uno por proveedor y completion** en modo enrutador, para no gastar cuota dos veces en el mismo proveedor. En modo proveedor único se conserva el reintento actual de 5xx/`tool_use_failed`.
 4. Mantiene un **cortacircuitos en memoria**: tras dos fallos consecutivos, el proveedor queda fuera del reparto durante un enfriamiento configurable (120 s) y una sonda decide su vuelta. No hay estado distribuido ni persistido.
-5. Comparte **prompt, catálogo, idioma, formato y parámetros** entre proveedores. Gemini usa `reasoning_effort=low` para acercar latencia y verbosidad; temperatura 0.1 y `max_tokens` son comunes.
+5. Comparte **prompt, catálogo, idioma, formato y parámetros** entre proveedores. Groq usa temperatura 0.1; Gemini 3.x omite `temperature` (deprecado) y ambos comparten `max_tokens`. Gemini usa `reasoning_effort=low` para acercar latencia y verbosidad.
 6. Conserva la **configuración actual de Groq** (`AI:BaseUrl`, `AI:ApiKey`, `AI:Model`) y añade `AI:Gemini:*` y `AI:Routing:*` con valores por defecto. `AI:Provider` acepta `router` (por defecto), `groq` o `gemini`.
 7. Adapta el esquema de herramientas para Gemini: reduce uniones anulables y multi-tipo al primer tipo no nulo, añade un `items` genérico a arrays sin elementos y elimina `additionalProperties`; el esquema canónico de Groq no cambia.
+
+### Enmienda 2026-10-26
+
+Producción confirmó un `404 NOT_FOUND` de Gemini: `gemini-2.5-flash` ya no está disponible para usuarios nuevos y el proveedor recomienda `gemini-3.8-flash`. Se cambia el modelo por defecto a 3.8 Flash y se omite `temperature` en Gemini 3.x (deprecado y potencialmente rechazado); Groq conserva 0.1. La decisión de enrutamiento, failover y cortacircuitos no cambia.
 
 El dominio no conoce proveedores. `ChatOrchestrator` sigue dependiendo del puerto; el enrutador y los clientes viven en Infrastructure.
 
@@ -57,6 +61,7 @@ El dominio no conoce proveedores. `ChatOrchestrator` sigue dependiendo del puert
 - El cortacircuitos es por proceso; en un despliegue multi-instancia cada instancia decide por su cuenta.
 - El failover añade una llamada adicional en el peor caso; el presupuesto de intentos lo acota.
 - La asignación por hash cambia si cambian los pesos; es aceptable porque no hay persistencia.
+- Gemini retiró 2.5 Flash para usuarios nuevos; el modelo por defecto es 3.8 Flash y requiere omitir `temperature` en la generación 3.x.
 - El proveedor alternativo podría rechazar un transcript con `tool_calls` generados por el otro; se verifica con transporte falso y una llamada en vivo opt-in, y un rechazo termina en el error controlado sin reintentos ilimitados.
 
 ## Alternativas consideradas

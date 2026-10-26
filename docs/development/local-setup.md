@@ -387,14 +387,14 @@ Desde SPEC-009, la Web incluye `/assistant` (ES/EN, con sesión) y la API `POST 
 
 ### Proveedores y enrutamiento
 
-Groq y Gemini 2.5 Flash se integran mediante sus APIs compatibles con OpenAI. El asistente reparte las conversaciones entre ambos con un hash determinista y pesos configurables (50/50 por defecto); una misma conversación conserva proveedor y, si falla o agota su cuota, el turno continúa en el otro. Sin clave de Gemini, todo sigue funcionando solo con Groq. Completa en tu `.env` local (nunca versionado):
+Groq y Gemini 3.8 Flash se integran mediante sus APIs compatibles con OpenAI. El asistente reparte las conversaciones entre ambos con un hash determinista y pesos configurables (50/50 por defecto); una misma conversación conserva proveedor y, si falla o agota su cuota, el turno continúa en el otro. Sin clave de Gemini, todo sigue funcionando solo con Groq. Completa en tu `.env` local (nunca versionado):
 
 | Variable | Valor esperado |
 |---|---|
 | `AI_API_KEY` | Clave de Groq. Vacía por defecto: sin ella y sin Gemini la API no llama a ningún proveedor. Solo en `.env`; nunca en el repositorio ni en la salida de comandos. |
 | `AI_MODEL` | `openai/gpt-oss-120b` (valor por defecto en `.env.example`), el modelo confirmado con la API de Groq el 2026-10-18 con soporte de herramientas. |
 | `GEMINI_API_KEY` | Clave de Google AI Studio para Gemini. Opcional; si falta, el enrutador usa solo Groq. |
-| `GEMINI_MODEL` | `gemini-2.5-flash` por defecto. |
+| `GEMINI_MODEL` | `gemini-3.8-flash` por defecto. |
 | `AI_PROVIDER` | `router` (por defecto), `groq` o `gemini` para forzar un proveedor único en diagnóstico. |
 | `AI_ROUTING_GROQ_WEIGHT` / `AI_ROUTING_GEMINI_WEIGHT` | Pesos del reparto; 50/50 por defecto. |
 | `AI_ROUTING_FAILURE_THRESHOLD` / `AI_ROUTING_COOLDOWN_SECONDS` | Cortacircuitos: fallos consecutivos antes de apartar un proveedor y segundos de enfriamiento (2 y 120 por defecto). |

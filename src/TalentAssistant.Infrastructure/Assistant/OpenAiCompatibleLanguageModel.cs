@@ -265,9 +265,15 @@ public sealed class OpenAiCompatibleLanguageModel : IAssistantLanguageModel
             ["model"] = _options.Model,
             ["messages"] = messages,
             ["tools"] = tools,
-            ["max_tokens"] = request.MaxTokens,
-            ["temperature"] = 0.1
+            ["max_tokens"] = request.MaxTokens
         };
+
+        // Gemini 3.x deprecates temperature; omit it instead of sending a
+        // parameter the provider no longer accepts. Groq keeps its sampling.
+        if (_options.Temperature is { } temperature)
+        {
+            body["temperature"] = temperature;
+        }
 
         if (!string.IsNullOrWhiteSpace(_options.ReasoningEffort))
         {

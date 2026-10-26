@@ -12,4 +12,5 @@ public sealed record AssistantProviderOptions(
     string Name = "provider",
     string? ReasoningEffort = null,
     int MaxAttempts = 2,
-    bool NormalizeToolSchemas = false);
+    bool NormalizeToolSchemas = false,
+    double? Temperature = 0.1);

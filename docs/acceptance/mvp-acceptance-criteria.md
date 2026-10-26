@@ -270,7 +270,7 @@ Ante un límite de tasa, error 5xx, timeout, error de red o respuesta inválida 
 
 ## AC-064 — Consistencia entre modelos (aprobado en SPEC-022)
 
-Ambos proveedores reciben el mismo system prompt, catálogo de herramientas, idioma, reglas de formato de SPEC-021, temperatura y `max_tokens`; Gemini usa `reasoning_effort` configurable. Las preguntas de paridad devuelven los mismos hechos y la misma estructura, sin mencionar el proveedor, y el adaptador de esquema elimina las uniones y banderas que Gemini no acepta sin cambiar el esquema canónico de Groq.
+Ambos proveedores reciben el mismo system prompt, catálogo de herramientas, idioma, reglas de formato de SPEC-021 y `max_tokens`; Groq usa temperatura 0.1 y Gemini 3.x omite `temperature` (deprecado), con `reasoning_effort` configurable. Las preguntas de paridad devuelven los mismos hechos y la misma estructura, sin mencionar el proveedor, y el adaptador de esquema elimina las uniones y banderas que Gemini no acepta sin cambiar el esquema canónico de Groq.
 
 ## AC-065 — Cuotas y secretos en la verificación (aprobado en SPEC-022)
 
