@@ -26,7 +26,10 @@ if (!Uri.TryCreate(backendApiUrl, UriKind.Absolute, out var backendApiBaseAddres
 builder.Services.AddHttpClient<BackendApiClient>(client =>
 {
     client.BaseAddress = backendApiBaseAddress;
-    client.Timeout = TimeSpan.FromSeconds(5);
+    // Chat runs the provider tool loop synchronously: Gemini 3.x can take
+    // longer than the old 5 s cut-off, which aborted the turn before the API
+    // answered (SPEC-022). Short API calls are unaffected.
+    client.Timeout = TimeSpan.FromSeconds(120);
 });
 
 builder.Services.AddHttpClient<AuthApiClient>(client =>

@@ -60,3 +60,5 @@ L9 (2026-10-25, observabilidad): cada completion registra proveedor, modelo y la
 L10 (2026-10-26, producción): Gemini devolvía 404 `NOT_FOUND` en todas las llamadas: `gemini-2.5-flash` ya no está disponible para usuarios nuevos y el proveedor recomienda `gemini-3.8-flash`. El failover a Groq funcionó, pero al estar Groq limitado la API devolvía 429. Se actualiza el modelo por defecto a 3.8 Flash y se omite `temperature` en Gemini 3.x; Groq conserva 0.1. SPEC-022 §11 y ADR-0015 recogen la enmienda.
 
 L11 (2026-10-26, verificación del arreglo): build 0/0 y pruebas focalizadas 34/34; se añadió la prueba de que Gemini no envía `temperature` y Groq sí. La suite completa y el despliegue quedan como cierre de esta corrección.
+
+L12 (2026-10-26, timeout de la Web): con Gemini 3.8 la Web abortaba a los 5 s y mostraba «No se pudo contactar con el servicio de IA» mientras la API seguía procesando el turno. El cliente `BackendApiClient` pasa a 120 s para el chat; `AuthApiClient` conserva 5 s. Se añadió `BackendApiClientTimeoutTests` para impedir que vuelva a bajarse por debajo de 100 s.
