@@ -59,6 +59,7 @@ Riesgo controlado: el proveedor alternativo debe aceptar un transcript con `tool
 - En modo proveedor único: se conserva el comportamiento actual (dos intentos ante 5xx o `tool_use_failed`).
 - Cortacircuitos en memoria por proveedor: tras N fallos consecutivos (2 por defecto) el proveedor queda no disponible durante un enfriamiento (120 s por defecto) y el tráfico va al otro; al expirar, una sonda decide si vuelve. El estado es por proceso y no se persiste.
 - Si ambos fallan: se devuelve el error localizado existente. Precedencia: `RateLimited` si ambos fueron limitados; en otro caso, el motivo del último fallo observado.
+- El cliente Web espera hasta 120 s el endpoint de chat para cubrir el bucle de herramientas; las llamadas cortas conservan 5 s. Un timeout de 5 s abortaba los turnos de Gemini 3.x antes de que la API respondiera (observado en producción el 2026-10-26).
 
 ### 3.5 Consistencia entre modelos
 
@@ -199,4 +200,4 @@ Cambios aprobados por necesidad técnica:
 - `reasoning_effort=low` se conserva; en 3.x se mapea al nivel de pensamiento equivalente.
 - La petición literal del usuario se conserva como historial; el cambio de modelo es una sustitución forzada por la retirada del proveedor, no una ampliación de alcance.
 
-Evidencia: una consulta de modelos y una generación de diagnóstico en la VPS (sin imprimir claves) confirmaron el 404 y la recomendación de 3.8 Flash. El resto de la verificación sigue siendo determinista; la pasada en vivo con presupuesto queda pendiente de autorización.
+Evidencia: una consulta de modelos y una generación de diagnóstico en la VPS (sin imprimir claves) confirmaron el 404 y la recomendación de 3.8 Flash. La primera prueba con 3.8 reveló además que el cliente Web cortaba a los 5 s y abortaba el turno antes de que la API respondiera; se elevó a 120 s para el chat y se añadió una prueba que fija ese margen. El resto de la verificación sigue siendo determinista; la pasada en vivo con presupuesto queda pendiente de autorización.
